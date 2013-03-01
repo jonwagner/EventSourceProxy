@@ -1,0 +1,12 @@
+bin
+obj
+*.user
+*.suo
+*.docstates
+*.nupkg
+*.orig
+*.rej
+StyleCop.Cache
+Output
+TestResult.xml
+packages

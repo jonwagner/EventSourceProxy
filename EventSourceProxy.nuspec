@@ -1,0 +1,25 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<package>
+  <metadata>
+    <id>EventSourceProxy</id>
+    <version>1.0.0</version>
+    <title>EventSourceProxy</title>
+    <authors>Jon Wagner</authors>
+    <description>
+	Automatically implements the tedious part of the .NET 4.5 EventSource class.
+	Also automatically converts any interface to an ETW trace point.
+	Wrap your interfaces and get free ETW tracing.
+    </description>
+    <language>en-US</language>
+    <projectUrl>http://github.com/jonwagner/EventSourceProxy</projectUrl>
+    <licenseUrl>http://opensource.org/licenses/ms-pl.html</licenseUrl>
+    <tags>EventSource log semantic structured strongly-typed logging ETW tracing event listener block lab LOB slab</tags>
+  </metadata>
+  <files>
+    <file src="EventSourceProxy\bin\Release\EventSourceProxy.dll" target="lib" />
+	<file src="EventSourceProxy\bin\Release\EventSourceProxy.Activity.dll" target="lib" />
+	  <file src="EventSourceProxy\bin\Release\EventSourceProxy.dll" target="tools" />
+	  <file src="EventSourceProxy\bin\Release\EventSourceProxy.Activity.dll" target="tools" />
+	  <file src="GenerateProxyManifest\bin\Release\GenerateProxyManifest.exe" target="tools" />
+  </files>
+</package>
