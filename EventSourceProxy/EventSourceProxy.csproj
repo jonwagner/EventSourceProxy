@@ -59,6 +59,7 @@
     <Compile Include="ProviderManager.cs" />
     <Compile Include="TracingProxy.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="TracingProxyImplementer.cs" />
     <Compile Include="TypeImplementer.cs" />
     <Compile Include="UnsafeNativeMethods.cs" />
   </ItemGroup>
