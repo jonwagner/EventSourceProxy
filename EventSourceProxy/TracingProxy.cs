@@ -111,7 +111,7 @@ namespace EventSourceProxy
 			var tuple = Tuple.Create(executeType, logType);
 
 			// get the serialization provider
-			var serializer = ProviderManager.GetProvider<ITraceSerializationProvider>(logType) ?? new JsonObjectSerializer();
+			var serializer = ObjectSerializationProvider.GetSerializationProvider(logType);
 
 			// get the constructor
 			var creator = _constructors.GetOrAdd(

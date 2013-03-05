@@ -75,8 +75,8 @@ namespace EventSourceProxy
 					type,
 					t => new TypeImplementer(
 						t,
-						ProviderManager.GetProvider<ITraceContextProvider>(type),
-						ProviderManager.GetProvider<ITraceSerializationProvider>(type) ?? new JsonObjectSerializer()).Create());
+						ProviderManager.GetProvider<ITraceContextProvider>(type, null),
+						ObjectSerializationProvider.GetSerializationProvider(type)).Create());
 			}
 		}
 

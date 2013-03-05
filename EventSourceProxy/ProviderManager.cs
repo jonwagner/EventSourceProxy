@@ -41,10 +41,13 @@ namespace EventSourceProxy
 		/// </summary>
 		/// <typeparam name="T">The type of provider being provided.</typeparam>
 		/// <param name="logType">The type of event source to register with.</param>
+		/// <param name="defaultConstructor">The constructor to use to create the provider if it does not exist.</param>
 		/// <returns>The provider for a given type, or null if there is no provider.</returns>
-		internal static T GetProvider<T>(Type logType)
+		internal static T GetProvider<T>(Type logType, Func<T> defaultConstructor)
 		{
-			return (T)GetProvider(logType, typeof(T));
+			if (defaultConstructor == null)
+				defaultConstructor = () => default(T);
+			return (T)GetProvider(logType, typeof(T), () => defaultConstructor());
 		}
 
 		/// <summary>
@@ -52,22 +55,13 @@ namespace EventSourceProxy
 		/// </summary>
 		/// <param name="logType">The type of event source to register with.</param>
 		/// <param name="providerType">The type of provider being provided.</param>
+		/// <param name="defaultConstructor">The constructor to use to create the provider if it does not exist.</param>
 		/// <returns>The provider for a given type, or null if there is no provider.</returns>
-		private static object GetProvider(Type logType, Type providerType)
+		private static object GetProvider(Type logType, Type providerType, Func<object> defaultConstructor)
 		{
-			object provider = null;
-
 			var key = Tuple.Create(logType, providerType);
-			_providers.TryGetValue(key, out provider);
 
-			if (_providers.Count > 0)
-			{
-				var p = _providers.Keys.First();
-				bool b1 = key.Item1 == p.Item1;
-				bool b2 = key.Item2 == p.Item2;
-			}
-
-			return provider;
+			return _providers.GetOrAdd(key, _ => defaultConstructor());
 		}
 	}
 }
