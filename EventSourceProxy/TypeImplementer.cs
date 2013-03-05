@@ -171,6 +171,23 @@ namespace EventSourceProxy
 
 			return false;
 		}
+
+		/// <summary>
+		/// Given a type, returns the type that EventSource supports.
+		/// This dereferences pointers and converts unsupported types to strings.
+		/// </summary>
+		/// <param name="type">The type to translate.</param>
+		/// <returns>The associated type that EventSource supports.</returns>
+		internal static Type GetTypeSupportedByEventSource(Type type)
+		{
+			if (TypeIsSupportedByEventSource(type))
+				return type;
+
+			if (type.IsByRef && TypeIsSupportedByEventSource(type.GetElementType()))
+				return type.GetElementType();
+
+			return typeof(string);
+		}
 		#endregion
 
 		#region Type Implementation
@@ -307,7 +324,7 @@ namespace EventSourceProxy
 			var parameterTypes = parameters.Select(p => p.ParameterType).ToArray();
 
 			// some types aren't supported in event source. we will convert them to strings
-			var targetParameters = parameterTypes.Select(t => TypeIsSupportedByEventSource(t) ? t : typeof(string)).ToList();
+			var targetParameters = parameterTypes.Select(t => GetTypeSupportedByEventSource(t)).ToList();
 			
 			// if we are implementing an interface, then add an string context parameter
 			if (_supportsContext)
@@ -481,10 +498,14 @@ namespace EventSourceProxy
 				// if the target is a value type, then we can box the source type
 				// and the CLR will apply conversions for us
 				// at this point, all invalid types have been converted to strings in EmitDirectProxy
-				var sourceType = sourceParameterTypes[i];
-				var targetType = targetParameterTypes[i];
-				if (targetType.IsValueType)
+				// and references have been dereferenced
+				if (targetParameterTypes[i].IsValueType)
+				{
+					var sourceType = sourceParameterTypes[i];
+					if (sourceType.IsByRef)
+						sourceType = sourceType.GetElementType();
 					mIL.Emit(OpCodes.Box, sourceType);
+				}
 
 				mIL.Emit(OpCodes.Stelem, typeof(object));
 			}
@@ -530,9 +551,16 @@ namespace EventSourceProxy
 				var sourceType = sourceParameterTypes[i - 1];
 				var targetType = targetParameterTypes[i - 1];
 
-				// if the types match, just put the argument on the stack
-				if (sourceType == targetType)
+				// if the source type is a reference to the target type, we have to dereference it
+				if (sourceType.IsByRef && sourceType.GetElementType() == targetType)
 				{
+					mIL.Emit(OpCodes.Ldarg, i);
+					sourceType = sourceType.GetElementType();
+					mIL.Emit(OpCodes.Ldobj, sourceType);
+				}
+				else if (sourceType == targetType)
+				{
+					// if the types match, just put the argument on the stack
 					mIL.Emit(OpCodes.Ldarg, i);
 				}
 				else
@@ -551,8 +579,11 @@ namespace EventSourceProxy
 					}
 					else
 					{
+						// note that the parameter index is 1-based, but the parameters from the method builder will be 0-based
+						int parameterIndex = i - 1;
+
 						// non-fundamental types use the object serializer
-						if (_serializationProvider.ShouldSerialize(methodBuilder, i))
+						if (_serializationProvider.ShouldSerialize(methodBuilder, parameterIndex))
 						{
 							// get the object serializer from the this pointer
 							mIL.Emit(OpCodes.Ldarg_0);
@@ -560,12 +591,21 @@ namespace EventSourceProxy
 
 							// load the value
 							mIL.Emit(OpCodes.Ldarg, i);
+
+							// if the source type is a reference to the target type, we have to dereference it
+							if (sourceType.IsByRef)
+							{
+								sourceType = sourceType.GetElementType();
+								mIL.Emit(OpCodes.Ldobj, sourceType);
+							}
+
+							// if it's a value type, we have to box it to log it
 							if (sourceType.IsValueType)
 								mIL.Emit(OpCodes.Box, sourceType);
 
 							// add the method builder and parameter index
 							mIL.Emit(OpCodes.Ldtoken, methodBuilder);
-							mIL.Emit(OpCodes.Ldc_I4, i);
+							mIL.Emit(OpCodes.Ldc_I4, parameterIndex);
 
 							mIL.Emit(OpCodes.Callvirt, typeof(ITraceSerializationProvider).GetMethod("SerializeObject", BindingFlags.Instance | BindingFlags.Public));
 						}

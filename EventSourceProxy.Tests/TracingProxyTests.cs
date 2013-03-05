@@ -321,5 +321,79 @@ namespace EventSourceProxy.Tests
 			Assert.AreEqual(Guid.Empty, EventActivityScope.CurrentActivityId);
 		}
 		#endregion
+
+		#region Interface With Reference Parameters
+		public class ReferenceData
+		{
+			public int Data;
+		}
+
+		public interface ITestServiceWithReferenceParameters
+		{
+			void GetItem(ref int value);
+			void GetData(ref ReferenceData value);
+		}
+
+		public class TaskService : ITestServiceWithReferenceParameters
+		{
+			public void GetItem(ref int value) { value++; }
+			public void GetData(ref ReferenceData value) { value = new ReferenceData() { Data = value.Data + 1 }; }
+		}
+
+		[Test]
+		public void CanImplementInterfaceWithReferenceParameter()
+		{
+			int value;
+
+			// test the service
+			var service = new TaskService();
+			value = 1;
+			service.GetItem(ref value);
+			Assert.AreEqual(2, value);
+
+			// log a class reference
+			var data = new ReferenceData() { Data = 5 };
+			var resultData = data;
+			service.GetData(ref resultData);
+			Assert.AreNotEqual(data, resultData);
+			Assert.AreEqual(data.Data + 1, resultData.Data);
+
+			// turn on logging
+			var log = EventSourceImplementer.GetEventSourceAs<ITestServiceWithReferenceParameters>();
+			_listener.EnableEvents((EventSource)log, EventLevel.LogAlways, (EventKeywords)(-1));
+
+			// log a built-in type reference
+			value = 1;
+			log.GetItem(ref value);
+
+			// log a class reference
+			data = new ReferenceData() { Data = 5 };
+			resultData = data;
+			log.GetData(ref resultData);
+
+			// create a proxy
+			var proxy = TracingProxy.Create<ITestServiceWithReferenceParameters>(service);
+
+			// proxy a built-in type reference
+			value = 1;
+			proxy.GetItem(ref value);
+			Assert.AreEqual(2, value);
+
+			// proxy a class reference
+			data = new ReferenceData() { Data = 7 };
+			resultData = data;
+			proxy.GetData(ref resultData);
+			Assert.AreNotEqual(data, resultData);
+			Assert.AreEqual(data.Data + 1, resultData.Data);
+
+			// look at the events
+			var events = _listener.Events.ToArray();
+			Assert.AreEqual(6, events.Length);
+
+			// check the individual events to make sure the data came back in the payload
+			Assert.AreEqual(1, events[0].Payload[0]);
+			Assert.AreEqual(new JsonObjectSerializer().SerializeObject(data, new RuntimeMethodHandle(), 0), events[4].Payload[0]);
+		}
+		#endregion
 	}
 }

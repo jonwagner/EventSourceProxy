@@ -258,7 +258,7 @@ namespace EventSourceProxy
 			if (executeMethod.ReturnType != typeof(void))
 				mIL.Emit(OpCodes.Stloc_1);
 
-			var completedParameterTypes = new Type[] { TypeImplementer.TypeIsSupportedByEventSource(executeMethod.ReturnType) ? executeMethod.ReturnType : typeof(string) };
+			var completedParameterTypes = new Type[] { TypeImplementer.GetTypeSupportedByEventSource(executeMethod.ReturnType) };
 
 			// if there is a completed method, then call that
 			var completedMethod = DiscoverMethod(_logField.FieldType, executeMethod.Name + "_Completed", completedParameterTypes) ??
