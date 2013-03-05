@@ -228,6 +228,31 @@ namespace EventSourceProxy.Tests
 		}
 		#endregion
 
+		#region Proxy for Object with Instance Variables
+		public interface IInstance
+		{
+			int GetValue();
+		}
+		public class Instance : IInstance
+		{
+			public int Value;
+			public int GetValue() { return Value; }
+		}
+
+		[Test]
+		public void TestThatInstancePointerIsPassedProperly()
+		{
+			Instance i = new Instance() { Value = 99 };
+			Assert.AreEqual(99, i.GetValue());
+
+			var proxy = TracingProxy.Create<IInstance>(i);
+			Assert.AreEqual(99, proxy.GetValue());
+
+			proxy = (IInstance)TracingProxy.Create(i, typeof(IInstance));
+			Assert.AreEqual(99, proxy.GetValue());
+		}
+		#endregion
+
 		#region Automatic Activity ID Tests
 		public class AutomaticActivity
 		{

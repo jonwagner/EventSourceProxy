@@ -3,9 +3,18 @@
 **EventSourceProxy** (ESP) is the easiest way to add scalable Event Tracing for Windows (ETW) logging to your .NET program.
 
 *v1.0 Coming to NuGet soon...*
-*Full wiki docs coming soon...*
 
-Here is ESP creating a logging interface for you automatically:
+Follow [@jonwagnerdotcom](http://twitter.com/#!jonwagnerdotcom) for latest updates on this library or [code.jonwagner.com](http://code.jonwagner.com) for more detailed writeups.
+
+## Why You Want This ##
+
+- You really should be logging more than you do now.
+- ETW is the best way to log in Windows.
+- It's about zero effort to add logging to new code.
+- It's zero effort to add logging to existing interfaces.
+- Generated IL keeps overhead low, and it's almost nothing if tracing is off.
+
+Here is ESP implementing a logging interface for you automatically:
 
 	public interface ILog
 	{
@@ -19,7 +28,7 @@ Here is ESP creating a logging interface for you automatically:
 	log.SomethingIsStarting("hello");
 	log.SomethingIsFinishing("goodbye");
 
-Here is ESP doing the hard work of implementing an EventSource:
+Here is ESP doing the hard work of implementing an EventSource if you really want to do that:
 
 	public abstract MyEventSource : EventSource
 	{
@@ -49,6 +58,7 @@ Here is ESP wrapping an existing interface for tracing:
 	// again, that's it
 	ICalculator proxy = TracingProxy.Create<ICalculator>(calculator);
 
+	// all calls are automatically logged when the ETW source is enabled
 	int total = proxy.Add(1, 2);
 
 # Features #
@@ -69,4 +79,4 @@ Here is ESP wrapping an existing interface for tracing:
 
 # Good References #
 
-* Want to get the data out of ETW? Use the [Microsoft Enterprise Library Semantic Logging Application Block](http://nuget.org/packages/EnterpriseLibrary.SemanticLogging/). It has ETW listeners to log to the console, rolling flat file, and databases so you can integrate ETW with your existing log destinations.
+* Want to get the data out of ETW? Use the [Microsoft Enterprise Library Semantic Logging Application Block](http://nuget.org/packages/EnterpriseLibrary.SemanticLogging/). It has ETW listeners to log to the console, rolling flat file, and databases, so you can integrate ETW with your existing log destinations.

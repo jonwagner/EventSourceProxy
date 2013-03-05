@@ -21,7 +21,11 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GenerateProxyManifest", "Ge
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{773540B5-F7A1-4E68-8343-C738E2183769}"
 	ProjectSection(SolutionItems) = preProject
+		autobuild.bat = autobuild.bat
+		autobuild.proj = autobuild.proj
 		EventSourceProxy.nuspec = EventSourceProxy.nuspec
+		README.md = README.md
+		testbuild.bat = testbuild.bat
 	EndProjectSection
 EndProject
 Global

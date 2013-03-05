@@ -59,6 +59,28 @@ namespace EventSourceProxy
 		}
 
 		/// <summary>
+		/// Implements an EventSource that matches the virtual or abstract methods of a type.
+		/// If the type is an interface, this creates a type derived from EventSource that implements the interface.
+		/// If the type is a class derived from EventSource, this derives from the type and implements any abstract methods.
+		/// If the type is a class not derived from EventSource, this creates a type derived from EventSource that implements
+		/// method that match the virtual methods of the target type.
+		/// </summary>
+		/// <param name="type">An type to implement as an EventSource.</param>
+		/// <returns>An EventSource that is compatible with the given type.</returns>
+		public static EventSource GetEventSource(Type type)
+		{
+			lock (_eventSources)
+			{
+				return (EventSource)_eventSources.GetOrAdd(
+					type,
+					t => new TypeImplementer(
+						t,
+						ProviderManager.GetProvider<ITraceContextProvider>(type),
+						ProviderManager.GetProvider<ITraceSerializationProvider>(type) ?? new JsonObjectSerializer()).Create());
+			}
+		}
+
+		/// <summary>
 		/// Registers a Context Provider for a given event source.
 		/// </summary>
 		/// <typeparam name="TLog">The type of event source to register with.</typeparam>
@@ -80,28 +102,6 @@ namespace EventSourceProxy
 		#endregion
 
 		#region Internal Members
-		/// <summary>
-		/// Implements an EventSource that matches the virtual or abstract methods of a type.
-		/// If the type is an interface, this creates a type derived from EventSource that implements the interface.
-		/// If the type is a class derived from EventSource, this derives from the type and implements any abstract methods.
-		/// If the type is a class not derived from EventSource, this creates a type derived from EventSource that implements
-		/// method that match the virtual methods of the target type.
-		/// </summary>
-		/// <param name="type">An type to implement as an EventSource.</param>
-		/// <returns>An EventSource that is compatible with the given type.</returns>
-		internal static EventSource GetEventSource(Type type)
-		{
-			lock (_eventSources)
-			{
-				return (EventSource)_eventSources.GetOrAdd(
-					type,
-					t => new TypeImplementer(
-						t,
-						ProviderManager.GetProvider<ITraceContextProvider>(type),
-						ProviderManager.GetProvider<ITraceSerializationProvider>(type) ?? new JsonObjectSerializer()).Create());
-			}
-		}
-
 		/// <summary>
 		/// Registers a Provider for a given event source.
 		/// </summary>

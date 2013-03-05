@@ -436,5 +436,42 @@ namespace EventSourceProxy.Tests
 			Assert.Throws<InvalidOperationException>(() => EventSourceImplementer.GetEventSourceAs<NotAnEventSource>());
 		}
 		#endregion
+
+		#region Interface With Generic Types
+		public interface ITaskService
+		{
+			Task<string> GetItem(string value);
+		}
+
+		public class TaskService : ITaskService
+		{
+			public Task<string> GetItem(string value) { return Task.FromResult(value); }
+		}
+
+		[Test]
+		public void CanImplementInterfaceWithTaskReturn()
+		{
+			// this was causing issues with the completed method
+			var log = EventSourceImplementer.GetEventSourceAs<ITaskService>();
+			_listener.EnableEvents((EventSource)log, EventLevel.LogAlways, (EventKeywords)(-1));
+
+			// check the service
+			var service = new TaskService();
+			Assert.AreEqual("foo", service.GetItem("foo").Result);
+
+			// try a proxy
+			var proxy = TracingProxy.Create<ITaskService>(service);
+			var task = proxy.GetItem("foo");
+			Assert.AreEqual("foo", task.Result);
+
+			// look at the events
+			var events = _listener.Events.ToArray();
+			Assert.AreEqual(2, events.Length);
+
+			// check the individual events to make sure the task came back in the payload
+			Assert.AreEqual(1, events[1].Payload.Count);
+			Assert.AreEqual(new JsonObjectSerializer().SerializeObject(task, new RuntimeMethodHandle(), 0), events[1].Payload[0]);
+		}
+		#endregion
 	}
 }

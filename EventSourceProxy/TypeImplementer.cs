@@ -19,6 +19,11 @@ namespace EventSourceProxy
 	{
 		#region Private Fields
 		/// <summary>
+		/// The name of the generated dynamic assembly.
+		/// </summary>
+		internal const string AssemblyName = "EventSourceImplementation";
+
+		/// <summary>
 		/// The name of the Keywords class.
 		/// </summary>
 		private const string Keywords = "Keywords";
@@ -176,6 +181,7 @@ namespace EventSourceProxy
 		{
 			// create a new assembly
 			AssemblyName an = Assembly.GetExecutingAssembly().GetName();
+			an.Name = AssemblyName;
 			AssemblyBuilder ab = AppDomain.CurrentDomain.DefineDynamicAssembly(an, AssemblyBuilderAccess.Run);
 			ModuleBuilder mb = ab.DefineDynamicModule(an.Name);
 
@@ -376,6 +382,7 @@ namespace EventSourceProxy
 
 		/// <summary>
 		/// Emits a _Completed version of a given event that logs the result of an operation.
+		/// The _Completed event is used by TracingProxy to signal the end of a method call.
 		/// </summary>
 		/// <param name="interfaceMethod">The method to use as a template.</param>
 		/// <param name="eventId">The next available event ID.</param>
@@ -392,7 +399,8 @@ namespace EventSourceProxy
 
 			// if the interface already has a _Completed method, don't emit a new one
 			var parameterTypes = interfaceMethod.ReturnType == typeof(void) ? Type.EmptyTypes : new Type[] { interfaceMethod.ReturnType };
-			if (interfaceMethod.DeclaringType.GetMethod(interfaceMethod.Name + CompletedSuffix, parameterTypes) != null)
+			if (interfaceMethod.DeclaringType.GetMethod(interfaceMethod.Name + CompletedSuffix, parameterTypes) != null ||
+				interfaceMethod.DeclaringType.GetMethod(interfaceMethod.Name + CompletedSuffix, Type.EmptyTypes) != null)
 				return;
 
 			var targetParameters = parameterTypes.Select(t => TypeIsSupportedByEventSource(t) ? t : typeof(string)).ToList();
@@ -418,13 +426,13 @@ namespace EventSourceProxy
 			// create the internal method that calls WriteEvent
 			// this cannot be virtual or static, or the manifest builder will skip it
 			// it also cannot return a value
-			MethodBuilder m = _typeBuilder.DefineMethod(interfaceMethod.Name + CompletedSuffix, MethodAttributes.Public, typeof(void), parameterTypes);
+			MethodBuilder m = _typeBuilder.DefineMethod(interfaceMethod.Name + CompletedSuffix, MethodAttributes.Public, typeof(void), targetParameterTypes);
 			m.SetCustomAttribute(EventAttributeHelper.ConvertEventAttributeToAttributeBuilder(eventAttribute));
 
 			// the base class is not an event source, so we are createing an eventsource-derived class
 			// that just logs the event
 			// so we need to call write event
-			EmitCallWriteEvent(m, eventAttribute, parameterTypes, targetParameterTypes);
+			EmitCallWriteEvent(m, eventAttribute, targetParameterTypes, targetParameterTypes);
 		}
 
 		/// <summary>
