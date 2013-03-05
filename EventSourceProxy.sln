@@ -15,8 +15,6 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = ".nuget", ".nuget", "{E0DEA2
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EventSourceProxy.Example", "EventSourceProxy.Example\EventSourceProxy.Example.csproj", "{581BDCB4-6413-4272-B85F-4D39F6C131B8}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EventSourceProxy.Activity", "EventSourceProxy.Activity\EventSourceProxy.Activity.csproj", "{1CDDB1B5-F027-444D-A55F-F819D5C6B0B6}"
-EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GenerateProxyManifest", "GenerateProxyManifest\GenerateProxyManifest.csproj", "{A01CE647-4B33-43E0-8DD4-F45F732D4C77}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{773540B5-F7A1-4E68-8343-C738E2183769}"
@@ -46,10 +44,6 @@ Global
 		{581BDCB4-6413-4272-B85F-4D39F6C131B8}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{581BDCB4-6413-4272-B85F-4D39F6C131B8}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{581BDCB4-6413-4272-B85F-4D39F6C131B8}.Release|Any CPU.Build.0 = Release|Any CPU
-		{1CDDB1B5-F027-444D-A55F-F819D5C6B0B6}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{1CDDB1B5-F027-444D-A55F-F819D5C6B0B6}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{1CDDB1B5-F027-444D-A55F-F819D5C6B0B6}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{1CDDB1B5-F027-444D-A55F-F819D5C6B0B6}.Release|Any CPU.Build.0 = Release|Any CPU
 		{A01CE647-4B33-43E0-8DD4-F45F732D4C77}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{A01CE647-4B33-43E0-8DD4-F45F732D4C77}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{A01CE647-4B33-43E0-8DD4-F45F732D4C77}.Release|Any CPU.ActiveCfg = Release|Any CPU

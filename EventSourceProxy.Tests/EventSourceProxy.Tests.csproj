@@ -59,10 +59,6 @@
     <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\EventSourceProxy.Activity\EventSourceProxy.Activity.csproj">
-      <Project>{1cddb1b5-f027-444d-a55f-f819d5c6b0b6}</Project>
-      <Name>EventSourceProxy.Activity</Name>
-    </ProjectReference>
     <ProjectReference Include="..\EventSourceProxy\EventSourceProxy.csproj">
       <Project>{40dabaad-795a-4420-982f-08be1978fe02}</Project>
       <Name>EventSourceProxy</Name>

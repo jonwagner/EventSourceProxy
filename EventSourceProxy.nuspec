@@ -17,9 +17,7 @@
   </metadata>
   <files>
     <file src="EventSourceProxy\bin\Release\EventSourceProxy.dll" target="lib" />
-	<file src="EventSourceProxy\bin\Release\EventSourceProxy.Activity.dll" target="lib" />
 	  <file src="EventSourceProxy\bin\Release\EventSourceProxy.dll" target="tools" />
-	  <file src="EventSourceProxy\bin\Release\EventSourceProxy.Activity.dll" target="tools" />
 	  <file src="GenerateProxyManifest\bin\Release\GenerateProxyManifest.exe" target="tools" />
   </files>
 </package>
