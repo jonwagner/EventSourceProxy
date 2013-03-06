@@ -30,8 +30,16 @@ namespace EventSourceProxy
 			if (sourceMethod.IsGenericMethod)
 			{
 				// get the interface's generic types and make our own
-				var imGenericTypes = sourceMethod.GetGenericArguments();
-				var myGenericTypes = targetMethod.DefineGenericParameters(imGenericTypes.Select(t => t.Name).ToArray());
+				var oldTypes = sourceMethod.GetGenericArguments();
+				var newTypes = targetMethod.DefineGenericParameters(oldTypes.Select(t => t.Name).ToArray());
+				for (int i = 0; i < newTypes.Length; i++)
+				{
+					var oldType = oldTypes[i];
+					var newType = newTypes[i];
+
+					newType.SetGenericParameterAttributes(oldType.GenericParameterAttributes);
+					newType.SetInterfaceConstraints(oldType.GetGenericParameterConstraints());
+				}
 			}
 
 			targetMethod.SetReturnType(sourceMethod.ReturnType);

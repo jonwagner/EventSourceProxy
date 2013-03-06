@@ -402,6 +402,7 @@ namespace EventSourceProxy.Tests
 			T GetItem<T>(T value);
 			void GetItem2<TIn, TIn2>(TIn value, TIn2 value2);
 			TOut GetItem3<TIn, TOut>(TIn value);
+			T Constrained<T>(T t) where T : class;
 		}
 
 		public class TestServiceWithGenericMethods : ITestServiceWithGenericMethods
@@ -409,6 +410,7 @@ namespace EventSourceProxy.Tests
 			public T GetItem<T>(T value) { return value; }
 			public void GetItem2<TIn, TIn2>(TIn value, TIn2 value2) { }
 			public TOut GetItem3<TIn, TOut>(TIn value) { return default(TOut); }
+			public T Constrained<T>(T t) where T : class { return t; }
 		}
 
 		[Test]
@@ -426,10 +428,11 @@ namespace EventSourceProxy.Tests
 			log.GetItem2<decimal, decimal>((decimal)1, (decimal)2);
 			log.GetItem3<int, int>((int)1);
 			log.GetItem3<string, string>("x");
+			log.Constrained<string>("y");
 
-			//// look at the events
+			// look at the events
 			var events = _listener.Events.ToArray();
-			Assert.AreEqual(8, events.Length);
+			Assert.AreEqual(9, events.Length);
 
 			// check the individual events to make sure the data came back in the payload
 			Assert.AreEqual(1, events[0].Payload.Count);
@@ -446,9 +449,10 @@ namespace EventSourceProxy.Tests
 			proxy.GetItem2<decimal, decimal>((decimal)1, (decimal)2);
 			proxy.GetItem3<int, int>((int)1);
 			proxy.GetItem3<string, string>("x");
+			proxy.Constrained<string>("y");
 
 			events = _listener.Events.ToArray();
-			Assert.AreEqual(16, events.Length);
+			Assert.AreEqual(18, events.Length);
 
 			// check the individual events to make sure the data came back in the payload
 			Assert.AreEqual(1, events[0].Payload.Count);
