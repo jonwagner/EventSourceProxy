@@ -4,6 +4,7 @@ using System.Linq;
 using System.Reflection;
 using System.Reflection.Emit;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
 namespace EventSourceProxy
@@ -232,7 +233,7 @@ namespace EventSourceProxy
 
 			// call the method on the log that matches the execute method
 			var targetParameterTypes = parameterTypes.Select(p => p.IsGenericParameter ? TypeImplementer.GetTypeSupportedByEventSource(p) : p).ToArray();
-			var logMethod = DiscoverMethod(_logField.FieldType, executeMethod.Name, targetParameterTypes);
+			var logMethod = DiscoverMethod(_logField.FieldType, executeMethod.Name, String.Empty, targetParameterTypes);
 			if (logMethod != null)
 			{
 				// call the log method and throw away the result if there is one
@@ -248,8 +249,8 @@ namespace EventSourceProxy
 
 			// if there is a completed method, then call that
 			var completedParameterTypes = new Type[] { TypeImplementer.GetTypeSupportedByEventSource(executeMethod.ReturnType) };
-			var completedMethod = DiscoverMethod(_logField.FieldType, executeMethod.Name + "_Completed", completedParameterTypes) ??
-				DiscoverMethod(_logField.FieldType, executeMethod.Name + "_Completed", Type.EmptyTypes);
+			var completedMethod = DiscoverMethod(_logField.FieldType, executeMethod.Name, "_Completed", completedParameterTypes) ??
+				DiscoverMethod(_logField.FieldType, executeMethod.Name, "_Completed", Type.EmptyTypes);
 			if (completedMethod != null)
 			{
 				// load this._log
@@ -334,18 +335,21 @@ namespace EventSourceProxy
 		/// </summary>
 		/// <param name="type">The type to analyze.</param>
 		/// <param name="methodName">The name of the method to look up.</param>
+		/// <param name="suffix">A suffix on the method name to look up.</param>
 		/// <param name="parameterTypes">The types of parameters.</param>
 		/// <returns>The method information or null.</returns>
-		private MethodInfo DiscoverMethod(Type type, string methodName, Type[] parameterTypes)
+		private MethodInfo DiscoverMethod(Type type, string methodName, string suffix, Type[] parameterTypes)
 		{
 			var methods = type.GetMethods();
-			var method = type.GetMethod(methodName, BindingFlags.Instance | BindingFlags.Public, null, parameterTypes, null) ??
-				type.GetMethod("_" + methodName, BindingFlags.Instance | BindingFlags.Public, null, parameterTypes, null);
+
+			var method = methods.FirstOrDefault(m => Regex.IsMatch(m.Name, "_?" + Regex.Escape(methodName + suffix)) && ProxyHelper.ParametersMatch(m, parameterTypes)) ??
+						methods.FirstOrDefault(m => Regex.IsMatch(m.Name, "_?" + Regex.Escape(methodName) + "_\\d+" + Regex.Escape(suffix)) && ProxyHelper.ParametersMatch(m, parameterTypes));
+
 			if (method == null && type.IsInterface)
 			{
 				foreach (Type baseInterface in type.GetInterfaces())
 				{
-					method = DiscoverMethod(baseInterface, methodName, parameterTypes);
+					method = DiscoverMethod(baseInterface, methodName, suffix, parameterTypes);
 					if (method != null)
 						return method;
 				}

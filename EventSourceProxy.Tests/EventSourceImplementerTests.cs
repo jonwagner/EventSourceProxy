@@ -473,5 +473,39 @@ namespace EventSourceProxy.Tests
 			Assert.AreEqual(new JsonObjectSerializer().SerializeObject(task, new RuntimeMethodHandle(), 0), events[1].Payload[0]);
 		}
 		#endregion
+
+		#region Interface with Duplicate Names
+		public interface IHaveDuplicateNames
+		{
+			int Get(int i);
+			string Get(string s);
+		}
+
+		public class HaveDuplicateNames : IHaveDuplicateNames
+		{
+			public int Get(int i) { return i; }
+			public string Get(string s) { return s; }
+		}
+
+		[Test]
+		public void CanImplementInterfaceWithDuplicateNames()
+		{
+			// this was causing issues with the completed method
+			var log = EventSourceImplementer.GetEventSourceAs<IHaveDuplicateNames>();
+			_listener.EnableEvents((EventSource)log, EventLevel.LogAlways, (EventKeywords)(-1));
+
+			log.Get(1);
+			log.Get("s");
+
+			// try a proxy
+			var proxy = TracingProxy.Create<IHaveDuplicateNames>(new HaveDuplicateNames());
+			Assert.AreEqual(2, proxy.Get(2));
+			Assert.AreEqual("foo", proxy.Get("foo"));
+
+			// look at the events
+			var events = _listener.Events.ToArray();
+			Assert.AreEqual(6, events.Length);
+		}
+		#endregion
 	}
 }

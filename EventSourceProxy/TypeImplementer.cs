@@ -223,12 +223,14 @@ namespace EventSourceProxy
 			ulong autoKeyword = hasKeywords ? (ulong)0 : 1;
 
 			// for each method on the interface, try to implement it with a call to eventsource
+			Dictionary<string, ulong> autoKeywords = new Dictionary<string, ulong>();
 			foreach (MethodInfo interfaceMethod in interfaceMethods)
 			{
-				EmitMethodImpl(interfaceMethod, ref eventId, (EventKeywords)autoKeyword);
-				EmitMethodCompletedImpl(interfaceMethod, ref eventId, (EventKeywords)autoKeyword);
+				var beginMethod = EmitMethodImpl(interfaceMethod, ref eventId, (EventKeywords)autoKeyword);
+				EmitMethodCompletedImpl(interfaceMethod, beginMethod, ref eventId, (EventKeywords)autoKeyword);
 
 				// shift to the next keyword
+				autoKeywords.Add(beginMethod.Name, autoKeyword);
 				autoKeyword <<= 1;
 			}
 
@@ -239,7 +241,7 @@ namespace EventSourceProxy
 			if (hasKeywords)
 				EmitEnumImplementation(implementationAttribute.Keywords, Keywords, typeof(EventKeywords));
 			else
-				EmitKeywordImpl(interfaceMethods);
+				EmitKeywordImpl(autoKeywords);
 			EmitEnumImplementation(implementationAttribute.OpCodes, Opcodes, typeof(EventOpcode));
 			EmitEnumImplementation(implementationAttribute.Tasks, Tasks, typeof(EventTask));
 
@@ -307,7 +309,8 @@ namespace EventSourceProxy
 		/// <param name="interfaceMethod">The method to implement.</param>
 		/// <param name="eventId">The next eventID to use.</param>
 		/// <param name="autoKeyword">The auto-keyword to use if enabled.</param>
-		private void EmitMethodImpl(MethodInfo interfaceMethod, ref int eventId, EventKeywords autoKeyword)
+		/// <returns>The method that is implemented.</returns>
+		private MethodBuilder EmitMethodImpl(MethodInfo interfaceMethod, ref int eventId, EventKeywords autoKeyword)
 		{
 			// look at the parameters on the interface
 			var parameters = interfaceMethod.GetParameters();
@@ -321,6 +324,13 @@ namespace EventSourceProxy
 				targetParameters.Add(typeof(string));
 			var targetParameterTypes = targetParameters.ToArray();
 
+			// calculate the method name
+			// if there is more than one method with the given name, then append an ID to it
+			var methodName = interfaceMethod.Name;
+			var matchingMethods = interfaceMethod.DeclaringType.GetMethods().AsEnumerable().Where(im => String.Compare(im.Name, methodName, StringComparison.OrdinalIgnoreCase) == 0).ToArray();
+			if (matchingMethods.Length > 1)
+				methodName += "_" + Array.IndexOf(matchingMethods, interfaceMethod).ToString(CultureInfo.InvariantCulture);
+
 			// determine if this is a non-event or an event
 			// if an event, but there is no event attribute, just add one to the last event id
 			EventAttribute eventAttribute = null;
@@ -330,7 +340,7 @@ namespace EventSourceProxy
 				if (eventAttribute == null)
 				{
 					eventAttribute = new EventAttribute(eventId++);
-					eventAttribute.Message = interfaceMethod.Name;
+					eventAttribute.Message = methodName;
 				}
 			}
 
@@ -341,7 +351,7 @@ namespace EventSourceProxy
 			// create the internal method that calls WriteEvent
 			// this cannot be virtual or static, or the manifest builder will skip it
 			// it also cannot return a value
-			MethodBuilder m = _typeBuilder.DefineMethod(interfaceMethod.Name, MethodAttributes.Public, typeof(void), targetParameterTypes);
+			MethodBuilder m = _typeBuilder.DefineMethod(methodName, MethodAttributes.Public, typeof(void), targetParameterTypes);
 			{
 				// copy the Event or NonEvent attribute from the interface
 				if (eventAttribute != null)
@@ -368,7 +378,7 @@ namespace EventSourceProxy
 
 					// then implement the interface method as calling the core method
 					// this must be virtual to be an interface override
-					MethodBuilder im = _typeBuilder.DefineMethod("_" + interfaceMethod.Name, MethodAttributes.Public | MethodAttributes.Virtual);
+					MethodBuilder im = _typeBuilder.DefineMethod("_" + methodName, MethodAttributes.Public | MethodAttributes.Virtual);
 					ProxyHelper.CopyMethodSignature(interfaceMethod, im);
 					EmitDirectProxy(im, m, parameterTypes, targetParameterTypes);
 
@@ -389,6 +399,8 @@ namespace EventSourceProxy
 					EmitCallWriteEvent(m, eventAttribute, parameterTypes, targetParameterTypes);
 				}
 			}
+
+			return m;
 		}
 
 		/// <summary>
@@ -396,9 +408,10 @@ namespace EventSourceProxy
 		/// The _Completed event is used by TracingProxy to signal the end of a method call.
 		/// </summary>
 		/// <param name="interfaceMethod">The method to use as a template.</param>
+		/// <param name="beginMethod">The begin method for this interface call.</param>
 		/// <param name="eventId">The next available event ID.</param>
 		/// <param name="autoKeyword">The auto-keyword to use if enabled.</param>
-		private void EmitMethodCompletedImpl(MethodInfo interfaceMethod, ref int eventId, EventKeywords autoKeyword)
+		private void EmitMethodCompletedImpl(MethodInfo interfaceMethod, MethodInfo beginMethod, ref int eventId, EventKeywords autoKeyword)
 		{
 			// if there is a NonEvent attribute, then no need to emit this method
 			if (interfaceMethod.GetCustomAttribute<NonEventAttribute>() != null)
@@ -408,7 +421,7 @@ namespace EventSourceProxy
 			if (interfaceMethod.Name.EndsWith(CompletedSuffix, StringComparison.OrdinalIgnoreCase))
 				return;
 
-			var methodName = interfaceMethod.Name + CompletedSuffix;
+			var methodName = beginMethod.Name + CompletedSuffix;
 
 			// if the interface already has a _Completed method, don't emit a new one
 			var parameterTypes = interfaceMethod.ReturnType == typeof(void) ? Type.EmptyTypes : new Type[] { interfaceMethod.ReturnType };
@@ -439,10 +452,10 @@ namespace EventSourceProxy
 			// create the internal method that calls WriteEvent
 			// this cannot be virtual or static, or the manifest builder will skip it
 			// it also cannot return a value
-			MethodBuilder m = _typeBuilder.DefineMethod(interfaceMethod.Name + CompletedSuffix, MethodAttributes.Public, typeof(void), targetParameterTypes);
+			MethodBuilder m = _typeBuilder.DefineMethod(methodName, MethodAttributes.Public, typeof(void), targetParameterTypes);
 			m.SetCustomAttribute(EventAttributeHelper.ConvertEventAttributeToAttributeBuilder(eventAttribute));
 
-			// the base class is not an event source, so we are createing an eventsource-derived class
+			// the base class is not an event source, so we are creating an eventsource-derived class
 			// that just logs the event
 			// so we need to call write event
 			EmitCallWriteEvent(m, eventAttribute, targetParameterTypes, targetParameterTypes);
@@ -637,19 +650,17 @@ namespace EventSourceProxy
 		/// <summary>
 		/// When the Keywords enum is not defined, emit the implementation of the Keywords enum, automatically generated from the interface.
 		/// </summary>
-		/// <param name="methods">The list of logging methods to use to generate the enum.</param>
-		private void EmitKeywordImpl(IEnumerable<MethodInfo> methods)
+		/// <param name="autoKeywords">The list of logging methods to use to generate the enum.</param>
+		private void EmitKeywordImpl(Dictionary<string, ulong> autoKeywords)
 		{
 			// create a new nested type
 			TypeBuilder nt = _typeBuilder.DefineNestedType(Keywords, TypeAttributes.NestedPublic | TypeAttributes.Class);
 
 			// go through the type containing the codes and copy them to our new type
-			ulong keyword = 1;
-			foreach (MethodInfo method in methods)
+			foreach (var pair in autoKeywords)
 			{
-				FieldBuilder fb = nt.DefineField(method.Name, typeof(EventKeywords), FieldAttributes.FamANDAssem | FieldAttributes.Family | FieldAttributes.Static | FieldAttributes.Literal | FieldAttributes.HasDefault);
-				fb.SetConstant((EventKeywords)keyword);
-				keyword <<= 1;
+				FieldBuilder fb = nt.DefineField(pair.Key, typeof(EventKeywords), FieldAttributes.FamANDAssem | FieldAttributes.Family | FieldAttributes.Static | FieldAttributes.Literal | FieldAttributes.HasDefault);
+				fb.SetConstant((EventKeywords)pair.Value);
 			}
 
 			// force the type to be created

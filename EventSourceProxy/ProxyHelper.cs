@@ -138,5 +138,25 @@ namespace EventSourceProxy
 			else
 				mIL.Emit(OpCodes.Ldnull);
 		}
+
+		/// <summary>
+		/// Determine if the parameters of a method match a list of parameter types.
+		/// </summary>
+		/// <param name="m">The method to test.</param>
+		/// <param name="expectedParameters">The list of parameter types.</param>
+		/// <returns>True if the types of parameters match.</returns>
+		internal static bool ParametersMatch(MethodInfo m, Type[] expectedParameters)
+		{
+			var p = m.GetParameters();
+
+			if (p.Length != expectedParameters.Length)
+				return false;
+
+			for (int i = 0; i < p.Length; i++)
+				if (p[i].ParameterType != expectedParameters[i])
+					return false;
+
+			return true;
+		}
 	}
 }
