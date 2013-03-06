@@ -2,6 +2,7 @@
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics.Tracing;
+using System.Globalization;
 using System.Linq;
 using System.Reflection;
 using System.Reflection.Emit;
@@ -87,6 +88,9 @@ namespace EventSourceProxy
 		/// <returns>A proxy object of type T that logs to the log object and executes on the execute object.</returns>
 		private static object CreateInternal(object execute, Type executeType, object log, Type logType)
 		{
+			if (!executeType.IsInstanceOfType(execute))
+				throw new ArgumentException("execute", String.Format(CultureInfo.InvariantCulture, "Object must implement {0} in order to proxy it.", executeType.FullName));
+
 			// cache constructors based on tuple of types, including logoverride
 			var tuple = Tuple.Create(executeType, logType);
 

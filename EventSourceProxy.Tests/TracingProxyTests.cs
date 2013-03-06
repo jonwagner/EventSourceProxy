@@ -459,5 +459,17 @@ namespace EventSourceProxy.Tests
 			Assert.AreEqual(1, events[1].Payload.Count);
 		}
 		#endregion
+
+		#region You Can't Do This Tests
+		public class DoesNotImplement
+		{
+		}
+
+		[Test]
+		public void ProxyingAnInvalidClassShouldThrow()
+		{
+			Assert.Throws<ArgumentException>(() => TracingProxy.Create<ITestServiceWithGenericMethods>(new DoesNotImplement()));
+		}
+		#endregion
 	}
 }
