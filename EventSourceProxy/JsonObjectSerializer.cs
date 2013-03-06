@@ -21,6 +21,13 @@ namespace EventSourceProxy
 		/// <returns>The serialized representation of the object.</returns>
 		public override string SerializeObject(object value, RuntimeMethodHandle methodHandle, int parameterIndex)
 		{
+			// if we have a task, don't attempt to serialize the task if it's not completed
+			Task t = value as Task;
+			if (t != null && !t.IsCompleted)
+			{
+				return JsonConvert.SerializeObject(new { TaskId = t.Id });
+			}
+
 			return JsonConvert.SerializeObject(value);
 		}
 	}
