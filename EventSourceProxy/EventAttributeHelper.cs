@@ -32,6 +32,11 @@ namespace EventSourceProxy
 			typeof(EventAttribute).GetProperty("Task"),
 			typeof(EventAttribute).GetProperty("Version"),
 		};
+
+		/// <summary>
+		/// A set of empty parameters that can be sent to a method call.
+		/// </summary>
+		private static object[] _emptyParameters = new object[0];
 		#endregion
 
 		/// <summary>
@@ -58,6 +63,15 @@ namespace EventSourceProxy
 				propertyValues);
 
 			return attributeBuilder;
+		}
+
+		/// <summary>
+		/// Creates an empty NonEventAttribute.
+		/// </summary>
+		/// <returns>A CustomAttributeBuilder that can be added to a method.</returns>
+		internal static CustomAttributeBuilder CreateNonEventAttribute()
+		{
+			return new CustomAttributeBuilder(typeof(NonEventAttribute).GetConstructor(Type.EmptyTypes), _emptyParameters);
 		}
 	}
 }

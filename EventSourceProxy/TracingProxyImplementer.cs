@@ -70,6 +70,7 @@ namespace EventSourceProxy
 		private FieldBuilder _serializerField;
 		#endregion
 
+		#region Constructors
 		/// <summary>
 		/// Initializes a new instance of the TracingProxyImplementer class.
 		/// </summary>
@@ -83,30 +84,16 @@ namespace EventSourceProxy
 
 			CreateMethod = ImplementProxy();
 		}
+		#endregion
 
+		#region Properties
 		/// <summary>
 		/// Gets a method that can be used to create the proxy.
 		/// </summary>
 		public MethodInfo CreateMethod { get; private set; }
+		#endregion
 
 		#region Implementation
-		/// <summary>
-		/// Emits a call to the base method by pushing all of the arguments.
-		/// </summary>
-		/// <param name="mIL">The ILGenerator to append to.</param>
-		/// <param name="field">The field containing the interface to call.</param>
-		/// <param name="baseMethod">The method to implement.</param>
-		private static void EmitBaseMethodCall(ILGenerator mIL, FieldInfo field, MethodInfo baseMethod)
-		{
-			// load the pointer from the field, push the parameters and call the method
-			// this is an instance method, so arg.0 is the this pointer
-			mIL.Emit(OpCodes.Ldarg_0);
-			mIL.Emit(OpCodes.Ldfld, field);
-			for (int i = 1; i <= baseMethod.GetParameters().Length; i++)
-				mIL.Emit(OpCodes.Ldarg, (int)i);
-			mIL.Emit(OpCodes.Call, baseMethod);
-		}
-
 		/// <summary>
 		/// Implements a logging proxy around a given interface type.
 		/// </summary>
@@ -115,7 +102,7 @@ namespace EventSourceProxy
 		{
 			// create a new assembly
 			AssemblyName an = Assembly.GetExecutingAssembly().GetName();
-			an.Name = TypeImplementer.AssemblyName;
+			an.Name = ProxyHelper.AssemblyName;
 			AssemblyBuilder ab = AppDomain.CurrentDomain.DefineDynamicAssembly(an, AssemblyBuilderAccess.Run);
 			ModuleBuilder mb = ab.DefineDynamicModule(an.Name);
 
@@ -125,9 +112,8 @@ namespace EventSourceProxy
 			else
 				_typeBuilder = mb.DefineType(_executeType.FullName + "_LoggingProxy", TypeAttributes.Class | TypeAttributes.Public, _executeType);
 
+			// emit a constructor and a create method that invokes the constructor so we can return a fast delegate
 			var ctor = EmitFieldsAndConstructor();
-
-			// create a method that invokes the constructor so we can return a fast delegate
 			var createMethod = EmitCreateImpl(ctor);
 
 			// for each method on the interface, try to implement it with a call to eventsource
@@ -222,45 +208,46 @@ namespace EventSourceProxy
 			 * }
 			 */
 
-			// look at the parameters on the interface
-			var parameters = executeMethod.GetParameters();
-			var parameterTypes = parameters.Select(p => p.ParameterType).ToArray();
+			// start building the interface
+			MethodBuilder m = _typeBuilder.DefineMethod(executeMethod.Name, MethodAttributes.Public | MethodAttributes.Virtual);
+			ProxyHelper.CopyMethodSignature(executeMethod, m);
+			var parameterTypes = executeMethod.GetParameters().Select(p => p.ParameterType).ToArray();
 
-			MethodBuilder m = _typeBuilder.DefineMethod(executeMethod.Name, MethodAttributes.Public | MethodAttributes.Virtual, executeMethod.ReturnType, parameterTypes);
 			ILGenerator mIL = m.GetILGenerator();
 
-			// set up the locals
-			mIL.DeclareLocal(typeof(EventActivityScope));
-			if (executeMethod.ReturnType != typeof(void)) // loc.1 - local variable for storing the results
-				mIL.DeclareLocal(executeMethod.ReturnType);
+			// set up a place to hold the return value
+			LocalBuilder returnValue = null;
+			if (m.ReturnType != typeof(void))
+				returnValue = mIL.DeclareLocal(m.ReturnType);
 
-			// set up the activity scope into loc.0
+			// set up the activity scope
+			var scope = mIL.DeclareLocal(typeof(EventActivityScope));
 			mIL.Emit(OpCodes.Ldc_I4_1);
 			mIL.Emit(OpCodes.Newobj, typeof(EventSourceProxy.EventActivityScope).GetConstructor(new Type[] { typeof(bool) }));
-			mIL.Emit(OpCodes.Stloc_0);
+			mIL.Emit(OpCodes.Stloc, scope);
 
 			// start the try block
 			Label endOfMethod = mIL.DefineLabel();
 			mIL.BeginExceptionBlock();
 
 			// call the method on the log that matches the execute method
-			var logMethod = DiscoverMethod(_logField.FieldType, executeMethod.Name, parameterTypes);
+			var targetParameterTypes = parameterTypes.Select(p => p.IsGenericParameter ? TypeImplementer.GetTypeSupportedByEventSource(p) : p).ToArray();
+			var logMethod = DiscoverMethod(_logField.FieldType, executeMethod.Name, targetParameterTypes);
 			if (logMethod != null)
 			{
 				// call the log method and throw away the result if there is one
-				EmitBaseMethodCall(mIL, _logField, logMethod);
+				EmitBaseMethodCall(m, _logField, executeMethod, logMethod);
 				if (logMethod.ReturnType != typeof(void))
 					mIL.Emit(OpCodes.Pop);
 			}
 
 			// call execute
-			EmitBaseMethodCall(mIL, _executeField, executeMethod);
+			EmitBaseMethodCall(m, _executeField, executeMethod, executeMethod);
 			if (executeMethod.ReturnType != typeof(void))
-				mIL.Emit(OpCodes.Stloc_1);
-
-			var completedParameterTypes = new Type[] { TypeImplementer.GetTypeSupportedByEventSource(executeMethod.ReturnType) };
+				mIL.Emit(OpCodes.Stloc, returnValue);
 
 			// if there is a completed method, then call that
+			var completedParameterTypes = new Type[] { TypeImplementer.GetTypeSupportedByEventSource(executeMethod.ReturnType) };
 			var completedMethod = DiscoverMethod(_logField.FieldType, executeMethod.Name + "_Completed", completedParameterTypes) ??
 				DiscoverMethod(_logField.FieldType, executeMethod.Name + "_Completed", Type.EmptyTypes);
 			if (completedMethod != null)
@@ -273,34 +260,15 @@ namespace EventSourceProxy
 				var completedParameters = completedMethod.GetParameters();
 				if (completedParameters.Length == 1)
 				{
-					if (executeMethod.ReturnType == completedParameters[0].ParameterType)
-					{
-						mIL.Emit(OpCodes.Ldloc_1);
-					}
-					else
-					{
-						// if the types don't match, then serialize the object
-						// non-fundamental types use the object serializer
-						if (_serializationProvider.ShouldSerialize(completedMethod, 0))
-						{
-							// get the object serializer from the this pointer
-							mIL.Emit(OpCodes.Ldarg_0);
-							mIL.Emit(OpCodes.Ldfld, _serializerField);
-
-							// load the value
-							mIL.Emit(OpCodes.Ldloc_1);
-							if (executeMethod.ReturnType.IsValueType)
-								mIL.Emit(OpCodes.Box, executeMethod.ReturnType);
-
-							// add the method builder and parameter index
-							mIL.Emit(OpCodes.Ldtoken, completedMethod);
-							mIL.Emit(OpCodes.Ldc_I4_0);
-
-							mIL.Emit(OpCodes.Callvirt, typeof(ITraceSerializationProvider).GetMethod("SerializeObject", BindingFlags.Instance | BindingFlags.Public));
-						}
-						else
-							mIL.Emit(OpCodes.Ldnull);
-					}
+					ProxyHelper.EmitSerializeValue(
+						m,
+						-1,
+						executeMethod.ReturnType,
+						completedParameters[0].ParameterType,
+						_serializationProvider,
+						_serializerField,
+						il => il.Emit(OpCodes.Ldloc, returnValue),
+						il => il.Emit(OpCodes.Ldloca_S, returnValue));
 				}
 
 				mIL.Emit(OpCodes.Call, completedMethod);
@@ -310,15 +278,55 @@ namespace EventSourceProxy
 
 			// clean up the activity scope
 			mIL.BeginFinallyBlock();
-			mIL.Emit(OpCodes.Ldloc_0);
-			mIL.Emit(OpCodes.Call, typeof(EventActivityScope).GetMethod("Dispose"));
+			mIL.Emit(OpCodes.Ldloc, scope);
+			mIL.Emit(OpCodes.Callvirt, typeof(EventActivityScope).GetMethod("Dispose"));
 			mIL.EndExceptionBlock();
 
 			// return the result
 			mIL.MarkLabel(endOfMethod);
 			if (executeMethod.ReturnType != typeof(void))
-				mIL.Emit(OpCodes.Ldloc_1);
+				mIL.Emit(OpCodes.Ldloc, returnValue);
 			mIL.Emit(OpCodes.Ret);
+		}
+
+		/// <summary>
+		/// Emits a call to the base method by pushing all of the arguments.
+		/// </summary>
+		/// <param name="m">The method to append to.</param>
+		/// <param name="field">The field containing the interface to call.</param>
+		/// <param name="originalMethod">The the original method signature.</param>
+		/// <param name="baseMethod">The method to call.</param>
+		private void EmitBaseMethodCall(MethodBuilder m, FieldInfo field, MethodInfo originalMethod, MethodInfo baseMethod)
+		{
+			// if this is a generic method, we have to instantiate our type of method
+			if (baseMethod.IsGenericMethodDefinition)
+				baseMethod = baseMethod.MakeGenericMethod(baseMethod.GetGenericArguments());
+
+			var sourceParameters = originalMethod.GetParameters();
+			var targetParameters = baseMethod.GetParameters();
+
+			// load the pointer from the field, push the parameters and call the method
+			// this is an instance method, so arg.0 is the this pointer
+			ILGenerator mIL = m.GetILGenerator();
+			mIL.Emit(OpCodes.Ldarg_0);
+			mIL.Emit(OpCodes.Ldfld, field);
+
+			// go through and serialize the parameters
+			for (int i = 0; i < targetParameters.Length; i++)
+			{
+				ProxyHelper.EmitSerializeValue(
+					m,
+					i,
+					sourceParameters[i].ParameterType,
+					targetParameters[i].ParameterType,
+					_serializationProvider,
+					_serializerField,
+					il => il.Emit(OpCodes.Ldarg, (int)i + 1),
+					il => il.Emit(OpCodes.Ldarga_S, (int)i + 1));
+			}
+
+			// call the method
+			mIL.Emit(OpCodes.Callvirt, baseMethod);
 		}
 
 		/// <summary>

@@ -19,11 +19,6 @@ namespace EventSourceProxy
 	{
 		#region Private Fields
 		/// <summary>
-		/// The name of the generated dynamic assembly.
-		/// </summary>
-		internal const string AssemblyName = "EventSourceImplementation";
-
-		/// <summary>
 		/// The name of the Keywords class.
 		/// </summary>
 		private const string Keywords = "Keywords";
@@ -62,11 +57,6 @@ namespace EventSourceProxy
 		/// The IsEnabled method for EventSource.
 		/// </summary>
 		private static MethodInfo _isEnabled = typeof(EventSource).GetMethod("IsEnabled", BindingFlags.Public | BindingFlags.Instance | BindingFlags.InvokeMethod, null, new[] { typeof(EventLevel), typeof(EventKeywords) }, null);
-
-		/// <summary>
-		/// An empty parameter list.
-		/// </summary>
-		private static object[] _emptyParameters = new object[0];
 
 		/// <summary>
 		/// The type being implemented.
@@ -198,7 +188,7 @@ namespace EventSourceProxy
 		{
 			// create a new assembly
 			AssemblyName an = Assembly.GetExecutingAssembly().GetName();
-			an.Name = AssemblyName;
+			an.Name = ProxyHelper.AssemblyName;
 			AssemblyBuilder ab = AppDomain.CurrentDomain.DefineDynamicAssembly(an, AssemblyBuilderAccess.Run);
 			ModuleBuilder mb = ab.DefineDynamicModule(an.Name);
 
@@ -338,7 +328,10 @@ namespace EventSourceProxy
 			{
 				eventAttribute = interfaceMethod.GetCustomAttribute<EventAttribute>();
 				if (eventAttribute == null)
+				{
 					eventAttribute = new EventAttribute(eventId++);
+					eventAttribute.Message = interfaceMethod.Name;
+				}
 			}
 
 			// if auto-keywords are enabled, use them
@@ -354,7 +347,7 @@ namespace EventSourceProxy
 				if (eventAttribute != null)
 					m.SetCustomAttribute(EventAttributeHelper.ConvertEventAttributeToAttributeBuilder(eventAttribute));
 				else
-					m.SetCustomAttribute(new CustomAttributeBuilder(typeof(NonEventAttribute).GetConstructor(Type.EmptyTypes), _emptyParameters));
+					m.SetCustomAttribute(EventAttributeHelper.CreateNonEventAttribute());
 
 				// add the parameter names
 				for (int i = 0; i < parameters.Length; i++)
@@ -375,7 +368,8 @@ namespace EventSourceProxy
 
 					// then implement the interface method as calling the core method
 					// this must be virtual to be an interface override
-					MethodBuilder im = _typeBuilder.DefineMethod("_" + interfaceMethod.Name, MethodAttributes.Public | MethodAttributes.Virtual, interfaceMethod.ReturnType, parameterTypes);
+					MethodBuilder im = _typeBuilder.DefineMethod("_" + interfaceMethod.Name, MethodAttributes.Public | MethodAttributes.Virtual);
+					ProxyHelper.CopyMethodSignature(interfaceMethod, im);
 					EmitDirectProxy(im, m, parameterTypes, targetParameterTypes);
 
 					// map our method to the interface implementation
@@ -414,10 +408,12 @@ namespace EventSourceProxy
 			if (interfaceMethod.Name.EndsWith(CompletedSuffix, StringComparison.OrdinalIgnoreCase))
 				return;
 
+			var methodName = interfaceMethod.Name + CompletedSuffix;
+
 			// if the interface already has a _Completed method, don't emit a new one
 			var parameterTypes = interfaceMethod.ReturnType == typeof(void) ? Type.EmptyTypes : new Type[] { interfaceMethod.ReturnType };
-			if (interfaceMethod.DeclaringType.GetMethod(interfaceMethod.Name + CompletedSuffix, parameterTypes) != null ||
-				interfaceMethod.DeclaringType.GetMethod(interfaceMethod.Name + CompletedSuffix, Type.EmptyTypes) != null)
+			if (interfaceMethod.DeclaringType.GetMethod(methodName, parameterTypes) != null ||
+				interfaceMethod.DeclaringType.GetMethod(methodName, Type.EmptyTypes) != null)
 				return;
 
 			var targetParameters = parameterTypes.Select(t => TypeIsSupportedByEventSource(t) ? t : typeof(string)).ToList();
@@ -432,7 +428,7 @@ namespace EventSourceProxy
 			{
 				Keywords = startEventAttribute.Keywords,
 				Level = startEventAttribute.Level,
-				Message = null,
+				Message = methodName,
 				Opcode = startEventAttribute.Opcode,
 				Task = startEventAttribute.Task,
 				Version = startEventAttribute.Version
@@ -548,71 +544,15 @@ namespace EventSourceProxy
 			mIL.Emit(OpCodes.Ldarg_0);
 			for (int i = 1; i < sourceParameterTypes.Length + 1; i++)
 			{
-				var sourceType = sourceParameterTypes[i - 1];
-				var targetType = targetParameterTypes[i - 1];
-
-				// if the source type is a reference to the target type, we have to dereference it
-				if (sourceType.IsByRef && sourceType.GetElementType() == targetType)
-				{
-					mIL.Emit(OpCodes.Ldarg, i);
-					sourceType = sourceType.GetElementType();
-					mIL.Emit(OpCodes.Ldobj, sourceType);
-				}
-				else if (sourceType == targetType)
-				{
-					// if the types match, just put the argument on the stack
-					mIL.Emit(OpCodes.Ldarg, i);
-				}
-				else
-				{
-					// verify that the target type is a string
-					if (targetType != typeof(string))
-						throw new InvalidOperationException(String.Format(CultureInfo.InvariantCulture, "Cannot convert type {0} to a type compatible with EventSource", targetType.FullName));
-
-					// for fundamental types, just convert them with ToString
-					var underlyingType = Nullable.GetUnderlyingType(sourceType) ?? sourceType;
-					if (underlyingType.IsEnum || (underlyingType.IsValueType && underlyingType.Assembly == typeof(string).Assembly))
-					{
-						// convert the argument to a string with ToString
-						mIL.Emit(OpCodes.Ldarga_S, i);
-						mIL.Emit(OpCodes.Call, sourceType.GetMethod("ToString", Type.EmptyTypes));
-					}
-					else
-					{
-						// note that the parameter index is 1-based, but the parameters from the method builder will be 0-based
-						int parameterIndex = i - 1;
-
-						// non-fundamental types use the object serializer
-						if (_serializationProvider.ShouldSerialize(methodBuilder, parameterIndex))
-						{
-							// get the object serializer from the this pointer
-							mIL.Emit(OpCodes.Ldarg_0);
-							mIL.Emit(OpCodes.Ldfld, _serializationProviderField);
-
-							// load the value
-							mIL.Emit(OpCodes.Ldarg, i);
-
-							// if the source type is a reference to the target type, we have to dereference it
-							if (sourceType.IsByRef)
-							{
-								sourceType = sourceType.GetElementType();
-								mIL.Emit(OpCodes.Ldobj, sourceType);
-							}
-
-							// if it's a value type, we have to box it to log it
-							if (sourceType.IsValueType)
-								mIL.Emit(OpCodes.Box, sourceType);
-
-							// add the method builder and parameter index
-							mIL.Emit(OpCodes.Ldtoken, methodBuilder);
-							mIL.Emit(OpCodes.Ldc_I4, parameterIndex);
-
-							mIL.Emit(OpCodes.Callvirt, typeof(ITraceSerializationProvider).GetMethod("SerializeObject", BindingFlags.Instance | BindingFlags.Public));
-						}
-						else
-							mIL.Emit(OpCodes.Ldnull);
-					}
-				}
+				ProxyHelper.EmitSerializeValue(
+					methodBuilder,
+					i,
+					sourceParameterTypes[i - 1],
+					targetParameterTypes[i - 1],
+					_serializationProvider,
+					_serializationProviderField,
+					il => il.Emit(OpCodes.Ldarg, i),
+					il => il.Emit(OpCodes.Ldarga_S, i));
 			}
 
 			// if this method supports context, then add a context parameter
@@ -628,8 +568,19 @@ namespace EventSourceProxy
 			// then we need to manufacture the return value as default(T)
 			// ldnull works well for this
 			// this is important when we create logging proxies
-			if (methodBuilder.ReturnType != typeof(void) && baseMethod.ReturnType == typeof(void))
-				mIL.Emit(OpCodes.Ldnull);
+			if (methodBuilder.ReturnType != null && methodBuilder.ReturnType != typeof(void) && baseMethod.ReturnType == typeof(void))
+			{
+				// for generics and values, init a local object with a blank object
+				if (methodBuilder.ReturnType.IsGenericParameter || methodBuilder.ReturnType.IsValueType)
+				{
+					var returnValue = mIL.DeclareLocal(methodBuilder.ReturnType);
+					mIL.Emit(OpCodes.Ldloca_S, returnValue);
+					mIL.Emit(OpCodes.Initobj, methodBuilder.ReturnType);
+					mIL.Emit(OpCodes.Ldloc, returnValue);
+				}
+				else
+					mIL.Emit(OpCodes.Ldnull);
+			}
 
 			mIL.Emit(OpCodes.Ret);
 		}

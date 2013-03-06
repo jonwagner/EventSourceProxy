@@ -158,21 +158,21 @@ namespace EventSourceProxy.Tests
 			// check the individual events
 			Assert.AreEqual(logger, events[0].EventSource);
 			Assert.AreEqual(1, events[0].EventId);
-			Assert.AreEqual(null, events[0].Message);
+			Assert.AreEqual("Clear", events[0].Message);
 			Assert.AreEqual(EventLevel.Informational, events[0].Level);
 			Assert.AreEqual((EventKeywords)1, events[0].Keywords);
 			Assert.AreEqual(0, events[0].Payload.Count);
 
 			Assert.AreEqual(logger, events[1].EventSource);
 			Assert.AreEqual(2, events[1].EventId);
-			Assert.AreEqual(null, events[1].Message);
+			Assert.AreEqual("Clear_Completed", events[1].Message);
 			Assert.AreEqual(EventLevel.Informational, events[1].Level);
 			Assert.AreEqual((EventKeywords)2, events[1].Keywords);
 			Assert.AreEqual(0, events[0].Payload.Count);
 
 			Assert.AreEqual(logger, events[2].EventSource);
 			Assert.AreEqual(3, events[2].EventId);
-			Assert.AreEqual(null, events[2].Message);
+			Assert.AreEqual("AddNumbers", events[2].Message);
 			Assert.AreEqual(EventLevel.Informational, events[2].Level);
 			Assert.AreEqual((EventKeywords)4, events[2].Keywords);
 			Assert.AreEqual(2, events[2].Payload.Count);
@@ -182,7 +182,7 @@ namespace EventSourceProxy.Tests
 			// a fourth event for completed
 			Assert.AreEqual(logger, events[3].EventSource);
 			Assert.AreEqual(4, events[3].EventId);
-			Assert.AreEqual(null, events[3].Message);
+			Assert.AreEqual("AddNumbers_Completed", events[3].Message);
 			Assert.AreEqual(EventLevel.Informational, events[3].Level);
 			Assert.AreEqual((EventKeywords)8, events[3].Keywords);
 			Assert.AreEqual(1, events[3].Payload.Count);
@@ -199,20 +199,20 @@ namespace EventSourceProxy.Tests
 			// check the individual events
 			Assert.AreEqual(logger, events[0].EventSource);
 			Assert.AreEqual(1, events[0].EventId);
-			Assert.AreEqual(null, events[0].Message);
+			Assert.AreEqual("Clear", events[0].Message);
 			Assert.AreEqual(EventLevel.Informational, events[0].Level);
 			Assert.AreEqual((EventKeywords)1, events[0].Keywords);
 			Assert.AreEqual(0, events[0].Payload.Count);
 
 			Assert.AreEqual(logger, events[1].EventSource);
 			Assert.AreEqual(2, events[1].EventId);
-			Assert.AreEqual(null, events[1].Message);
+			Assert.AreEqual("Clear_Completed", events[1].Message);
 			Assert.AreEqual(EventLevel.Informational, events[1].Level);
 			Assert.AreEqual(0, events[0].Payload.Count);
 
 			Assert.AreEqual(logger, events[2].EventSource);
 			Assert.AreEqual(3, events[2].EventId);
-			Assert.AreEqual(null, events[2].Message);
+			Assert.AreEqual("AddNumbers", events[2].Message);
 			Assert.AreEqual(EventLevel.Informational, events[2].Level);
 			Assert.AreEqual(2, events[2].Payload.Count);
 			Assert.AreEqual(1, events[2].Payload[0]);
@@ -221,7 +221,7 @@ namespace EventSourceProxy.Tests
 			// a fourth event for completed
 			Assert.AreEqual(logger, events[3].EventSource);
 			Assert.AreEqual(4, events[3].EventId);
-			Assert.AreEqual(null, events[3].Message);
+			Assert.AreEqual("AddNumbers_Completed", events[3].Message);
 			Assert.AreEqual(EventLevel.Informational, events[3].Level);
 			Assert.AreEqual(1, events[3].Payload.Count);
 			Assert.AreEqual(3, events[3].Payload[0]);
@@ -393,6 +393,66 @@ namespace EventSourceProxy.Tests
 			// check the individual events to make sure the data came back in the payload
 			Assert.AreEqual(1, events[0].Payload[0]);
 			Assert.AreEqual(new JsonObjectSerializer().SerializeObject(data, new RuntimeMethodHandle(), 0), events[4].Payload[0]);
+		}
+		#endregion
+
+		#region Interface with Generic Methods
+		public interface ITestServiceWithGenericMethods
+		{
+			T GetItem<T>(T value);
+			void GetItem2<TIn, TIn2>(TIn value, TIn2 value2);
+			TOut GetItem3<TIn, TOut>(TIn value);
+		}
+
+		public class TestServiceWithGenericMethods : ITestServiceWithGenericMethods
+		{
+			public T GetItem<T>(T value) { return value; }
+			public void GetItem2<TIn, TIn2>(TIn value, TIn2 value2) { }
+			public TOut GetItem3<TIn, TOut>(TIn value) { return default(TOut); }
+		}
+
+		[Test]
+		public void CanImplementInterfaceWithGenericMethods()
+		{
+			// turn on logging
+			var log = EventSourceImplementer.GetEventSourceAs<ITestServiceWithGenericMethods>();
+			_listener.EnableEvents((EventSource)log, EventLevel.LogAlways, (EventKeywords)(-1));
+
+			log.GetItem((int)1);
+			log.GetItem((string)"s");
+			log.GetItem((decimal)1);
+			log.GetItem2<int, int>((int)1, (int)2);
+			log.GetItem2<string, string>("x", "y");
+			log.GetItem2<decimal, decimal>((decimal)1, (decimal)2);
+			log.GetItem3<int, int>((int)1);
+			log.GetItem3<string, string>("x");
+
+			//// look at the events
+			var events = _listener.Events.ToArray();
+			Assert.AreEqual(8, events.Length);
+
+			// check the individual events to make sure the data came back in the payload
+			Assert.AreEqual(1, events[0].Payload.Count);
+			Assert.AreEqual(1, events[1].Payload.Count);
+
+			// create a proxy on the interface
+			_listener.Reset();
+			var proxy = TracingProxy.Create<ITestServiceWithGenericMethods>(new TestServiceWithGenericMethods());
+			proxy.GetItem(1);
+			proxy.GetItem((string)"s");
+			proxy.GetItem((decimal)1);
+			proxy.GetItem2<int, int>((int)1, (int)2);
+			proxy.GetItem2<string, string>("x", "y");
+			proxy.GetItem2<decimal, decimal>((decimal)1, (decimal)2);
+			proxy.GetItem3<int, int>((int)1);
+			proxy.GetItem3<string, string>("x");
+
+			events = _listener.Events.ToArray();
+			Assert.AreEqual(16, events.Length);
+
+			// check the individual events to make sure the data came back in the payload
+			Assert.AreEqual(1, events[0].Payload.Count);
+			Assert.AreEqual(1, events[1].Payload.Count);
 		}
 		#endregion
 	}

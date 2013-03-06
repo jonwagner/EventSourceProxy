@@ -16,6 +16,11 @@ namespace EventSourceProxy.Tests
 		public IReadOnlyCollection<EventWrittenEventArgs> Events { get { return new ReadOnlyCollection<EventWrittenEventArgs>(_events); } }
 		private List<EventWrittenEventArgs> _events = new List<EventWrittenEventArgs>();
 
+		public void Reset()
+		{
+			_events.Clear();
+		}
+
 		protected override void OnEventWritten(EventWrittenEventArgs eventData)
 		{
 			_events.Add(eventData);

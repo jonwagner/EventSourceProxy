@@ -47,6 +47,7 @@
     <Compile Include="EventActivityScope.cs" />
     <Compile Include="NullObjectSerializer.cs" />
     <Compile Include="ObjectSerializationProvider.cs" />
+    <Compile Include="ProxyHelper.cs" />
     <Compile Include="ToStringObjectSerializer.cs" />
     <Compile Include="EventAttributeHelper.cs" />
     <Compile Include="EventSourceAttributeHelper.cs" />
