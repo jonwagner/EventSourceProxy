@@ -71,6 +71,7 @@ namespace EventSourceProxy.Tests
 		[Test]
 		public void InterfaceWithStructShouldSerializeAsJson()
 		{
+			EventSourceImplementer.RegisterProvider<ILogInterfaceWithStructData>(new JsonObjectSerializer());
 			var logger = EventSourceImplementer.GetEventSourceAs<ILogInterfaceWithStructData>();
 			_listener.EnableEvents((EventSource)logger, EventLevel.LogAlways, (EventKeywords)(-1));
 
@@ -86,6 +87,7 @@ namespace EventSourceProxy.Tests
 		[Test]
 		public void ClassWithClassShouldSerializeAsJson()
 		{
+			EventSourceImplementer.RegisterProvider<LogClassWithClassData>(new JsonObjectSerializer());
 			var logger = EventSourceImplementer.GetEventSourceAs<LogClassWithClassData>();
 			_listener.EnableEvents((EventSource)logger, EventLevel.LogAlways, (EventKeywords)(-1));
 
@@ -101,6 +103,7 @@ namespace EventSourceProxy.Tests
 		[Test]
 		public void ClassWithStructShouldSerializeAsJson()
 		{
+			EventSourceImplementer.RegisterProvider<LogClassWithStructData>(new JsonObjectSerializer());
 			var logger = EventSourceImplementer.GetEventSourceAs<LogClassWithStructData>();
 			_listener.EnableEvents((EventSource)logger, EventLevel.LogAlways, (EventKeywords)(-1));
 
@@ -116,6 +119,7 @@ namespace EventSourceProxy.Tests
 		[Test]
 		public void ClassImplementingAnInterfaceShouldSerializeData()
 		{
+			EventSourceImplementer.RegisterProvider<ILogInterfaceWithClassData>(new JsonObjectSerializer());
 			var logger = EventSourceImplementer.GetEventSourceAs<ILogInterfaceWithClassData>();
 			_listener.EnableEvents((EventSource)logger, EventLevel.LogAlways, (EventKeywords)(-1));
 

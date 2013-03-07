@@ -18,7 +18,7 @@ namespace EventSourceProxy.Tests
 			int AddNumbers(int x, int y);
 		}
 
-		public class Calculator : ICalculator
+		public class Calculator : ICalculator, IDerivedCalculator
 		{
 			public void Clear()
 			{
@@ -359,6 +359,7 @@ namespace EventSourceProxy.Tests
 			Assert.AreEqual(data.Data + 1, resultData.Data);
 
 			// turn on logging
+			EventSourceImplementer.RegisterProvider<ITestServiceWithReferenceParameters>(new JsonObjectSerializer());
 			var log = EventSourceImplementer.GetEventSourceAs<ITestServiceWithReferenceParameters>();
 			_listener.EnableEvents((EventSource)log, EventLevel.LogAlways, (EventKeywords)(-1));
 
@@ -457,6 +458,25 @@ namespace EventSourceProxy.Tests
 			// check the individual events to make sure the data came back in the payload
 			Assert.AreEqual(1, events[0].Payload.Count);
 			Assert.AreEqual(1, events[1].Payload.Count);
+		}
+		#endregion
+
+		#region Derived Interface Implementation
+		// this is any old interface with no decoration
+		public interface IDerivedCalculator : ICalculator
+		{
+		}
+
+		[Test]
+		public void DerivedInterfaceCanBeImplemented()
+		{
+			var testLog = EventSourceImplementer.GetEventSourceAs<IDerivedCalculator>();
+			_listener.EnableEvents((EventSource)testLog, EventLevel.LogAlways, (EventKeywords)(-1));
+
+			var proxy = TracingProxy.Create<IDerivedCalculator>(new Calculator());
+
+			proxy.Clear();
+			proxy.AddNumbers(1, 2);
 		}
 		#endregion
 

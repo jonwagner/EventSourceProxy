@@ -452,6 +452,7 @@ namespace EventSourceProxy.Tests
 		public void CanImplementInterfaceWithTaskReturn()
 		{
 			// this was causing issues with the completed method
+			EventSourceImplementer.RegisterProvider<ITaskService>(new JsonObjectSerializer());
 			var log = EventSourceImplementer.GetEventSourceAs<ITaskService>();
 			_listener.EnableEvents((EventSource)log, EventLevel.LogAlways, (EventKeywords)(-1));
 
@@ -470,7 +471,7 @@ namespace EventSourceProxy.Tests
 
 			// check the individual events to make sure the task came back in the payload
 			Assert.AreEqual(1, events[1].Payload.Count);
-			Assert.AreEqual(new JsonObjectSerializer().SerializeObject(task, new RuntimeMethodHandle(), 0), events[1].Payload[0]);
+			Assert.AreEqual(task.ToString(), events[1].Payload[0]);
 		}
 		#endregion
 

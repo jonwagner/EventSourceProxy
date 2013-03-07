@@ -184,12 +184,11 @@ namespace EventSourceProxy
 		/// <summary>
 		/// Returns the message to display for a given event.
 		/// </summary>
-		/// <param name="methodName">The name of the method.</param>
 		/// <param name="parameterTypes">The types of the parameters.</param>
 		/// <returns>A templated message string.</returns>
-		private static string GetEventMessage(string methodName, Type[] parameterTypes)
+		private static string GetEventMessage(Type[] parameterTypes)
 		{
-			var message = String.Join(" ", Enumerable.Range(0, parameterTypes.Length).Select(i => String.Format("{{{0}}}", i)));
+			var message = String.Join(" ", Enumerable.Range(0, parameterTypes.Length).Select(i => String.Format(CultureInfo.InvariantCulture, "{{{0}}}", i)));
 
 			return message;
 		}
@@ -220,7 +219,7 @@ namespace EventSourceProxy
 			EmitFieldsAndConstructor();
 
 			// find all of the methods that need to be implemented
-			var interfaceMethods = DiscoverMethods(_interfaceType);
+			var interfaceMethods = ProxyHelper.DiscoverMethods(_interfaceType);
 			var implementationAttribute = _interfaceType.GetCustomAttribute<EventSourceImplementationAttribute>() ?? new EventSourceImplementationAttribute();
 
 			// find the first free event id, in case we need to assign some ourselves
@@ -290,29 +289,6 @@ namespace EventSourceProxy
 			il.Emit(OpCodes.Stfld, _serializationProviderField);
 			il.Emit(OpCodes.Ret);
 		}
-
-		/// <summary>
-		/// Discovers the methods that need to be implemented for a type.
-		/// </summary>
-		/// <param name="type">The type to implement.</param>
-		/// <returns>The virtual and abstract methods that need to be implemented.</returns>
-		private List<MethodInfo> DiscoverMethods(Type type)
-		{
-			List<MethodInfo> methods = new List<MethodInfo>();
-
-			// for interfaces, we need to look at all of the methods that are in the base interfaces
-			if (type.IsInterface)
-				foreach (Type baseInterface in type.GetInterfaces())
-					methods.AddRange(DiscoverMethods(baseInterface));
-
-			BindingFlags bindingFlags = BindingFlags.Public | BindingFlags.Instance | BindingFlags.InvokeMethod | BindingFlags.DeclaredOnly;
-
-			// add in the base types
-			for (; type != null && type != typeof(object) && type != typeof(EventSource); type = type.BaseType)
-				methods.AddRange(type.GetMethods(bindingFlags));
-
-			return methods;
-		}
 		#endregion
 
 		#region Method Implementation
@@ -353,7 +329,7 @@ namespace EventSourceProxy
 				if (eventAttribute == null)
 				{
 					eventAttribute = new EventAttribute(eventId++);
-					eventAttribute.Message = GetEventMessage(methodName, parameterTypes);
+					eventAttribute.Message = GetEventMessage(parameterTypes);
 				}
 			}
 
@@ -454,7 +430,7 @@ namespace EventSourceProxy
 			{
 				Keywords = startEventAttribute.Keywords,
 				Level = startEventAttribute.Level,
-				Message = GetEventMessage(methodName, parameterTypes),
+				Message = GetEventMessage(parameterTypes),
 				Opcode = startEventAttribute.Opcode,
 				Task = startEventAttribute.Task,
 				Version = startEventAttribute.Version

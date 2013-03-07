@@ -91,6 +91,16 @@ namespace EventSourceProxy
 		}
 
 		/// <summary>
+		/// Registers a Context Provider for a given event source.
+		/// </summary>
+		/// <param name="type">The type of event source to register with.</param>
+		/// <param name="provider">The provider to register.</param>
+		public static void RegisterProvider(Type type, ITraceContextProvider provider)
+		{
+			RegisterProvider(type, typeof(ITraceContextProvider), provider);
+		}
+
+		/// <summary>
 		/// Registers a Serialization Provider for a given event source.
 		/// </summary>
 		/// <typeparam name="TLog">The type of event source to register with.</typeparam>
@@ -98,6 +108,16 @@ namespace EventSourceProxy
 		public static void RegisterProvider<TLog>(ITraceSerializationProvider provider)
 		{
 			RegisterProvider(typeof(TLog), typeof(ITraceSerializationProvider), provider);
+		}
+
+		/// <summary>
+		/// Registers a Serialization Provider for a given event source.
+		/// </summary>
+		/// <param name="type">The type of event source to register with.</param>
+		/// <param name="provider">The provider to register.</param>
+		public static void RegisterProvider(Type type, ITraceSerializationProvider provider)
+		{
+			RegisterProvider(type, typeof(ITraceSerializationProvider), provider);
 		}
 		#endregion
 
@@ -108,7 +128,7 @@ namespace EventSourceProxy
 		/// <param name="logType">The type of event source to register with.</param>
 		/// <param name="providerType">The type of provider being provided.</param>
 		/// <param name="provider">The provider to register.</param>
-		private static void RegisterProvider(Type logType, Type providerType, object provider)
+		public static void RegisterProvider(Type logType, Type providerType, object provider)
 		{
 			lock (_eventSources)
 			{

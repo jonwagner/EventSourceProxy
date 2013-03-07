@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics.Tracing;
 using System.Globalization;
 using System.Linq;
 using System.Reflection;
@@ -165,6 +166,29 @@ namespace EventSourceProxy
 					return false;
 
 			return true;
+		}
+
+		/// <summary>
+		/// Discovers the methods that need to be implemented for a type.
+		/// </summary>
+		/// <param name="type">The type to implement.</param>
+		/// <returns>The virtual and abstract methods that need to be implemented.</returns>
+		internal static List<MethodInfo> DiscoverMethods(Type type)
+		{
+			List<MethodInfo> methods = new List<MethodInfo>();
+
+			// for interfaces, we need to look at all of the methods that are in the base interfaces
+			if (type.IsInterface)
+				foreach (Type baseInterface in type.GetInterfaces())
+					methods.AddRange(DiscoverMethods(baseInterface));
+
+			BindingFlags bindingFlags = BindingFlags.Public | BindingFlags.Instance | BindingFlags.InvokeMethod | BindingFlags.DeclaredOnly;
+
+			// add in the base types
+			for (; type != null && type != typeof(object) && type != typeof(EventSource); type = type.BaseType)
+				methods.AddRange(type.GetMethods(bindingFlags));
+
+			return methods;
 		}
 	}
 }

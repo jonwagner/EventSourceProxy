@@ -119,7 +119,7 @@ namespace EventSourceProxy
 			var createMethod = EmitCreateImpl(ctor);
 
 			// for each method on the interface, try to implement it with a call to eventsource
-			var interfaceMethods = _executeType.GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.InvokeMethod | BindingFlags.DeclaredOnly);
+			var interfaceMethods = ProxyHelper.DiscoverMethods(_executeType);
 			foreach (MethodInfo interfaceMethod in interfaceMethods.Where(m => !m.IsFinal))
 				EmitMethodImpl(interfaceMethod);
 
