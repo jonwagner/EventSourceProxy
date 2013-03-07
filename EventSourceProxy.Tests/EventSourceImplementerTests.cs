@@ -306,7 +306,7 @@ namespace EventSourceProxy.Tests
 			// check the individual events
 			Assert.AreEqual(testLog, events[0].EventSource);
 			Assert.AreEqual(1, events[0].EventId);
-			Assert.AreEqual("AddNumbers", events[0].Message);
+			Assert.AreEqual("{0} {1}", events[0].Message);
 			Assert.AreEqual(EventLevel.Informational, events[0].Level);
 			Assert.AreEqual((EventKeywords)1, events[0].Keywords);
 			Assert.AreEqual(2, events[0].Payload.Count);
@@ -315,7 +315,7 @@ namespace EventSourceProxy.Tests
 
 			Assert.AreEqual(testLog, events[1].EventSource);
 			Assert.AreEqual(3, events[1].EventId);
-			Assert.AreEqual("SubtractNumbers", events[1].Message);
+			Assert.AreEqual("{0} {1}", events[1].Message);
 			Assert.AreEqual(EventLevel.Informational, events[1].Level);
 			Assert.AreEqual((EventKeywords)2, events[1].Keywords);
 			Assert.AreEqual(2, events[1].Payload.Count);
@@ -352,7 +352,7 @@ namespace EventSourceProxy.Tests
 			// check the individual events
 			Assert.AreEqual(testLog, events[0].EventSource);
 			Assert.AreEqual(1, events[0].EventId);
-			Assert.AreEqual("AddNumbers", events[0].Message);
+			Assert.AreEqual("{0} {1}", events[0].Message);
 			Assert.AreEqual(EventLevel.Informational, events[0].Level);
 			Assert.AreEqual((EventKeywords)1, events[0].Keywords);
 			Assert.AreEqual(2, events[0].Payload.Count);
@@ -361,7 +361,7 @@ namespace EventSourceProxy.Tests
 
 			Assert.AreEqual(testLog, events[1].EventSource);
 			Assert.AreEqual(3, events[1].EventId);
-			Assert.AreEqual("SubtractNumbers", events[1].Message);
+			Assert.AreEqual("{0} {1}", events[1].Message);
 			Assert.AreEqual(EventLevel.Informational, events[1].Level);
 			Assert.AreEqual((EventKeywords)2, events[1].Keywords);
 			Assert.AreEqual(2, events[1].Payload.Count);

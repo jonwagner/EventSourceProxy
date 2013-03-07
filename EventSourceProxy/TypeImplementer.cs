@@ -182,6 +182,19 @@ namespace EventSourceProxy
 
 		#region Type Implementation
 		/// <summary>
+		/// Returns the message to display for a given event.
+		/// </summary>
+		/// <param name="methodName">The name of the method.</param>
+		/// <param name="parameterTypes">The types of the parameters.</param>
+		/// <returns>A templated message string.</returns>
+		private static string GetEventMessage(string methodName, Type[] parameterTypes)
+		{
+			var message = String.Join(" ", Enumerable.Range(0, parameterTypes.Length).Select(i => String.Format("{{{0}}}", i)));
+
+			return message;
+		}
+
+		/// <summary>
 		/// Implement the type.
 		/// </summary>
 		private void ImplementType()
@@ -340,7 +353,7 @@ namespace EventSourceProxy
 				if (eventAttribute == null)
 				{
 					eventAttribute = new EventAttribute(eventId++);
-					eventAttribute.Message = methodName;
+					eventAttribute.Message = GetEventMessage(methodName, parameterTypes);
 				}
 			}
 
@@ -441,7 +454,7 @@ namespace EventSourceProxy
 			{
 				Keywords = startEventAttribute.Keywords,
 				Level = startEventAttribute.Level,
-				Message = methodName,
+				Message = GetEventMessage(methodName, parameterTypes),
 				Opcode = startEventAttribute.Opcode,
 				Task = startEventAttribute.Task,
 				Version = startEventAttribute.Version

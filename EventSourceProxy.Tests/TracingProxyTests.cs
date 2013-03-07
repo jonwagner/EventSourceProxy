@@ -158,21 +158,21 @@ namespace EventSourceProxy.Tests
 			// check the individual events
 			Assert.AreEqual(logger, events[0].EventSource);
 			Assert.AreEqual(1, events[0].EventId);
-			Assert.AreEqual("Clear", events[0].Message);
+			Assert.AreEqual("", events[0].Message);
 			Assert.AreEqual(EventLevel.Informational, events[0].Level);
 			Assert.AreEqual((EventKeywords)1, events[0].Keywords);
 			Assert.AreEqual(0, events[0].Payload.Count);
 
 			Assert.AreEqual(logger, events[1].EventSource);
 			Assert.AreEqual(2, events[1].EventId);
-			Assert.AreEqual("Clear_Completed", events[1].Message);
+			Assert.AreEqual("", events[1].Message);
 			Assert.AreEqual(EventLevel.Informational, events[1].Level);
 			Assert.AreEqual((EventKeywords)2, events[1].Keywords);
 			Assert.AreEqual(0, events[0].Payload.Count);
 
 			Assert.AreEqual(logger, events[2].EventSource);
 			Assert.AreEqual(3, events[2].EventId);
-			Assert.AreEqual("AddNumbers", events[2].Message);
+			Assert.AreEqual("{0} {1}", events[2].Message);
 			Assert.AreEqual(EventLevel.Informational, events[2].Level);
 			Assert.AreEqual((EventKeywords)4, events[2].Keywords);
 			Assert.AreEqual(2, events[2].Payload.Count);
@@ -182,7 +182,7 @@ namespace EventSourceProxy.Tests
 			// a fourth event for completed
 			Assert.AreEqual(logger, events[3].EventSource);
 			Assert.AreEqual(4, events[3].EventId);
-			Assert.AreEqual("AddNumbers_Completed", events[3].Message);
+			Assert.AreEqual("{0}", events[3].Message);
 			Assert.AreEqual(EventLevel.Informational, events[3].Level);
 			Assert.AreEqual((EventKeywords)8, events[3].Keywords);
 			Assert.AreEqual(1, events[3].Payload.Count);
@@ -199,20 +199,20 @@ namespace EventSourceProxy.Tests
 			// check the individual events
 			Assert.AreEqual(logger, events[0].EventSource);
 			Assert.AreEqual(1, events[0].EventId);
-			Assert.AreEqual("Clear", events[0].Message);
+			Assert.AreEqual("", events[0].Message);
 			Assert.AreEqual(EventLevel.Informational, events[0].Level);
 			Assert.AreEqual((EventKeywords)1, events[0].Keywords);
 			Assert.AreEqual(0, events[0].Payload.Count);
 
 			Assert.AreEqual(logger, events[1].EventSource);
 			Assert.AreEqual(2, events[1].EventId);
-			Assert.AreEqual("Clear_Completed", events[1].Message);
+			Assert.AreEqual("", events[1].Message);
 			Assert.AreEqual(EventLevel.Informational, events[1].Level);
 			Assert.AreEqual(0, events[0].Payload.Count);
 
 			Assert.AreEqual(logger, events[2].EventSource);
 			Assert.AreEqual(3, events[2].EventId);
-			Assert.AreEqual("AddNumbers", events[2].Message);
+			Assert.AreEqual("{0} {1}", events[2].Message);
 			Assert.AreEqual(EventLevel.Informational, events[2].Level);
 			Assert.AreEqual(2, events[2].Payload.Count);
 			Assert.AreEqual(1, events[2].Payload[0]);
@@ -221,7 +221,7 @@ namespace EventSourceProxy.Tests
 			// a fourth event for completed
 			Assert.AreEqual(logger, events[3].EventSource);
 			Assert.AreEqual(4, events[3].EventId);
-			Assert.AreEqual("AddNumbers_Completed", events[3].Message);
+			Assert.AreEqual("{0}", events[3].Message);
 			Assert.AreEqual(EventLevel.Informational, events[3].Level);
 			Assert.AreEqual(1, events[3].Payload.Count);
 			Assert.AreEqual(3, events[3].Payload[0]);
