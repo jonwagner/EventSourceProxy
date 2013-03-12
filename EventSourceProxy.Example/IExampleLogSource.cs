@@ -9,8 +9,10 @@ namespace EventSourceProxy.Example
 {
 	public interface IExampleLogSource
 	{
+		[Event(1, Message="Starting")]
 		void Starting();
 		void AnEvent(string data);
+		[Event(2, Message = "Stopping")]
 		void Stopping();
 	}
 }

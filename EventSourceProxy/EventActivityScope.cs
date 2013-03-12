@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Linq;
 using System.Runtime.InteropServices;
@@ -17,12 +18,6 @@ namespace EventSourceProxy
 	{
 		#region Private Members
 		/// <summary>
-		/// The current activity scope.
-		/// </summary>
-		[ThreadStatic]
-		private static EventActivityScope _currentActivityScope = null;
-
-		/// <summary>
 		/// The Activity ID outside of this scope. It is restored on the disposal of the scope.
 		/// </summary>
 		private Guid _previousActivityId;
@@ -31,11 +26,6 @@ namespace EventSourceProxy
 		/// The Activity ID of this scope.
 		/// </summary>
 		private Guid _activityId;
-
-		/// <summary>
-		/// The previous activity scope.
-		/// </summary>
-		private EventActivityScope _previousActivityScope;
 		#endregion
 
 		#region Constructors
@@ -60,15 +50,12 @@ namespace EventSourceProxy
 		/// </param>
 		public EventActivityScope(bool reuseExistingActivityId)
 		{
-			_previousActivityScope = _currentActivityScope;
-			_currentActivityScope = this;
-
-			_previousActivityId = UnsafeNativeMethods.GetActivityId();
+			_previousActivityId = GetActivityId();
 
 			if (!reuseExistingActivityId || _previousActivityId == Guid.Empty)
 			{
 				_activityId = Guid.NewGuid();
-				UnsafeNativeMethods.SetActivityId(_activityId);
+				SetActivityId(_activityId);
 			}
 			else
 				_activityId = _previousActivityId;
@@ -77,27 +64,13 @@ namespace EventSourceProxy
 
 		#region Properties
 		/// <summary>
-		/// Gets the current Activity scope.
-		/// </summary>
-		public static EventActivityScope Current
-		{
-			get
-			{
-				return _currentActivityScope;
-			}
-		}
-
-		/// <summary>
 		/// Gets the current Activity Id.
 		/// </summary>
 		public static Guid CurrentActivityId
 		{
 			get
 			{
-				if (_currentActivityScope != null)
-					return _currentActivityScope._activityId;
-
-				return UnsafeNativeMethods.GetActivityId();
+				return GetActivityId();
 			}
 		}
 
@@ -118,13 +91,80 @@ namespace EventSourceProxy
 		#endregion
 
 		/// <summary>
+		/// Perform an action within an activity scope.
+		/// This method ensures that an activity scope exists.
+		/// If an activity scope exists, it is reused.
+		/// </summary>
+		/// <param name="action">The action to perform.</param>
+		public static void DoInScope(Action action)
+		{
+			Do(action, newScope: false);
+		}
+
+		/// <summary>
+		/// Perform an action within a new activity scope.
+		/// </summary>
+		/// <param name="action">The action to perform.</param>
+		public static void DoInNewScope(Action action)
+		{
+			Do(action, newScope: true);
+		}
+
+		/// <summary>
 		/// Disposes the current Activity Scope by restoring the previous scope.
 		/// </summary>
 		public void Dispose()
 		{
-			UnsafeNativeMethods.SetActivityId(_previousActivityId);
-
-			_currentActivityScope = _previousActivityScope;
+			SetActivityId(_previousActivityId);
+			_activityId = _previousActivityId;
 		}
+
+		#region Helper Methods
+		/// <summary>
+		/// Performs an action in an activity scope.
+		/// </summary>
+		/// <param name="action">The action to perform.</param>
+		/// <param name="newScope">True to always create a new scope.</param>
+		private static void Do(Action action, bool newScope)
+		{
+			Guid previousActivityId = GetActivityId();
+			if (newScope || previousActivityId == Guid.Empty)
+			{
+				Guid activityID = Guid.NewGuid();
+				try
+				{
+					SetActivityId(activityID);
+					action();
+				}
+				finally
+				{
+					SetActivityId(previousActivityId);
+				}
+			}
+		}
+
+		/// <summary>
+		/// Get the current Activity Id.
+		/// </summary>
+		/// <returns>The current activity Id.</returns>
+		[SuppressMessage("Microsoft.Security", "CA2122:DoNotIndirectlyExposeMethodsWithLinkDemands", Justification = "SecurityCritical Attribute has been applied")]
+		[SecurityCritical]
+		private static Guid GetActivityId()
+		{
+			return Trace.CorrelationManager.ActivityId;
+		}
+
+		/// <summary>
+		/// Sets the current Activity Id.
+		/// </summary>
+		/// <param name="activityId">The activity Id to set.</param>
+		[SuppressMessage("Microsoft.Security", "CA2122:DoNotIndirectlyExposeMethodsWithLinkDemands", Justification = "SecurityCritical Attribute has been applied")]
+		[SecurityCritical]
+		private static void SetActivityId(Guid activityId)
+		{
+			Trace.CorrelationManager.ActivityId = activityId;
+			UnsafeNativeMethods.SetActivityId(activityId);
+		}
+		#endregion
 	}
 }

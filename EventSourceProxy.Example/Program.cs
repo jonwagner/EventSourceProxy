@@ -19,20 +19,34 @@ namespace EventSourceProxy.Example
 		public virtual int Bar2() { return 1; }
 	}
 
+	public class TestListener : EventListener
+	{
+		protected override void OnEventWritten(EventWrittenEventArgs eventData)
+		{
+			Console.Write("Activity: {0} ", Trace.CorrelationManager.ActivityId);
+			Console.WriteLine(eventData.Message, eventData.Payload.ToArray());
+		}
+	}
+
 	class Program
 	{
 		static void Main(string[] args)
 		{
+			// create the log
 			var log = EventSourceImplementer.GetEventSourceAs<IExampleLogSource>();
 			EventSource es = (EventSource)log;
-			Console.WriteLine(es.Guid);
+			Console.WriteLine("Provider GUID = {0}", es.Guid);
+
+			// create a listener
+			var listener = new TestListener();
+			listener.EnableEvents(es, EventLevel.LogAlways, (EventKeywords)(-1));
 
 			using (new EventActivityScope())
 			{
 				log.Starting();
 				for (int i = 0; i < 10; i++)
 				{
-					using (new EventActivityScope(true))
+					using (new EventActivityScope())
 					{
 						log.AnEvent(String.Format("i = {0}", i));
 					}
