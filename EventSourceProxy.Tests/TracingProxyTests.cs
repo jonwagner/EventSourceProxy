@@ -270,12 +270,28 @@ namespace EventSourceProxy.Tests
 		}
 
 		[Test]
+		public void MethodInterfaceShouldCreateNotActivityWhenNotSpecified()
+		{
+			Assert.AreEqual(Guid.Empty, EventActivityScope.CurrentActivityId);
+
+			// this proxy does not create a new activity scope
+			var tester = new AutomaticActivity();
+			var proxy = TracingProxy.Create<AutomaticActivity>(tester);
+			proxy.Method();
+
+			Assert.AreNotEqual(Guid.Empty, tester.ActivityId);
+
+			Assert.AreEqual(Guid.Empty, EventActivityScope.CurrentActivityId);
+		}
+
+		[Test]
 		public void MethodInterfaceShouldCreateActivity()
 		{
 			Assert.AreEqual(Guid.Empty, EventActivityScope.CurrentActivityId);
 
+			// this proxy does create a new activity scope
 			var tester = new AutomaticActivity();
-			var proxy = TracingProxy.Create<AutomaticActivity>(tester);
+			var proxy = TracingProxy.CreateWithActivityScope<AutomaticActivity>(tester);
 			proxy.Method();
 
 			Assert.AreNotEqual(Guid.Empty, tester.ActivityId);

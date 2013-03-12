@@ -47,6 +47,11 @@ namespace EventSourceProxy
 		private Type _logType;
 
 		/// <summary>
+		/// True when the proxy should create a new activity scope around its method calls.
+		/// </summary>
+		private bool _callWithActivityScope;
+
+		/// <summary>
 		/// The serialization provider for the type.
 		/// </summary>
 		private ITraceSerializationProvider _serializationProvider;
@@ -78,10 +83,12 @@ namespace EventSourceProxy
 		/// </summary>
 		/// <param name="executeType">The type of object to execute.</param>
 		/// <param name="logType">The type of object to log.</param>
-		public TracingProxyImplementer(Type executeType, Type logType)
+		/// <param name="callWithActivityScope">True to generate a proxy that wraps an activity scope around all calls.</param>
+		public TracingProxyImplementer(Type executeType, Type logType, bool callWithActivityScope)
 		{
 			_executeType = executeType;
 			_logType = logType;
+			_callWithActivityScope = callWithActivityScope;
 			_serializationProvider = ObjectSerializationProvider.GetSerializationProvider(logType);
 
 			CreateMethod = ImplementProxy();
@@ -223,14 +230,17 @@ namespace EventSourceProxy
 				returnValue = mIL.DeclareLocal(m.ReturnType);
 
 			// set up the activity scope
-			var scope = mIL.DeclareLocal(typeof(EventActivityScope));
-			mIL.Emit(OpCodes.Ldc_I4_1);
-			mIL.Emit(OpCodes.Newobj, typeof(EventSourceProxy.EventActivityScope).GetConstructor(new Type[] { typeof(bool) }));
-			mIL.Emit(OpCodes.Stloc, scope);
+			LocalBuilder scope = null;
+			if (_callWithActivityScope)
+			{
+				scope = mIL.DeclareLocal(typeof(EventActivityScope));
+				mIL.Emit(OpCodes.Ldc_I4_1);
+				mIL.Emit(OpCodes.Newobj, typeof(EventSourceProxy.EventActivityScope).GetConstructor(new Type[] { typeof(bool) }));
+				mIL.Emit(OpCodes.Stloc, scope);
 
-			// start the try block
-			Label endOfMethod = mIL.DefineLabel();
-			mIL.BeginExceptionBlock();
+				// start the try block
+				mIL.BeginExceptionBlock();
+			}
 
 			// call the method on the log that matches the execute method
 			var targetParameterTypes = parameterTypes.Select(p => p.IsGenericParameter ? TypeImplementer.GetTypeSupportedByEventSource(p) : p).ToArray();
@@ -279,13 +289,15 @@ namespace EventSourceProxy
 			}
 
 			// clean up the activity scope
-			mIL.BeginFinallyBlock();
-			mIL.Emit(OpCodes.Ldloc, scope);
-			mIL.Emit(OpCodes.Callvirt, typeof(EventActivityScope).GetMethod("Dispose"));
-			mIL.EndExceptionBlock();
+			if (_callWithActivityScope)
+			{
+				mIL.BeginFinallyBlock();
+				mIL.Emit(OpCodes.Ldloc, scope);
+				mIL.Emit(OpCodes.Callvirt, typeof(EventActivityScope).GetMethod("Dispose"));
+				mIL.EndExceptionBlock();
+			}
 
 			// return the result
-			mIL.MarkLabel(endOfMethod);
 			if (executeMethod.ReturnType != typeof(void))
 				mIL.Emit(OpCodes.Ldloc, returnValue);
 			mIL.Emit(OpCodes.Ret);

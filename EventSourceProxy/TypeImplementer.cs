@@ -524,6 +524,9 @@ namespace EventSourceProxy
 				mIL.Emit(OpCodes.Stelem, typeof(object));
 			}
 
+			// prepare for write event by setting the ETW activity ID
+			mIL.Emit(OpCodes.Call, typeof(EventActivityScope).GetMethod("PrepareForWriteEvent"));
+
 			// call writeevent
 			mIL.Emit(OpCodes.Call, _writeEvent);
 			mIL.Emit(OpCodes.Ret);

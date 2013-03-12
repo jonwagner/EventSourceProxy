@@ -91,6 +91,20 @@ namespace EventSourceProxy
 		#endregion
 
 		/// <summary>
+		/// Prepare for WriteEvent by setting the ETW activity ID.
+		/// </summary>
+		/// <remarks>
+		/// The built-in .NET EventSource WriteEvent method does not set the ETW activity ID.
+		/// This method allows EventSources to properly synchronize these values before logging.
+		/// </remarks>
+		[SuppressMessage("Microsoft.Security", "CA2122:DoNotIndirectlyExposeMethodsWithLinkDemands", Justification = "SecurityCritical Attribute has been applied")]
+		[SecurityCritical]
+		public static void PrepareForWriteEvent()
+		{
+			UnsafeNativeMethods.SetActivityId(Trace.CorrelationManager.ActivityId);
+		}
+
+		/// <summary>
 		/// Perform an action within an activity scope.
 		/// This method ensures that an activity scope exists.
 		/// If an activity scope exists, it is reused.
