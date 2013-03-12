@@ -118,7 +118,8 @@ namespace EventSourceProxy
 			int parameterIndex = i - 1;
 
 			// non-fundamental types use the object serializer
-			if (serializationProvider.ShouldSerialize(methodBuilder, parameterIndex))
+			var context = new TraceSerializationContext(methodBuilder, parameterIndex);
+			if (serializationProvider.ShouldSerialize(context))
 			{
 				// get the object serializer from the this pointer
 				mIL.Emit(OpCodes.Ldarg_0);
@@ -141,6 +142,7 @@ namespace EventSourceProxy
 				// add the method builder and parameter index
 				mIL.Emit(OpCodes.Ldtoken, methodBuilder);
 				mIL.Emit(OpCodes.Ldc_I4, parameterIndex);
+				mIL.Emit(OpCodes.Newobj, typeof(TraceSerializationContext).GetConstructor(new Type[] { typeof(RuntimeMethodHandle), typeof(int) }));
 
 				mIL.Emit(OpCodes.Callvirt, typeof(ITraceSerializationProvider).GetMethod("SerializeObject", BindingFlags.Instance | BindingFlags.Public));
 			}

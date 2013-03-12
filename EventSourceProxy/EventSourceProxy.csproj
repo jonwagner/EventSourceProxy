@@ -58,6 +58,7 @@
     <Compile Include="ITraceSerializationProvider.cs" />
     <Compile Include="JsonObjectSerializer.cs" />
     <Compile Include="ProviderManager.cs" />
+    <Compile Include="TraceSerializationContext.cs" />
     <Compile Include="TracingProxy.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="TracingProxyImplementer.cs" />

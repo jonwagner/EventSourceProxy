@@ -393,7 +393,7 @@ namespace EventSourceProxy.Tests
 
 			// check the individual events to make sure the data came back in the payload
 			Assert.AreEqual(1, events[0].Payload[0]);
-			Assert.AreEqual(new JsonObjectSerializer().SerializeObject(data, new RuntimeMethodHandle(), 0), events[4].Payload[0]);
+			Assert.AreEqual(new JsonObjectSerializer().SerializeObject(data, null), events[4].Payload[0]);
 		}
 		#endregion
 

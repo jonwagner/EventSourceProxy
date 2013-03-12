@@ -196,11 +196,11 @@ namespace EventSourceProxy.Tests
 
 		class CustomSerializer : ObjectSerializationProvider
 		{
-			public override string SerializeObject(object value, RuntimeMethodHandle methodHandle, int parameterIndex)
+			public override string SerializeObject(object value, TraceSerializationContext context)
 			{
 				throw new NotImplementedException();
 			}
-			public override bool ShouldSerialize(System.Reflection.MethodInfo method, int parameterIndex)
+			public override bool ShouldSerialize(TraceSerializationContext context)
 			{
 				return false;
 			}

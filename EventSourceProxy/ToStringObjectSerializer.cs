@@ -16,10 +16,9 @@ namespace EventSourceProxy
 		/// Serializes an object to a string.
 		/// </summary>
 		/// <param name="value">The object to serialize.</param>
-		/// <param name="methodHandle">A RuntimeMethodHandle to the log method being called.</param>
-		/// <param name="parameterIndex">The index of the current parameter being logged.</param>
+		/// <param name="context">The context of the serialization.</param>
 		/// <returns>The serialized representation of the object.</returns>
-		public override string SerializeObject(object value, RuntimeMethodHandle methodHandle, int parameterIndex)
+		public override string SerializeObject(object value, TraceSerializationContext context)
 		{
 			if (value == null)
 				return null;

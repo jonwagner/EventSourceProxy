@@ -13,21 +13,19 @@ namespace EventSourceProxy
 	public abstract class ObjectSerializationProvider : ITraceSerializationProvider
 	{
 		/// <summary>
-		/// Serializes an object to a string when an ETW log needs to serialize a non-native object.
+		/// Serializes an object to a string.
 		/// </summary>
 		/// <param name="value">The object to serialize.</param>
-		/// <param name="methodHandle">A RuntimeMethodHandle to the log method being called.</param>
-		/// <param name="parameterIndex">The index of the current parameter being logged.</param>
-		/// <returns>The string representation of the object. This value can be null.</returns>
-		public abstract string SerializeObject(object value, RuntimeMethodHandle methodHandle, int parameterIndex);
+		/// <param name="context">The context of the serialization.</param>
+		/// <returns>The serialized representation of the object.</returns>
+		public abstract string SerializeObject(object value, TraceSerializationContext context);
 
 		/// <summary>
 		/// Returns if the should the given parameter be serialized.
 		/// </summary>
-		/// <param name="method">The method being called.</param>
-		/// <param name="parameterIndex">The index of the parameter to analyze.</param>
+		/// <param name="context">The context of the serialization.</param>
 		/// <returns>True if the value should be serialized, false otherwise.</returns>
-		public virtual bool ShouldSerialize(MethodInfo method, int parameterIndex)
+		public virtual bool ShouldSerialize(TraceSerializationContext context)
 		{
 			return true;
 		}
