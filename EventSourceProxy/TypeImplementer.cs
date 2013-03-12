@@ -341,52 +341,53 @@ namespace EventSourceProxy
 			// this cannot be virtual or static, or the manifest builder will skip it
 			// it also cannot return a value
 			MethodBuilder m = _typeBuilder.DefineMethod(methodName, MethodAttributes.Public, typeof(void), targetParameterTypes);
+
+			// copy the Event or NonEvent attribute from the interface
+			if (eventAttribute != null)
+				m.SetCustomAttribute(EventAttributeHelper.ConvertEventAttributeToAttributeBuilder(eventAttribute));
+			else
+				m.SetCustomAttribute(EventAttributeHelper.CreateNonEventAttribute());
+
+			// add the parameter names
+			for (int i = 0; i < parameters.Length; i++)
 			{
-				// copy the Event or NonEvent attribute from the interface
-				if (eventAttribute != null)
-					m.SetCustomAttribute(EventAttributeHelper.ConvertEventAttributeToAttributeBuilder(eventAttribute));
-				else
-					m.SetCustomAttribute(EventAttributeHelper.CreateNonEventAttribute());
+				var parameter = parameters[i];
+				m.DefineParameter(i + 1, parameter.Attributes, parameter.Name);
+			}
 
-				// add the parameter names
-				for (int i = 0; i < parameters.Length; i++)
-				{
-					var parameter = parameters[i];
-					m.DefineParameter(i + 1, parameter.Attributes, parameter.Name);
-				}
+			// add the context parameter
+			if (_supportsContext)
+				m.DefineParameter(parameters.Length + 1, ParameterAttributes.In, Context);
 
-				// add the context parameter
-				if (_supportsContext)
-					m.DefineParameter(parameters.Length + 1, ParameterAttributes.In, Context);
+			if (interfaceMethod.IsAbstract)
+			{
+				// for interface methods, implement a call to write event
+				EmitCallWriteEvent(m, eventAttribute, parameterTypes, targetParameterTypes);
 
-				// we have 3 cases
-				if (interfaceMethod.IsAbstract)
-				{
-					// for interface methods, implement a call to write event
-					EmitCallWriteEvent(m, eventAttribute, parameterTypes, targetParameterTypes);
-
-					// then implement the interface method as calling the core method
-					// this must be virtual to be an interface override
-					MethodBuilder im = _typeBuilder.DefineMethod("_" + methodName, MethodAttributes.Public | MethodAttributes.Virtual);
-					ProxyHelper.CopyMethodSignature(interfaceMethod, im);
+				// then implement an interface method as calling the core method
+				// this must be virtual to be an interface override
+				MethodBuilder im = _typeBuilder.DefineMethod("_" + methodName, MethodAttributes.Public | MethodAttributes.Virtual);
+				ProxyHelper.CopyMethodSignature(interfaceMethod, im);
+				if (EmitIsEnabled(im, eventAttribute))
 					EmitDirectProxy(im, m, parameterTypes, targetParameterTypes);
 
-					// map our method to the interface implementation
-					_typeBuilder.DefineMethodOverride(im, interfaceMethod);
-				}
-				else if (interfaceMethod.DeclaringType.IsSubclassOf(typeof(EventSource)))
-				{
-					// if we are implementing an event source, then
-					// for non-abstract methods we just proxy the base implementation
-					EmitDirectProxy(m, interfaceMethod, parameterTypes, targetParameterTypes);
-				}
-				else
-				{
-					// the base class is not an event source, so we are creating an eventsource-derived class
-					// that just logs the event
-					// so we need to call write event
+				// map our method to the interface implementation
+				_typeBuilder.DefineMethodOverride(im, interfaceMethod);
+			}
+			else if (interfaceMethod.DeclaringType.IsSubclassOf(typeof(EventSource)))
+			{
+				// if we are implementing an event source, then
+				// for non-abstract methods we just proxy the base implementation
+				EmitDirectProxy(m, interfaceMethod, parameterTypes, targetParameterTypes);
+			}
+			else
+			{
+				// the base class is not an event source, so we are creating an eventsource-derived class
+				// that just logs the event
+				// so we need to call write event
+				// call IsEnabled with the given event level and keywords to check whether we should log
+				if (EmitIsEnabled(m, eventAttribute))
 					EmitCallWriteEvent(m, eventAttribute, parameterTypes, targetParameterTypes);
-				}
 			}
 
 			return m;
@@ -451,6 +452,39 @@ namespace EventSourceProxy
 		}
 
 		/// <summary>
+		/// Emits the code to determine whether logging is enabled.
+		/// For NonEvents, this emits the default return value to the method, and returns false here.
+		/// </summary>
+		/// <param name="methodBuilder">The MethodBuilder to implement.</param>
+		/// <param name="eventAttribute">The EventAttribute.</param>
+		/// <returns>True if events could possibly be enabled, false if this method is a NonEvent.</returns>
+		private static bool EmitIsEnabled(MethodBuilder methodBuilder, EventAttribute eventAttribute)
+		{
+			ILGenerator mIL = methodBuilder.GetILGenerator();
+
+			// if there is no event attribute, then this is a non-event, so just return silently
+			if (eventAttribute == null)
+			{
+				ProxyHelper.EmitDefaultValue(mIL, methodBuilder.ReturnType);
+				mIL.Emit(OpCodes.Ret);
+				return false;
+			}
+
+			// call IsEnabled with the given event level and keywords to check whether we should log
+			mIL.Emit(OpCodes.Ldarg_0);
+			mIL.Emit(OpCodes.Ldc_I4, (int)eventAttribute.Level);
+			mIL.Emit(OpCodes.Ldc_I8, (long)eventAttribute.Keywords);
+			mIL.Emit(OpCodes.Call, _isEnabled);
+			Label enabledLabel = mIL.DefineLabel();
+			mIL.Emit(OpCodes.Brtrue, enabledLabel);
+			ProxyHelper.EmitDefaultValue(mIL, methodBuilder.ReturnType);
+			mIL.Emit(OpCodes.Ret);
+			mIL.MarkLabel(enabledLabel);
+
+			return true;
+		}
+
+		/// <summary>
 		/// Emit a call to WriteEvent(param object[]).
 		/// </summary>
 		/// <param name="methodBuilder">The MethodBuilder to append to.</param>
@@ -464,19 +498,10 @@ namespace EventSourceProxy
 			// if there is no event attribute, then this is a non-event, so just return silently
 			if (eventAttribute == null)
 			{
+				ProxyHelper.EmitDefaultValue(mIL, methodBuilder.ReturnType);
 				mIL.Emit(OpCodes.Ret);
 				return;
 			}
-
-			// call IsEnabled with the given event level and keywords to check whether we should log
-			mIL.Emit(OpCodes.Ldarg_0);
-			mIL.Emit(OpCodes.Ldc_I4, (int)eventAttribute.Level);
-			mIL.Emit(OpCodes.Ldc_I8, (long)eventAttribute.Keywords);
-			mIL.Emit(OpCodes.Call, _isEnabled);
-			Label enabledLabel = mIL.DefineLabel();
-			mIL.Emit(OpCodes.Brtrue, enabledLabel);
-			mIL.Emit(OpCodes.Ret);
-			mIL.MarkLabel(enabledLabel);
 
 			// call write event with the parameters in an object array
 			mIL.Emit(OpCodes.Ldarg_0);
@@ -574,18 +599,7 @@ namespace EventSourceProxy
 			// ldnull works well for this
 			// this is important when we create logging proxies
 			if (methodBuilder.ReturnType != null && methodBuilder.ReturnType != typeof(void) && baseMethod.ReturnType == typeof(void))
-			{
-				// for generics and values, init a local object with a blank object
-				if (methodBuilder.ReturnType.IsGenericParameter || methodBuilder.ReturnType.IsValueType)
-				{
-					var returnValue = mIL.DeclareLocal(methodBuilder.ReturnType);
-					mIL.Emit(OpCodes.Ldloca_S, returnValue);
-					mIL.Emit(OpCodes.Initobj, methodBuilder.ReturnType);
-					mIL.Emit(OpCodes.Ldloc, returnValue);
-				}
-				else
-					mIL.Emit(OpCodes.Ldnull);
-			}
+				ProxyHelper.EmitDefaultValue(mIL, methodBuilder.ReturnType);
 
 			mIL.Emit(OpCodes.Ret);
 		}
