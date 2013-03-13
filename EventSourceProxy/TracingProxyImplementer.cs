@@ -259,9 +259,8 @@ namespace EventSourceProxy
 				mIL.Emit(OpCodes.Stloc, returnValue);
 
 			// if there is a completed method, then call that
-			var completedParameterTypes = new Type[] { TypeImplementer.GetTypeSupportedByEventSource(executeMethod.ReturnType) };
-			var completedMethod = DiscoverMethod(_logField.FieldType, executeMethod.Name, "_Completed", completedParameterTypes) ??
-				DiscoverMethod(_logField.FieldType, executeMethod.Name, "_Completed", Type.EmptyTypes);
+			var completedParameterTypes = (executeMethod.ReturnType == typeof(void)) ? Type.EmptyTypes : new Type[] { executeMethod.ReturnType };
+			var completedMethod = DiscoverMethod(_logField.FieldType, executeMethod.Name, "_Completed", completedParameterTypes);
 			if (completedMethod != null)
 			{
 				// load this._log
@@ -269,19 +268,8 @@ namespace EventSourceProxy
 				mIL.Emit(OpCodes.Ldfld, _logField);
 
 				// load the value from the local variable
-				var completedParameters = completedMethod.GetParameters();
-				if (completedParameters.Length == 1)
-				{
-					ProxyHelper.EmitSerializeValue(
-						m,
-						-1,
-						executeMethod.ReturnType,
-						completedParameters[0].ParameterType,
-						_serializationProvider,
-						_serializerField,
-						il => il.Emit(OpCodes.Ldloc, returnValue),
-						il => il.Emit(OpCodes.Ldloca_S, returnValue));
-				}
+				if (executeMethod.ReturnType != typeof(void))
+					mIL.Emit(OpCodes.Ldloc, returnValue);
 
 				mIL.Emit(OpCodes.Call, completedMethod);
 				if (completedMethod.ReturnType != typeof(void))

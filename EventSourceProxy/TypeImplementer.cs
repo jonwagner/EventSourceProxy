@@ -364,8 +364,8 @@ namespace EventSourceProxy
 				// for interface methods, implement a call to write event
 				EmitCallWriteEvent(m, eventAttribute, parameterTypes, targetParameterTypes);
 
-				// then implement an interface method as calling the core method
-				// this must be virtual to be an interface override
+				// since EventSource only accepts non-virtual methods, and we need a virtual method to implement the abstract method
+				// we need to implement a wrapper method on the interface that calls into the base method
 				MethodBuilder im = _typeBuilder.DefineMethod("_" + methodName, MethodAttributes.Public | MethodAttributes.Virtual);
 				ProxyHelper.CopyMethodSignature(interfaceMethod, im);
 				if (EmitIsEnabled(im, eventAttribute))
@@ -412,11 +412,11 @@ namespace EventSourceProxy
 				return;
 
 			var methodName = beginMethod.Name + CompletedSuffix;
+			var parameterType = interfaceMethod.ReturnType;
 
 			// if the interface already has a _Completed method, don't emit a new one
-			var parameterTypes = interfaceMethod.ReturnType == typeof(void) ? Type.EmptyTypes : new Type[] { interfaceMethod.ReturnType };
-			if (interfaceMethod.DeclaringType.GetMethod(methodName, parameterTypes) != null ||
-				interfaceMethod.DeclaringType.GetMethod(methodName, Type.EmptyTypes) != null)
+			var parameterTypes = parameterType == typeof(void) ? Type.EmptyTypes : new Type[] { parameterType };
+			if (interfaceMethod.DeclaringType.GetMethod(methodName, parameterTypes) != null)
 				return;
 
 			var targetParameters = parameterTypes.Select(t => TypeIsSupportedByEventSource(t) ? t : typeof(string)).ToList();
@@ -439,16 +439,34 @@ namespace EventSourceProxy
 			if (eventAttribute.Keywords == EventKeywords.None)
 				eventAttribute.Keywords = autoKeyword;
 
-			// create the internal method that calls WriteEvent
-			// this cannot be virtual or static, or the manifest builder will skip it
-			// it also cannot return a value
-			MethodBuilder m = _typeBuilder.DefineMethod(methodName, MethodAttributes.Public, typeof(void), targetParameterTypes);
-			m.SetCustomAttribute(EventAttributeHelper.ConvertEventAttributeToAttributeBuilder(eventAttribute));
+			// if the return type IS coerced, then emit a _Completed method with the given signature, and an internal method
+			if (targetParameters.Count == 1 && targetParameters[0] != parameterType)
+			{
+				// emit the internal method
+				MethodBuilder m = _typeBuilder.DefineMethod(methodName, MethodAttributes.Public, typeof(void), targetParameterTypes);
+				m.SetCustomAttribute(EventAttributeHelper.ConvertEventAttributeToAttributeBuilder(eventAttribute));
+				EmitCallWriteEvent(m, eventAttribute, targetParameterTypes, targetParameterTypes);
 
-			// the base class is not an event source, so we are creating an eventsource-derived class
-			// that just logs the event
-			// so we need to call write event
-			EmitCallWriteEvent(m, eventAttribute, targetParameterTypes, targetParameterTypes);
+				// emit an overloaded wrapper method that calls the method when it's enabled
+				// note this is a non-event so EventSource doesn't try to log it
+				MethodBuilder im = _typeBuilder.DefineMethod(methodName, MethodAttributes.Public);
+				ProxyHelper.CopyGenericSignature(interfaceMethod, im);
+				im.SetReturnType(typeof(void));
+				im.SetParameters(parameterTypes);
+
+				// mark the method as a non-event and implement it
+				im.SetCustomAttribute(EventAttributeHelper.CreateNonEventAttribute());
+				if (EmitIsEnabled(im, eventAttribute))
+					EmitDirectProxy(im, m, parameterTypes, targetParameterTypes);
+			}
+			else
+			{
+				// create the internal method that calls WriteEvent
+				MethodBuilder m = _typeBuilder.DefineMethod(methodName, MethodAttributes.Public, typeof(void), targetParameterTypes);
+				m.SetCustomAttribute(EventAttributeHelper.ConvertEventAttributeToAttributeBuilder(eventAttribute));
+				if (EmitIsEnabled(m, eventAttribute))
+					EmitCallWriteEvent(m, eventAttribute, targetParameterTypes, targetParameterTypes);
+			}
 		}
 
 		/// <summary>

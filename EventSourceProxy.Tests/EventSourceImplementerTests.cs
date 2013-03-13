@@ -471,7 +471,7 @@ namespace EventSourceProxy.Tests
 
 			// check the individual events to make sure the task came back in the payload
 			Assert.AreEqual(1, events[1].Payload.Count);
-			Assert.AreEqual(task.ToString(), events[1].Payload[0]);
+			Assert.AreEqual(new JsonObjectSerializer().SerializeObject(task, null), events[1].Payload[0]);
 		}
 		#endregion
 

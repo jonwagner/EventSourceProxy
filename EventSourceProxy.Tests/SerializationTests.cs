@@ -187,7 +187,6 @@ namespace EventSourceProxy.Tests
 		}
 		#endregion
 
-
 		#region CustomSerializer Tests
 		public interface ILogInterfaceWithClassDataToCustom
 		{

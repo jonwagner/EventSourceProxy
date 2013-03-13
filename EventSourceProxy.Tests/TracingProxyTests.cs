@@ -477,6 +477,47 @@ namespace EventSourceProxy.Tests
 		}
 		#endregion
 
+		#region Interface with Generic Methods
+		public interface ITestServiceWithGenericTaskMethods
+		{
+			Task<T> GetItem<T>(T value);
+		}
+
+		public class TestServiceWithGenericTaskMethods : ITestServiceWithGenericTaskMethods
+		{
+			public Task<T> GetItem<T>(T value) { return Task.FromResult(default(T)); }
+		}
+
+		[Test]
+		public void CanImplementInterfaceWithGenericTaskMethods()
+		{
+			// turn on logging
+			var log = EventSourceImplementer.GetEventSourceAs<ITestServiceWithGenericTaskMethods>();
+			_listener.EnableEvents((EventSource)log, EventLevel.LogAlways, (EventKeywords)(-1));
+
+			Assert.AreEqual(null, log.GetItem((int)1));
+
+			// look at the events
+			var events = _listener.Events.ToArray();
+			Assert.AreEqual(1, events.Length);
+
+			// check the individual events to make sure the data came back in the payload
+			Assert.AreEqual(1, events[0].Payload.Count);
+
+			// create a proxy on the interface
+			_listener.Reset();
+			var proxy = TracingProxy.Create<ITestServiceWithGenericTaskMethods>(new TestServiceWithGenericTaskMethods());
+			proxy.GetItem(1).Wait();
+
+			events = _listener.Events.ToArray();
+			Assert.AreEqual(2, events.Length);
+
+			// check the individual events to make sure the data came back in the payload
+			Assert.AreEqual(1, events[0].Payload.Count);
+			Assert.AreEqual(1, events[1].Payload.Count);
+		}
+		#endregion
+
 		#region Derived Interface Implementation
 		// this is any old interface with no decoration
 		public interface IDerivedCalculator : ICalculator

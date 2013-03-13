@@ -21,12 +21,11 @@ namespace EventSourceProxy
 		internal const string AssemblyName = "EventSourceImplementation";
 
 		/// <summary>
-		/// Copies the method signature from one method to another.
-		/// This includes generic parameters, constraints and parameters.
+		/// Copy the generic attributes of a method.
 		/// </summary>
 		/// <param name="sourceMethod">The source method.</param>
 		/// <param name="targetMethod">The target method.</param>
-		internal static void CopyMethodSignature(MethodInfo sourceMethod, MethodBuilder targetMethod)
+		internal static void CopyGenericSignature(MethodInfo sourceMethod, MethodBuilder targetMethod)
 		{
 			if (sourceMethod.IsGenericMethod)
 			{
@@ -42,10 +41,23 @@ namespace EventSourceProxy
 					newType.SetInterfaceConstraints(oldType.GetGenericParameterConstraints());
 				}
 			}
+		}
+
+		/// <summary>
+		/// Copies the method signature from one method to another.
+		/// This includes generic parameters, constraints and parameters.
+		/// </summary>
+		/// <param name="sourceMethod">The source method.</param>
+		/// <param name="targetMethod">The target method.</param>
+		internal static void CopyMethodSignature(MethodInfo sourceMethod, MethodBuilder targetMethod)
+		{
+			CopyGenericSignature(sourceMethod, targetMethod);
 
 			targetMethod.SetReturnType(sourceMethod.ReturnType);
 
 			// copy the parameters and attributes
+			// it seems that we can use the source parameters directly because the target method is derived
+			// from the source method
 			var parameters = sourceMethod.GetParameters();
 			targetMethod.SetParameters(parameters.Select(p => p.ParameterType).ToArray());
 
@@ -154,18 +166,40 @@ namespace EventSourceProxy
 		/// Determine if the parameters of a method match a list of parameter types.
 		/// </summary>
 		/// <param name="m">The method to test.</param>
-		/// <param name="expectedParameters">The list of parameter types.</param>
+		/// <param name="targetTypes">The list of parameter types.</param>
 		/// <returns>True if the types of parameters match.</returns>
-		internal static bool ParametersMatch(MethodInfo m, Type[] expectedParameters)
+		internal static bool ParametersMatch(MethodInfo m, Type[] targetTypes)
 		{
-			var p = m.GetParameters();
+			var sourceTypes = m.GetParameters().Select(p => p.ParameterType).ToArray();
 
-			if (p.Length != expectedParameters.Length)
+			// need to have the same number of types
+			if (sourceTypes.Length != targetTypes.Length)
 				return false;
 
-			for (int i = 0; i < p.Length; i++)
-				if (p[i].ParameterType != expectedParameters[i])
-					return false;
+			for (int i = 0; i < sourceTypes.Length; i++)
+			{
+				var sourceType = sourceTypes[i];
+				var targetType = targetTypes[i];
+
+				// if they match exactly, then go to the next parameter
+				if (sourceType == targetType)
+					continue;
+
+				// if both are generics of the same type, then they match
+				if (sourceType.IsGenericType &&
+					targetType.IsGenericType &&
+					sourceType.GetGenericTypeDefinition() == targetType.GetGenericTypeDefinition())
+					continue;
+
+				// if both are generic parameters and they match by name, then we can use this
+				// NOTE: this only works because we copy generic parameters and keep their names
+				if (sourceType.IsGenericParameter &&
+					targetType.IsGenericParameter &&
+					sourceType.Name == targetType.Name)
+					continue;
+
+				return false;
+			}
 
 			return true;
 		}
