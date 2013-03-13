@@ -368,6 +368,7 @@ namespace EventSourceProxy
 				// we need to implement a wrapper method on the interface that calls into the base method
 				MethodBuilder im = _typeBuilder.DefineMethod("_" + methodName, MethodAttributes.Public | MethodAttributes.Virtual);
 				ProxyHelper.CopyMethodSignature(interfaceMethod, im);
+				ProxyHelper.EmitDefaultValue(im.GetILGenerator(), im.ReturnType);
 				if (EmitIsEnabled(im, eventAttribute))
 					EmitDirectProxy(im, m, parameterTypes, targetParameterTypes);
 
@@ -386,6 +387,7 @@ namespace EventSourceProxy
 				// that just logs the event
 				// so we need to call write event
 				// call IsEnabled with the given event level and keywords to check whether we should log
+				ProxyHelper.EmitDefaultValue(m.GetILGenerator(), m.ReturnType);
 				if (EmitIsEnabled(m, eventAttribute))
 					EmitCallWriteEvent(m, eventAttribute, parameterTypes, targetParameterTypes);
 			}
@@ -419,6 +421,7 @@ namespace EventSourceProxy
 			if (interfaceMethod.DeclaringType.GetMethod(methodName, parameterTypes) != null)
 				return;
 
+			var targetParameterType = GetTypeSupportedByEventSource(parameterType);
 			var targetParameters = parameterTypes.Select(t => TypeIsSupportedByEventSource(t) ? t : typeof(string)).ToList();
 			if (_supportsContext)
 				targetParameters.Add(typeof(string));
@@ -439,8 +442,8 @@ namespace EventSourceProxy
 			if (eventAttribute.Keywords == EventKeywords.None)
 				eventAttribute.Keywords = autoKeyword;
 
-			// if the return type IS coerced, then emit a _Completed method with the given signature, and an internal method
-			if (targetParameters.Count == 1 && targetParameters[0] != parameterType)
+			// if we have a return type, then we need to implement two methods
+			if (parameterTypes.Length == 1)
 			{
 				// emit the internal method
 				MethodBuilder m = _typeBuilder.DefineMethod(methodName, MethodAttributes.Public, typeof(void), targetParameterTypes);
@@ -451,11 +454,15 @@ namespace EventSourceProxy
 				// note this is a non-event so EventSource doesn't try to log it
 				MethodBuilder im = _typeBuilder.DefineMethod(methodName, MethodAttributes.Public);
 				ProxyHelper.CopyGenericSignature(interfaceMethod, im);
-				im.SetReturnType(typeof(void));
+				im.SetReturnType(parameterTypes[0]);
 				im.SetParameters(parameterTypes);
 
-				// mark the method as a non-event and implement it
+				// mark the method as a non-event
 				im.SetCustomAttribute(EventAttributeHelper.CreateNonEventAttribute());
+
+				// put the return value on the stack so we can return the value as a passthrough
+				im.GetILGenerator().Emit(OpCodes.Ldarg_1);
+
 				if (EmitIsEnabled(im, eventAttribute))
 				{
 					EmitTaskCompletion(im, parameterType);
@@ -464,14 +471,13 @@ namespace EventSourceProxy
 			}
 			else
 			{
-				// create the internal method that calls WriteEvent
+				// the method does not have a return value
+				// so create the internal method that calls WriteEvent
 				MethodBuilder m = _typeBuilder.DefineMethod(methodName, MethodAttributes.Public, typeof(void), targetParameterTypes);
 				m.SetCustomAttribute(EventAttributeHelper.ConvertEventAttributeToAttributeBuilder(eventAttribute));
+				ProxyHelper.EmitDefaultValue(m.GetILGenerator(), m.ReturnType);
 				if (EmitIsEnabled(m, eventAttribute))
-				{
-					EmitTaskCompletion(m, parameterType);
 					EmitCallWriteEvent(m, eventAttribute, targetParameterTypes, targetParameterTypes);
-				}
 			}
 		}
 
@@ -489,9 +495,10 @@ namespace EventSourceProxy
 			/* we have a task, so we want to implement:
 			 *	if (!task.IsCompleted)
 			 *	{
-			 *		task.ContinueWith(t => Foo_Completed(t), TaskContinuationOptions.ExecuteSynchronously);
-			 *		return;
+			 *		return task.ContinueWith(t => Foo_Completed(t), TaskContinuationOptions.ExecuteSynchronously);
 			 *	}
+			 *	else
+			 *		...whatever gets emitted next
 			 */
 			var mIL = methodBuilder.GetILGenerator();
 			var isCompleted = mIL.DefineLabel();
@@ -503,6 +510,10 @@ namespace EventSourceProxy
 
 			// it's not completed, so
 			// task.ContinueWith(t => Foo_Completed(t), TaskContinuationOptions.ExecuteSynchronously)
+
+			// first clear the return value off the stack
+			mIL.Emit(OpCodes.Pop);
+
 			var actionType = typeof(Action<>).MakeGenericType(parameterType);
 			mIL.Emit(OpCodes.Ldarg_1);
 			mIL.Emit(OpCodes.Ldarg_0);
@@ -512,8 +523,9 @@ namespace EventSourceProxy
 			mIL.Emit(OpCodes.Ldc_I4, (int)TaskContinuationOptions.ExecuteSynchronously);
 			var continuation = parameterType.GetMethod("ContinueWith", new Type[] { actionType, typeof(TaskContinuationOptions) });
 			mIL.Emit(OpCodes.Call, continuation);
-			mIL.Emit(OpCodes.Pop);
 
+			// the new return value is this continuation
+			// return it
 			mIL.Emit(OpCodes.Ret);
 
 			mIL.MarkLabel(isCompleted);
@@ -528,12 +540,28 @@ namespace EventSourceProxy
 		/// <returns>True if events could possibly be enabled, false if this method is a NonEvent.</returns>
 		private static bool EmitIsEnabled(MethodBuilder methodBuilder, EventAttribute eventAttribute)
 		{
+			/*
+			 * This method assumes that a default return value is already on the stack
+			 *
+			 * if a nonevent:
+			 *
+			 *		return (top of stack)
+			 *
+			 * if an event:
+			 *
+			 *		if (!IsEnabled(level, keywords)
+			 *		{
+			 *			return (top of stack)
+			 *		}
+			 *		else
+			 *			...whatever gets emitted next
+			 */
+
 			ILGenerator mIL = methodBuilder.GetILGenerator();
 
 			// if there is no event attribute, then this is a non-event, so just return silently
 			if (eventAttribute == null)
 			{
-				ProxyHelper.EmitDefaultValue(mIL, methodBuilder.ReturnType);
 				mIL.Emit(OpCodes.Ret);
 				return false;
 			}
@@ -545,7 +573,6 @@ namespace EventSourceProxy
 			mIL.Emit(OpCodes.Call, _isEnabled);
 			Label enabledLabel = mIL.DefineLabel();
 			mIL.Emit(OpCodes.Brtrue, enabledLabel);
-			ProxyHelper.EmitDefaultValue(mIL, methodBuilder.ReturnType);
 			mIL.Emit(OpCodes.Ret);
 			mIL.MarkLabel(enabledLabel);
 
@@ -634,6 +661,13 @@ namespace EventSourceProxy
 		/// <param name="targetParameterTypes">The types of the parameters on the target method.</param>
 		private void EmitDirectProxy(MethodBuilder methodBuilder, MethodInfo baseMethod, Type[] sourceParameterTypes, Type[] targetParameterTypes)
 		{
+			/*
+			 * This method assume that a default return value has been pushed on the stack.
+			 *
+			 *		base(params);
+			 *		return (top of stack);
+			 */
+
 			ILGenerator mIL = methodBuilder.GetILGenerator();
 
 			// copy the parameters to the stack
@@ -660,14 +694,6 @@ namespace EventSourceProxy
 
 			// now that all of the parameters have been loaded, call the base method
 			mIL.Emit(OpCodes.Call, baseMethod);
-
-			// if we need to return a value, but the base implementation doesn't return a value
-			// (i.e. just calling WriteEvent and returning void)
-			// then we need to manufacture the return value as default(T)
-			// ldnull works well for this
-			// this is important when we create logging proxies
-			if (methodBuilder.ReturnType != null && methodBuilder.ReturnType != typeof(void) && baseMethod.ReturnType == typeof(void))
-				ProxyHelper.EmitDefaultValue(mIL, methodBuilder.ReturnType);
 
 			mIL.Emit(OpCodes.Ret);
 		}
