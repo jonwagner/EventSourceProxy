@@ -2,7 +2,10 @@
 
 **EventSourceProxy** (ESP) is the easiest way to add scalable Event Tracing for Windows (ETW) logging to your .NET program.
 
-*v1.0 Coming to NuGet soon...*
+**Now in NuGet!**
+
+[Get EventSourceProxy (ESP) from NuGet](http://nuget.org/packages/EventSourceProxy)
+
 
 Follow [@jonwagnerdotcom](http://twitter.com/#!jonwagnerdotcom) for latest updates on this library or [code.jonwagner.com](http://code.jonwagner.com) for more detailed writeups.
 
@@ -56,7 +59,7 @@ Here is ESP wrapping an existing interface for tracing:
 	Calculator calculator = new Calculator();
 
 	// again, that's it
-	ICalculator proxy = TracingProxy.Create<ICalculator>(calculator);
+	ICalculator proxy = TracingProxy.CreateWithActivityScope<ICalculator>(calculator);
 
 	// all calls are automatically logged when the ETW source is enabled
 	int total = proxy.Add(1, 2);
