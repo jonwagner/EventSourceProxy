@@ -279,7 +279,7 @@ namespace EventSourceProxy.Tests
 			var proxy = TracingProxy.Create<AutomaticActivity>(tester);
 			proxy.Method();
 
-			Assert.AreNotEqual(Guid.Empty, tester.ActivityId);
+			Assert.AreEqual(Guid.Empty, tester.ActivityId);
 
 			Assert.AreEqual(Guid.Empty, EventActivityScope.CurrentActivityId);
 		}

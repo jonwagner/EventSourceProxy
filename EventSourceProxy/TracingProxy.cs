@@ -20,8 +20,8 @@ namespace EventSourceProxy
 		/// <summary>
 		/// A cache of the constructors for the proxies.
 		/// </summary>
-		private static ConcurrentDictionary<Tuple<Type, Type>, Func<object, object, object, object>> _constructors =
-			new ConcurrentDictionary<Tuple<Type, Type>, Func<object, object, object, object>>();
+		private static ConcurrentDictionary<Tuple<Type, Type, bool>, Func<object, object, object, object>> _constructors =
+			new ConcurrentDictionary<Tuple<Type, Type, bool>, Func<object, object, object, object>>();
 		#endregion
 
 		#region Public Members
@@ -148,7 +148,7 @@ namespace EventSourceProxy
 				throw new ArgumentException("execute", String.Format(CultureInfo.InvariantCulture, "Object must implement {0} in order to proxy it.", executeType.FullName));
 
 			// cache constructors based on tuple of types, including logoverride
-			var tuple = Tuple.Create(executeType, logType);
+			var tuple = Tuple.Create(executeType, logType, callWithActivityScope);
 
 			// get the serialization provider
 			var serializer = ObjectSerializationProvider.GetSerializationProvider(logType);
@@ -156,7 +156,7 @@ namespace EventSourceProxy
 			// get the constructor
 			var creator = _constructors.GetOrAdd(
 				tuple,
-				t => (Func<object, object, object, object>)new TracingProxyImplementer(t.Item1, t.Item2, callWithActivityScope).CreateMethod.CreateDelegate(typeof(Func<object, object, object, object>)));
+				t => (Func<object, object, object, object>)new TracingProxyImplementer(t.Item1, t.Item2, t.Item3).CreateMethod.CreateDelegate(typeof(Func<object, object, object, object>)));
 
 			return creator(execute, log, serializer);
 		}
