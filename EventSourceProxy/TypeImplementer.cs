@@ -457,7 +457,10 @@ namespace EventSourceProxy
 				// mark the method as a non-event and implement it
 				im.SetCustomAttribute(EventAttributeHelper.CreateNonEventAttribute());
 				if (EmitIsEnabled(im, eventAttribute))
+				{
+					EmitTaskCompletion(im, parameterType);
 					EmitDirectProxy(im, m, parameterTypes, targetParameterTypes);
+				}
 			}
 			else
 			{
@@ -465,8 +468,55 @@ namespace EventSourceProxy
 				MethodBuilder m = _typeBuilder.DefineMethod(methodName, MethodAttributes.Public, typeof(void), targetParameterTypes);
 				m.SetCustomAttribute(EventAttributeHelper.ConvertEventAttributeToAttributeBuilder(eventAttribute));
 				if (EmitIsEnabled(m, eventAttribute))
+				{
+					EmitTaskCompletion(m, parameterType);
 					EmitCallWriteEvent(m, eventAttribute, targetParameterTypes, targetParameterTypes);
+				}
 			}
+		}
+
+		/// <summary>
+		/// Emit the code required to defer the logging of a task until completion.
+		/// </summary>
+		/// <param name="methodBuilder">The method to append to.</param>
+		/// <param name="parameterType">The type of parameter being passed.</param>
+		private static void EmitTaskCompletion(MethodBuilder methodBuilder, Type parameterType)
+		{
+			// this only applies to tasks
+			if (parameterType != typeof(Task) && !parameterType.IsSubclassOf(typeof(Task)))
+				return;
+
+			/* we have a task, so we want to implement:
+			 *	if (!task.IsCompleted)
+			 *	{
+			 *		task.ContinueWith(t => Foo_Completed(t), TaskContinuationOptions.ExecuteSynchronously);
+			 *		return;
+			 *	}
+			 */
+			var mIL = methodBuilder.GetILGenerator();
+			var isCompleted = mIL.DefineLabel();
+
+			// if (task.IsCompleted) skip this whole thing
+			mIL.Emit(OpCodes.Ldarg_1);
+			mIL.Emit(OpCodes.Call, typeof(Task).GetProperty("IsCompleted").GetGetMethod());
+			mIL.Emit(OpCodes.Brtrue, isCompleted);
+
+			// it's not completed, so
+			// task.ContinueWith(t => Foo_Completed(t), TaskContinuationOptions.ExecuteSynchronously)
+			var actionType = typeof(Action<>).MakeGenericType(parameterType);
+			mIL.Emit(OpCodes.Ldarg_1);
+			mIL.Emit(OpCodes.Ldarg_0);
+			var callbackMethod = methodBuilder.IsGenericMethod ? methodBuilder.MakeGenericMethod(parameterType.GetGenericArguments()) : methodBuilder;
+			mIL.Emit(OpCodes.Ldftn, callbackMethod);
+			mIL.Emit(OpCodes.Newobj, actionType.GetConstructor(new Type[] { typeof(object), typeof(IntPtr) }));
+			mIL.Emit(OpCodes.Ldc_I4, (int)TaskContinuationOptions.ExecuteSynchronously);
+			var continuation = parameterType.GetMethod("ContinueWith", new Type[] { actionType, typeof(TaskContinuationOptions) });
+			mIL.Emit(OpCodes.Call, continuation);
+			mIL.Emit(OpCodes.Pop);
+
+			mIL.Emit(OpCodes.Ret);
+
+			mIL.MarkLabel(isCompleted);
 		}
 
 		/// <summary>
