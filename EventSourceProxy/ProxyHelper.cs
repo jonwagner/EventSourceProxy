@@ -73,6 +73,7 @@ namespace EventSourceProxy
 		/// serializing the value if necessary.
 		/// </summary>
 		/// <param name="methodBuilder">The method currently being built.</param>
+		/// <param name="invocationContext">The invocation context for this call.</param>
 		/// <param name="i">The index of the current parameter being pushed.</param>
 		/// <param name="sourceType">The type that the parameter is being converted from.</param>
 		/// <param name="targetType">The type that the parameter is being converted to.</param>
@@ -85,6 +86,7 @@ namespace EventSourceProxy
 		/// <param name="emitLoadValueReference">An action that emits the code needed to load a reference to the value onto the stack.</param>
 		internal static void EmitSerializeValue(
 			MethodBuilder methodBuilder,
+			InvocationContext invocationContext,
 			int i,
 			Type sourceType,
 			Type targetType,
@@ -130,7 +132,7 @@ namespace EventSourceProxy
 			int parameterIndex = i - 1;
 
 			// non-fundamental types use the object serializer
-			var context = new TraceSerializationContext(methodBuilder, parameterIndex);
+			var context = new TraceSerializationContext(invocationContext, parameterIndex);
 			if (serializationProvider.ShouldSerialize(context))
 			{
 				// get the object serializer from the this pointer
@@ -152,9 +154,10 @@ namespace EventSourceProxy
 					mIL.Emit(OpCodes.Box, sourceType);
 
 				// add the method builder and parameter index
-				mIL.Emit(OpCodes.Ldtoken, methodBuilder);
+				mIL.Emit(OpCodes.Ldtoken, invocationContext.MethodInfo);
+				mIL.Emit(OpCodes.Ldc_I4, (int)invocationContext.ContextType);
 				mIL.Emit(OpCodes.Ldc_I4, parameterIndex);
-				mIL.Emit(OpCodes.Newobj, typeof(TraceSerializationContext).GetConstructor(new Type[] { typeof(RuntimeMethodHandle), typeof(int) }));
+				mIL.Emit(OpCodes.Newobj, typeof(TraceSerializationContext).GetConstructor(new Type[] { typeof(RuntimeMethodHandle), typeof(InvocationContextType), typeof(int) }));
 
 				mIL.Emit(OpCodes.Callvirt, typeof(ITraceSerializationProvider).GetMethod("SerializeObject", BindingFlags.Instance | BindingFlags.Public));
 			}

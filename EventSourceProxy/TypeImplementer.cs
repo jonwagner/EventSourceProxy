@@ -69,11 +69,6 @@ namespace EventSourceProxy
 		private Type _interfaceType;
 
 		/// <summary>
-		/// True if this logger supports context.
-		/// </summary>
-		private bool _supportsContext;
-
-		/// <summary>
 		/// The constructor for the type.
 		/// </summary>
 		private ConstructorInfo _constructor;
@@ -118,8 +113,7 @@ namespace EventSourceProxy
 			_serializationProvider = serializationProvider;
 
 			// only interfaces support context
-			_supportsContext = contextProvider != null;
-			if (_supportsContext && !_interfaceType.IsInterface)
+			if (contextProvider != null && !_interfaceType.IsInterface)
 				throw new InvalidOperationException("Context Providers can only be added to interface-based logs.");
 
 			ImplementType();
@@ -319,7 +313,8 @@ namespace EventSourceProxy
 			var targetParameters = parameterTypes.Select(t => GetTypeSupportedByEventSource(t)).ToList();
 			
 			// if we are implementing an interface, then add an string context parameter
-			if (_supportsContext)
+			bool supportsContext = SupportsContext(invocationContext);
+			if (supportsContext)
 				targetParameters.Add(typeof(string));
 			var targetParameterTypes = targetParameters.ToArray();
 
@@ -366,7 +361,7 @@ namespace EventSourceProxy
 			}
 
 			// add the context parameter
-			if (_supportsContext)
+			if (supportsContext)
 				m.DefineParameter(parameters.Length + 1, ParameterAttributes.In, Context);
 
 			if (interfaceMethod.IsAbstract)
@@ -380,7 +375,7 @@ namespace EventSourceProxy
 				ProxyHelper.CopyMethodSignature(interfaceMethod, im);
 				ProxyHelper.EmitDefaultValue(im.GetILGenerator(), im.ReturnType);
 				if (EmitIsEnabled(im, eventAttribute))
-					EmitDirectProxy(im, m, parameterTypes, targetParameterTypes);
+					EmitDirectProxy(invocationContext, im, m, parameterTypes, targetParameterTypes);
 
 				// map our method to the interface implementation
 				_typeBuilder.DefineMethodOverride(im, interfaceMethod);
@@ -389,7 +384,7 @@ namespace EventSourceProxy
 			{
 				// if we are implementing an event source, then
 				// for non-abstract methods we just proxy the base implementation
-				EmitDirectProxy(m, interfaceMethod, parameterTypes, targetParameterTypes);
+				EmitDirectProxy(invocationContext, m, interfaceMethod, parameterTypes, targetParameterTypes);
 			}
 			else
 			{
@@ -468,7 +463,8 @@ namespace EventSourceProxy
 
 			var targetParameterType = GetTypeSupportedByEventSource(parameterType);
 			var targetParameters = parameterTypes.Select(t => TypeIsSupportedByEventSource(t) ? t : typeof(string)).ToList();
-			if (_supportsContext)
+			bool supportsContext = SupportsContext(invocationContext);
+			if (supportsContext)
 				targetParameters.Add(typeof(string));
 			var targetParameterTypes = targetParameters.ToArray();
 
@@ -511,7 +507,7 @@ namespace EventSourceProxy
 				if (EmitIsEnabled(im, eventAttribute))
 				{
 					EmitTaskCompletion(im, parameterType, faultedMethod);
-					EmitDirectProxy(im, m, parameterTypes, targetParameterTypes);
+					EmitDirectProxy(invocationContext, im, m, parameterTypes, targetParameterTypes);
 				}
 
 				return im;
@@ -714,7 +710,7 @@ namespace EventSourceProxy
 			}
 
 			// if there is a context, call the context provider and add the context parameter
-			if (_supportsContext && _contextProvider.ShouldProvideContext(invocationContext))
+			if (_contextProvider != null && _contextProvider.ShouldProvideContext(invocationContext))
 			{
 				// load the array and index onto the stack
 				mIL.Emit(OpCodes.Dup);
@@ -743,11 +739,12 @@ namespace EventSourceProxy
 		/// <summary>
 		/// Emits a proxy to a method that just calls the base method.
 		/// </summary>
+		/// <param name="invocationContext">The current invocation context.</param>
 		/// <param name="methodBuilder">The method to implement.</param>
 		/// <param name="baseMethod">The base method.</param>
 		/// <param name="sourceParameterTypes">The types of the parameters on the source method.</param>
 		/// <param name="targetParameterTypes">The types of the parameters on the target method.</param>
-		private void EmitDirectProxy(MethodBuilder methodBuilder, MethodInfo baseMethod, Type[] sourceParameterTypes, Type[] targetParameterTypes)
+		private void EmitDirectProxy(InvocationContext invocationContext, MethodBuilder methodBuilder, MethodInfo baseMethod, Type[] sourceParameterTypes, Type[] targetParameterTypes)
 		{
 			/*
 			 * This method assume that a default return value has been pushed on the stack.
@@ -766,6 +763,7 @@ namespace EventSourceProxy
 			{
 				ProxyHelper.EmitSerializeValue(
 					methodBuilder,
+					invocationContext,
 					i,
 					sourceParameterTypes[i - 1],
 					targetParameterTypes[i - 1],
@@ -777,7 +775,7 @@ namespace EventSourceProxy
 
 			// if this method supports context, then add a context parameter
 			// note that we pass null in here and then build the context from within EmitCallWriteEvent
-			if (_supportsContext)
+			if (SupportsContext(invocationContext))
 				mIL.Emit(OpCodes.Ldnull);
 
 			// now that all of the parameters have been loaded, call the base method
@@ -853,6 +851,18 @@ namespace EventSourceProxy
 
 			// force the type to be created
 			nt.CreateType();
+		}
+		#endregion
+
+		#region Helper Methods
+		/// <summary>
+		/// Determines whether the given invocation supports a context provider.
+		/// </summary>
+		/// <param name="invocationContext">The current InvocationContext.</param>
+		/// <returns>True if the context provider should be invoked for the context.</returns>
+		private bool SupportsContext(InvocationContext invocationContext)
+		{
+			return _contextProvider != null && _contextProvider.ShouldProvideContext(invocationContext);
 		}
 		#endregion
 	}

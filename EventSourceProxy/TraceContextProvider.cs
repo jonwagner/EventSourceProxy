@@ -27,6 +27,21 @@ namespace EventSourceProxy
 		/// <returns>True if EventSourceProxy should ask for context, false to skip context generation.</returns>
 		public virtual bool ShouldProvideContext(InvocationContext context)
 		{
+			// NOTE: this method is called at proxy generation time and is not called at runtime
+			// so we don't need to cache anything here
+			// if this returns false, then ProvideContext will never be called for the given context
+
+			// check the method first
+			var attribute = context.MethodInfo.GetCustomAttribute<TraceContextAttribute>();
+			if (attribute != null)
+				return attribute.Enabled;
+
+			// now check the class
+			attribute = context.MethodInfo.DeclaringType.GetCustomAttribute<TraceContextAttribute>();
+			if (attribute != null)
+				return attribute.Enabled;
+
+			// it's enabled by default
 			return true;
 		}
 	}

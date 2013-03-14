@@ -10,27 +10,28 @@ namespace EventSourceProxy
 	/// <summary>
 	/// Describes the context in which an object is being serialized.
 	/// </summary>
-	public class TraceSerializationContext
+	public class TraceSerializationContext : InvocationContext
 	{
 		/// <summary>
-		/// The handle of the method being invoked.
+		/// Initializes a new instance of the TraceSerializationContext class.
 		/// </summary>
-		/// <remarks>This will be null when the MethodInfo is provided in the constructor.</remarks>
-		private RuntimeMethodHandle _methodHandle;
-
-		/// <summary>
-		/// The method being invoked.
-		/// </summary>
-		private MethodInfo _methodInfo;
+		/// <param name="invocationContext">The InvocationContext this is based on.</param>
+		/// <param name="parameterIndex">The index of the parameter being serialized.</param>
+		public TraceSerializationContext(InvocationContext invocationContext, int parameterIndex) :
+			base(invocationContext.MethodInfo, invocationContext.ContextType)
+		{
+			ParameterIndex = parameterIndex;
+		}
 
 		/// <summary>
 		/// Initializes a new instance of the TraceSerializationContext class.
 		/// </summary>
 		/// <param name="methodHandle">The handle of the method being invoked.</param>
+		/// <param name="contextType">The type of the invocation.</param>
 		/// <param name="parameterIndex">The index of the parameter being serialized.</param>
-		public TraceSerializationContext(RuntimeMethodHandle methodHandle, int parameterIndex)
+		public TraceSerializationContext(RuntimeMethodHandle methodHandle, InvocationContextType contextType, int parameterIndex) :
+			base(methodHandle, contextType)
 		{
-			_methodHandle = methodHandle;
 			ParameterIndex = parameterIndex;
 		}
 
@@ -38,22 +39,12 @@ namespace EventSourceProxy
 		/// Initializes a new instance of the TraceSerializationContext class.
 		/// </summary>
 		/// <param name="methodInfo">The handle of the method being invoked.</param>
+		/// <param name="contextType">The type of the invocation.</param>
 		/// <param name="parameterIndex">The index of the parameter being serialized.</param>
-		public TraceSerializationContext(MethodInfo methodInfo, int parameterIndex)
+		public TraceSerializationContext(MethodInfo methodInfo, InvocationContextType contextType, int parameterIndex)
+			: base(methodInfo, contextType)
 		{
-			_methodInfo = methodInfo;
 			ParameterIndex = parameterIndex;
-		}
-
-		/// <summary>
-		/// Gets the method being invoked during serialization.
-		/// </summary>
-		public MethodInfo MethodInfo
-		{
-			get
-			{
-				return _methodInfo = _methodInfo ?? (MethodInfo)MethodBase.GetMethodFromHandle(_methodHandle);
-			}
 		}
 
 		/// <summary>

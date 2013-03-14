@@ -217,6 +217,8 @@ namespace EventSourceProxy
 			 * }
 			 */
 
+			var invocationContext = new InvocationContext(executeMethod, InvocationContextType.MethodCall);
+
 			// start building the interface
 			MethodBuilder m = _typeBuilder.DefineMethod(executeMethod.Name, MethodAttributes.Public | MethodAttributes.Virtual);
 			ProxyHelper.CopyMethodSignature(executeMethod, m);
@@ -248,13 +250,13 @@ namespace EventSourceProxy
 			if (logMethod != null)
 			{
 				// call the log method and throw away the result if there is one
-				EmitBaseMethodCall(m, _logField, executeMethod, logMethod);
+				EmitBaseMethodCall(m, invocationContext, _logField, executeMethod, logMethod);
 				if (logMethod.ReturnType != typeof(void))
 					mIL.Emit(OpCodes.Pop);
 			}
 
 			// call execute
-			EmitBaseMethodCall(m, _executeField, executeMethod, executeMethod);
+			EmitBaseMethodCall(m, invocationContext, _executeField, executeMethod, executeMethod);
 			if (executeMethod.ReturnType != typeof(void))
 				mIL.Emit(OpCodes.Stloc, returnValue);
 
@@ -320,10 +322,11 @@ namespace EventSourceProxy
 		/// Emits a call to the base method by pushing all of the arguments.
 		/// </summary>
 		/// <param name="m">The method to append to.</param>
+		/// <param name="invocationContext">The invocation context for this call.</param>
 		/// <param name="field">The field containing the interface to call.</param>
 		/// <param name="originalMethod">The the original method signature.</param>
 		/// <param name="baseMethod">The method to call.</param>
-		private void EmitBaseMethodCall(MethodBuilder m, FieldInfo field, MethodInfo originalMethod, MethodInfo baseMethod)
+		private void EmitBaseMethodCall(MethodBuilder m, InvocationContext invocationContext, FieldInfo field, MethodInfo originalMethod, MethodInfo baseMethod)
 		{
 			// if this is a generic method, we have to instantiate our type of method
 			if (baseMethod.IsGenericMethodDefinition)
@@ -343,6 +346,7 @@ namespace EventSourceProxy
 			{
 				ProxyHelper.EmitSerializeValue(
 					m,
+					invocationContext,
 					i,
 					sourceParameters[i].ParameterType,
 					targetParameters[i].ParameterType,

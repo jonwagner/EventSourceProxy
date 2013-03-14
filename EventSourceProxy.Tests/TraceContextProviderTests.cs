@@ -97,6 +97,21 @@ namespace EventSourceProxy.Tests
 			void DoSomething();
 		}
 
+		[TraceContextProvider(typeof(MyTraceContextProvider))]
+		[TraceContext(false)]
+		public interface ILogWithAttributeDisabled
+		{
+			void DoSomething();
+		}
+
+		[TraceContextProvider(typeof(MyTraceContextProvider))]
+		[TraceContext(false)]
+		public interface ILogWithAttributeDisabledAndMethodEnabled
+		{
+			[TraceContext(true)]
+			void DoSomething();
+		}
+
 		[Test]
 		public void ProviderCanBeSpecifiedByAttribute()
 		{
@@ -109,6 +124,34 @@ namespace EventSourceProxy.Tests
 			var events = _listener.Events.ToArray();
 			Assert.AreEqual(1, events.Length);
 			Assert.AreEqual("context", events[0].Payload[0]);
+		}
+
+		[Test]
+		public void ContextCanBeControlledByClassAttribute()
+		{
+			var testLog = EventSourceImplementer.GetEventSourceAs<ILogWithAttributeDisabled>();
+			_listener.EnableEvents((EventSource)testLog, EventLevel.LogAlways, (EventKeywords)(-1));
+
+			testLog.DoSomething();
+
+			// look at the events
+			var events = _listener.Events.ToArray();
+			Assert.AreEqual(1, events.Length);
+			Assert.AreEqual(0, events[0].Payload.Count);
+		}
+
+		[Test]
+		public void ContextCanBeControlledByMethodAttribute()
+		{
+			var testLog = EventSourceImplementer.GetEventSourceAs<ILogWithAttributeDisabledAndMethodEnabled>();
+			_listener.EnableEvents((EventSource)testLog, EventLevel.LogAlways, (EventKeywords)(-1));
+
+			testLog.DoSomething();
+
+			// look at the events
+			var events = _listener.Events.ToArray();
+			Assert.AreEqual(1, events.Length);
+			Assert.AreEqual(1, events[0].Payload.Count);
 		}
 		#endregion
 	}
