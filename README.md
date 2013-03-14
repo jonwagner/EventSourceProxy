@@ -71,6 +71,7 @@ Here is ESP wrapping an existing interface for tracing:
 * Supports EventSource and Event attributes for controlling the generated events.
 * Supports reusing Keyword, Opcode, and Task enums in multiple log sources.
 * Automatically proxy any interface and create a logging source.
+* Proxies also implement _Completed and _Faulted events.
 * Automatically convert complex types to JSON strings for logging.
 * Optionally override the object serializer.
 * Optionally provide a logging context across an entire logging interface.
