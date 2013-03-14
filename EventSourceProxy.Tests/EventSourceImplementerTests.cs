@@ -314,7 +314,7 @@ namespace EventSourceProxy.Tests
 			Assert.AreEqual(3, events[0].Payload[1]);
 
 			Assert.AreEqual(testLog, events[1].EventSource);
-			Assert.AreEqual(3, events[1].EventId);
+			Assert.AreEqual(4, events[1].EventId);
 			Assert.AreEqual("{0} {1}", events[1].Message);
 			Assert.AreEqual(EventLevel.Informational, events[1].Level);
 			Assert.AreEqual((EventKeywords)2, events[1].Keywords);
@@ -360,7 +360,7 @@ namespace EventSourceProxy.Tests
 			Assert.AreEqual(3, events[0].Payload[1]);
 
 			Assert.AreEqual(testLog, events[1].EventSource);
-			Assert.AreEqual(3, events[1].EventId);
+			Assert.AreEqual(4, events[1].EventId);
 			Assert.AreEqual("{0} {1}", events[1].Message);
 			Assert.AreEqual(EventLevel.Informational, events[1].Level);
 			Assert.AreEqual((EventKeywords)2, events[1].Keywords);

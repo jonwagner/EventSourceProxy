@@ -164,14 +164,12 @@ namespace EventSourceProxy.Tests
 			Assert.AreEqual(0, events[0].Payload.Count);
 
 			Assert.AreEqual(logger, events[1].EventSource);
-			Assert.AreEqual(2, events[1].EventId);
 			Assert.AreEqual("", events[1].Message);
 			Assert.AreEqual(EventLevel.Informational, events[1].Level);
 			Assert.AreEqual((EventKeywords)2, events[1].Keywords);
 			Assert.AreEqual(0, events[0].Payload.Count);
 
 			Assert.AreEqual(logger, events[2].EventSource);
-			Assert.AreEqual(3, events[2].EventId);
 			Assert.AreEqual("{0} {1}", events[2].Message);
 			Assert.AreEqual(EventLevel.Informational, events[2].Level);
 			Assert.AreEqual((EventKeywords)4, events[2].Keywords);
@@ -181,7 +179,6 @@ namespace EventSourceProxy.Tests
 
 			// a fourth event for completed
 			Assert.AreEqual(logger, events[3].EventSource);
-			Assert.AreEqual(4, events[3].EventId);
 			Assert.AreEqual("{0}", events[3].Message);
 			Assert.AreEqual(EventLevel.Informational, events[3].Level);
 			Assert.AreEqual((EventKeywords)8, events[3].Keywords);
@@ -198,20 +195,17 @@ namespace EventSourceProxy.Tests
 
 			// check the individual events
 			Assert.AreEqual(logger, events[0].EventSource);
-			Assert.AreEqual(1, events[0].EventId);
 			Assert.AreEqual("", events[0].Message);
 			Assert.AreEqual(EventLevel.Informational, events[0].Level);
 			Assert.AreEqual((EventKeywords)1, events[0].Keywords);
 			Assert.AreEqual(0, events[0].Payload.Count);
 
 			Assert.AreEqual(logger, events[1].EventSource);
-			Assert.AreEqual(2, events[1].EventId);
 			Assert.AreEqual("", events[1].Message);
 			Assert.AreEqual(EventLevel.Informational, events[1].Level);
 			Assert.AreEqual(0, events[0].Payload.Count);
 
 			Assert.AreEqual(logger, events[2].EventSource);
-			Assert.AreEqual(3, events[2].EventId);
 			Assert.AreEqual("{0} {1}", events[2].Message);
 			Assert.AreEqual(EventLevel.Informational, events[2].Level);
 			Assert.AreEqual(2, events[2].Payload.Count);
@@ -220,7 +214,6 @@ namespace EventSourceProxy.Tests
 
 			// a fourth event for completed
 			Assert.AreEqual(logger, events[3].EventSource);
-			Assert.AreEqual(4, events[3].EventId);
 			Assert.AreEqual("{0}", events[3].Message);
 			Assert.AreEqual(EventLevel.Informational, events[3].Level);
 			Assert.AreEqual(1, events[3].Payload.Count);
@@ -538,6 +531,92 @@ namespace EventSourceProxy.Tests
 
 			proxy.Clear();
 			proxy.AddNumbers(1, 2);
+		}
+		#endregion
+
+		#region Exception Handling Tests
+		public interface IThrowExceptions
+		{
+			int DoThrow();
+		}
+
+		public class ThrowExceptions : IThrowExceptions
+		{
+			public int DoThrow() { throw new ApplicationException("Whoops!"); }
+		}
+
+		public interface IThrowExceptionsAsync
+		{
+			Task<int> DoThrowAsync();
+		}
+
+		public class ThrowExceptionsAsync : IThrowExceptionsAsync
+		{
+			public async Task<int> DoThrowAsync() { await Task.FromResult(1); throw new ApplicationException("WhoopsAsync!"); }
+		}
+
+		[Test]
+		public void ExceptionsAreLoggedToExceptionEvent()
+		{
+			EventSourceImplementer.RegisterProvider<IThrowExceptions>(new JsonObjectSerializer());
+			var logger = EventSourceImplementer.GetEventSourceAs<IThrowExceptions>();
+			_listener.EnableEvents((EventSource)logger, EventLevel.LogAlways, (EventKeywords)(-1));
+
+			var proxy = TracingProxy.Create<IThrowExceptions>(new ThrowExceptions());
+
+			// run the method and catch the exception
+			Assert.Throws<ApplicationException>(() => proxy.DoThrow());
+
+			// check the events
+			var events = _listener.Events.ToArray();
+			Assert.AreEqual(2, events.Length);
+
+			// check the individual events
+			Assert.AreEqual(logger, events[0].EventSource);
+			Assert.AreEqual("", events[0].Message);
+			Assert.AreEqual(EventLevel.Informational, events[0].Level);
+			Assert.AreEqual((EventKeywords)1, events[0].Keywords);
+			Assert.AreEqual(0, events[0].Payload.Count);
+
+			// the exception is logged
+			Assert.AreEqual(logger, events[1].EventSource);
+			Assert.AreEqual("{0}", events[1].Message);
+			Assert.AreEqual(EventLevel.Warning, events[1].Level);
+			Assert.AreEqual((EventKeywords)1, events[1].Keywords);
+			Assert.AreEqual(1, events[1].Payload.Count);
+			Assert.IsTrue(events[1].Payload[0].ToString().Contains("Whoops!"));
+		}
+
+		[Test]
+		public void AsyncExceptionsAreLoggedToExceptionEvent()
+		{
+			EventSourceImplementer.RegisterProvider<IThrowExceptionsAsync>(new JsonObjectSerializer());
+			var logger = EventSourceImplementer.GetEventSourceAs<IThrowExceptionsAsync>();
+			_listener.EnableEvents((EventSource)logger, EventLevel.LogAlways, (EventKeywords)(-1));
+
+			var proxy = TracingProxy.Create<IThrowExceptionsAsync>(new ThrowExceptionsAsync());
+
+			// run the method and catch the exception
+			Assert.Throws<AggregateException>(() => proxy.DoThrowAsync().Wait());
+
+			// check the events
+			var events = _listener.Events.ToArray();
+			Assert.AreEqual(2, events.Length);
+
+			// check the individual events
+			Assert.AreEqual(logger, events[0].EventSource);
+			Assert.AreEqual("", events[0].Message);
+			Assert.AreEqual(EventLevel.Informational, events[0].Level);
+			Assert.AreEqual((EventKeywords)1, events[0].Keywords);
+			Assert.AreEqual(0, events[0].Payload.Count);
+
+			// the exception is logged
+			Assert.AreEqual(logger, events[1].EventSource);
+			Assert.AreEqual("{0}", events[1].Message);
+			Assert.AreEqual(EventLevel.Warning, events[1].Level);
+			Assert.AreEqual((EventKeywords)1, events[1].Keywords);
+			Assert.AreEqual(1, events[1].Payload.Count);
+			Assert.IsTrue(events[1].Payload[0].ToString().Contains("WhoopsAsync!"));
 		}
 		#endregion
 

@@ -237,10 +237,10 @@ namespace EventSourceProxy
 				mIL.Emit(OpCodes.Ldc_I4_1);
 				mIL.Emit(OpCodes.Newobj, typeof(EventSourceProxy.EventActivityScope).GetConstructor(new Type[] { typeof(bool) }));
 				mIL.Emit(OpCodes.Stloc, scope);
-
-				// start the try block
-				mIL.BeginExceptionBlock();
 			}
+
+			// start the try block
+			mIL.BeginExceptionBlock();
 
 			// call the method on the log that matches the execute method
 			var targetParameterTypes = parameterTypes.Select(p => p.IsGenericParameter ? TypeImplementer.GetTypeSupportedByEventSource(p) : p).ToArray();
@@ -260,7 +260,7 @@ namespace EventSourceProxy
 
 			// if there is a completed method, then call that
 			var completedParameterTypes = (executeMethod.ReturnType == typeof(void)) ? Type.EmptyTypes : new Type[] { executeMethod.ReturnType };
-			var completedMethod = DiscoverMethod(_logField.FieldType, executeMethod.Name, "_Completed", completedParameterTypes);
+			var completedMethod = DiscoverMethod(_logField.FieldType, executeMethod.Name, TypeImplementer.CompletedSuffix, completedParameterTypes);
 			if (completedMethod != null)
 			{
 				// load this._log
@@ -276,14 +276,39 @@ namespace EventSourceProxy
 					mIL.Emit(OpCodes.Pop);
 			}
 
+			// handle exceptions by logging them and rethrowing
+			mIL.BeginCatchBlock(typeof(Exception));
+			var faultedMethod = DiscoverMethod(_logField.FieldType, executeMethod.Name, TypeImplementer.FaultedSuffix, new Type[] { typeof(Exception) });
+			if (faultedMethod != null)
+			{
+				// save the exception
+				var exception = mIL.DeclareLocal(typeof(Exception));
+				mIL.Emit(OpCodes.Stloc, exception);
+
+				// load this._log
+				mIL.Emit(OpCodes.Ldarg_0);
+				mIL.Emit(OpCodes.Ldfld, _logField);
+
+				// load the exception
+				mIL.Emit(OpCodes.Ldloc, exception);
+
+				// call the fault handler
+				mIL.Emit(OpCodes.Call, faultedMethod);
+				if (faultedMethod.ReturnType != typeof(void))
+					mIL.Emit(OpCodes.Pop);
+			}
+
+			mIL.Emit(OpCodes.Rethrow);
+
 			// clean up the activity scope
 			if (_callWithActivityScope)
 			{
 				mIL.BeginFinallyBlock();
 				mIL.Emit(OpCodes.Ldloc, scope);
 				mIL.Emit(OpCodes.Callvirt, typeof(EventActivityScope).GetMethod("Dispose"));
-				mIL.EndExceptionBlock();
 			}
+
+			mIL.EndExceptionBlock();
 
 			// return the result
 			if (executeMethod.ReturnType != typeof(void))

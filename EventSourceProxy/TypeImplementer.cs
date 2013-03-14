@@ -19,6 +19,16 @@ namespace EventSourceProxy
 	{
 		#region Private Fields
 		/// <summary>
+		/// The suffix for the _Completed methods.
+		/// </summary>
+		internal const string CompletedSuffix = "_Completed";
+
+		/// <summary>
+		/// The suffix for the _Faulted methods.
+		/// </summary>
+		internal const string FaultedSuffix = "_Faulted";
+
+		/// <summary>
 		/// The name of the Keywords class.
 		/// </summary>
 		private const string Keywords = "Keywords";
@@ -32,11 +42,6 @@ namespace EventSourceProxy
 		/// The name of the Tasks class.
 		/// </summary>
 		private const string Tasks = "Tasks";
-
-		/// <summary>
-		/// The suffix for the _Completed methods.
-		/// </summary>
-		private const string CompletedSuffix = "_Completed";
 
 		/// <summary>
 		/// The name of the context parameter.
@@ -239,7 +244,8 @@ namespace EventSourceProxy
 			foreach (MethodInfo interfaceMethod in interfaceMethods)
 			{
 				var beginMethod = EmitMethodImpl(interfaceMethod, ref eventId, (EventKeywords)autoKeyword);
-				EmitMethodCompletedImpl(interfaceMethod, beginMethod, ref eventId, (EventKeywords)autoKeyword);
+				var faultedMethod = EmitMethodFaultedImpl(interfaceMethod, beginMethod, ref eventId, (EventKeywords)autoKeyword);
+				EmitMethodCompletedImpl(interfaceMethod, beginMethod, ref eventId, (EventKeywords)autoKeyword, faultedMethod);
 
 				// shift to the next keyword
 				autoKeywords.Add(beginMethod.Name, autoKeyword);
@@ -403,23 +409,56 @@ namespace EventSourceProxy
 		/// <param name="beginMethod">The begin method for this interface call.</param>
 		/// <param name="eventId">The next available event ID.</param>
 		/// <param name="autoKeyword">The auto-keyword to use if enabled.</param>
-		private void EmitMethodCompletedImpl(MethodInfo interfaceMethod, MethodInfo beginMethod, ref int eventId, EventKeywords autoKeyword)
+		/// <param name="faultedMethod">A faulted method to call or null if no other faulted method is available.</param>
+		/// <returns>The MethodBuilder for the method.</returns>
+		private MethodBuilder EmitMethodCompletedImpl(MethodInfo interfaceMethod, MethodInfo beginMethod, ref int eventId, EventKeywords autoKeyword, MethodBuilder faultedMethod)
+		{
+			return EmitMethodComplementImpl(interfaceMethod, CompletedSuffix, interfaceMethod.ReturnType, beginMethod, ref eventId, autoKeyword, EventLevel.Informational, faultedMethod);
+		}
+
+		/// <summary>
+		/// Emits a _Faulted version of a given event that logs the result of an operation.
+		/// The _Completed event is used by TracingProxy to signal an exception in a method call.
+		/// </summary>
+		/// <param name="interfaceMethod">The method to use as a template.</param>
+		/// <param name="beginMethod">The begin method for this interface call.</param>
+		/// <param name="eventId">The next available event ID.</param>
+		/// <param name="autoKeyword">The auto-keyword to use if enabled.</param>
+		/// <returns>The MethodBuilder for the method.</returns>
+		private MethodBuilder EmitMethodFaultedImpl(MethodInfo interfaceMethod, MethodInfo beginMethod, ref int eventId, EventKeywords autoKeyword)
+		{
+			return EmitMethodComplementImpl(interfaceMethod, FaultedSuffix, typeof(Exception), beginMethod, ref eventId, autoKeyword, EventLevel.Warning, null);
+		}
+
+		/// <summary>
+		/// Emits a method to complement an interface method. The complement method will have a suffix such as _Completed,
+		/// and will take one parameter.
+		/// </summary>
+		/// <param name="interfaceMethod">The method to use as a template.</param>
+		/// <param name="suffix">The suffix to use on the method.</param>
+		/// <param name="parameterType">The type of the parameter of the method.</param>
+		/// <param name="beginMethod">The begin method for this interface call.</param>
+		/// <param name="eventId">The next available event ID.</param>
+		/// <param name="autoKeyword">The auto-keyword to use if enabled.</param>
+		/// <param name="level">The level of the event.</param>
+		/// <param name="faultedMethod">A faulted method to call or null if no other faulted method is available.</param>
+		/// <returns>The MethodBuilder for the method.</returns>
+		private MethodBuilder EmitMethodComplementImpl(MethodInfo interfaceMethod, string suffix, Type parameterType, MethodInfo beginMethod, ref int eventId, EventKeywords autoKeyword, EventLevel level, MethodBuilder faultedMethod)
 		{
 			// if there is a NonEvent attribute, then no need to emit this method
 			if (interfaceMethod.GetCustomAttribute<NonEventAttribute>() != null)
-				return;
+				return null;
 
 			// if the method ends in _Completed, then don't emit another one
-			if (interfaceMethod.Name.EndsWith(CompletedSuffix, StringComparison.OrdinalIgnoreCase))
-				return;
+			if (interfaceMethod.Name.EndsWith(suffix, StringComparison.OrdinalIgnoreCase))
+				return null;
 
-			var methodName = beginMethod.Name + CompletedSuffix;
-			var parameterType = interfaceMethod.ReturnType;
+			var methodName = beginMethod.Name + suffix;
 
 			// if the interface already has a _Completed method, don't emit a new one
 			var parameterTypes = parameterType == typeof(void) ? Type.EmptyTypes : new Type[] { parameterType };
 			if (interfaceMethod.DeclaringType.GetMethod(methodName, parameterTypes) != null)
-				return;
+				return null;
 
 			var targetParameterType = GetTypeSupportedByEventSource(parameterType);
 			var targetParameters = parameterTypes.Select(t => TypeIsSupportedByEventSource(t) ? t : typeof(string)).ToList();
@@ -433,7 +472,7 @@ namespace EventSourceProxy
 			EventAttribute eventAttribute = new EventAttribute(eventId++)
 			{
 				Keywords = startEventAttribute.Keywords,
-				Level = startEventAttribute.Level,
+				Level = level,
 				Message = GetEventMessage(parameterTypes),
 				Opcode = startEventAttribute.Opcode,
 				Task = startEventAttribute.Task,
@@ -465,9 +504,11 @@ namespace EventSourceProxy
 
 				if (EmitIsEnabled(im, eventAttribute))
 				{
-					EmitTaskCompletion(im, parameterType);
+					EmitTaskCompletion(im, parameterType, faultedMethod);
 					EmitDirectProxy(im, m, parameterTypes, targetParameterTypes);
 				}
+
+				return im;
 			}
 			else
 			{
@@ -478,6 +519,8 @@ namespace EventSourceProxy
 				ProxyHelper.EmitDefaultValue(m.GetILGenerator(), m.ReturnType);
 				if (EmitIsEnabled(m, eventAttribute))
 					EmitCallWriteEvent(m, eventAttribute, targetParameterTypes, targetParameterTypes);
+
+				return m;
 			}
 		}
 
@@ -486,7 +529,8 @@ namespace EventSourceProxy
 		/// </summary>
 		/// <param name="methodBuilder">The method to append to.</param>
 		/// <param name="parameterType">The type of parameter being passed.</param>
-		private static void EmitTaskCompletion(MethodBuilder methodBuilder, Type parameterType)
+		/// <param name="faultedMethod">A faulted method to call if the task is faulted. null if there is no handler.</param>
+		private static void EmitTaskCompletion(MethodBuilder methodBuilder, Type parameterType, MethodBuilder faultedMethod)
 		{
 			// this only applies to tasks
 			if (parameterType != typeof(Task) && !parameterType.IsSubclassOf(typeof(Task)))
@@ -497,19 +541,24 @@ namespace EventSourceProxy
 			 *	{
 			 *		return task.ContinueWith(t => Foo_Completed(t), TaskContinuationOptions.ExecuteSynchronously);
 			 *	}
+			 *	else if (task.IsFaulted)
+			 *	{
+			 *		this.Foo_Faulted(t.Exception);
+			 *		return task;
+			 *	}
 			 *	else
 			 *		...whatever gets emitted next
 			 */
 			var mIL = methodBuilder.GetILGenerator();
-			var isCompleted = mIL.DefineLabel();
 
 			// if (task.IsCompleted) skip this whole thing
+			var isCompleted = mIL.DefineLabel();
 			mIL.Emit(OpCodes.Ldarg_1);
 			mIL.Emit(OpCodes.Call, typeof(Task).GetProperty("IsCompleted").GetGetMethod());
 			mIL.Emit(OpCodes.Brtrue, isCompleted);
 
 			// it's not completed, so
-			// task.ContinueWith(t => Foo_Completed(t), TaskContinuationOptions.ExecuteSynchronously)
+			//		task.ContinueWith(t => Foo_Completed(t), TaskContinuationOptions.ExecuteSynchronously)
 
 			// first clear the return value off the stack
 			mIL.Emit(OpCodes.Pop);
@@ -529,6 +578,35 @@ namespace EventSourceProxy
 			mIL.Emit(OpCodes.Ret);
 
 			mIL.MarkLabel(isCompleted);
+
+			// time to check if it is faulted
+			if (faultedMethod != null)
+			{
+				/*
+				 * if (task.IsFaulted)
+				 * {
+				 *		Foo_Faulted(task.Exception);
+				 *		return task;
+				 * }
+				 */
+				var isNotFaulted = mIL.DefineLabel();
+				mIL.Emit(OpCodes.Ldarg_1);
+				mIL.Emit(OpCodes.Call, typeof(Task).GetProperty("IsFaulted").GetGetMethod());
+				mIL.Emit(OpCodes.Brfalse, isNotFaulted);
+
+				// call _Faulted to record the exception
+				mIL.Emit(OpCodes.Ldarg_0); // this
+				mIL.Emit(OpCodes.Ldarg_1); // task.Exception
+				mIL.Emit(OpCodes.Call, typeof(Task).GetProperty("Exception").GetGetMethod());
+				mIL.Emit(OpCodes.Call, faultedMethod);
+				if (faultedMethod.ReturnType != typeof(void))
+					mIL.Emit(OpCodes.Pop);
+
+				// return the task
+				mIL.Emit(OpCodes.Ret);
+
+				mIL.MarkLabel(isNotFaulted);
+			}
 		}
 
 		/// <summary>
