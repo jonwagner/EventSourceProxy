@@ -24,11 +24,11 @@ namespace EventSourceProxy.Tests
 			void DoSomething();
 		}
 
-		class TraceContextProvider : ITraceContextProvider
+		class MyTraceContextProvider : TraceContextProvider
 		{
 			public bool WasCalled = false;
 
-			public string ProvideContext()
+			public override string ProvideContext(InvocationContext context)
 			{
 				WasCalled = true;
 				return "context";
@@ -40,7 +40,7 @@ namespace EventSourceProxy.Tests
 		[Test]
 		public void ProviderShouldBeCalledOnLog()
 		{
-			var contextProvider = new TraceContextProvider();
+			var contextProvider = new MyTraceContextProvider();
 			EventSourceImplementer.RegisterProvider<ILog>(contextProvider);
 
 			var testLog = EventSourceImplementer.GetEventSourceAs<ILog>();
@@ -59,7 +59,7 @@ namespace EventSourceProxy.Tests
 		[Test]
 		public void ProviderShouldNotBeCalledWhenLogIsDisabled()
 		{
-			var contextProvider = new TraceContextProvider();
+			var contextProvider = new MyTraceContextProvider();
 			EventSourceImplementer.RegisterProvider<ILog4>(contextProvider);
 
 			var testLog = EventSourceImplementer.GetEventSourceAs<ILog4>();
@@ -75,7 +75,7 @@ namespace EventSourceProxy.Tests
 		[Test]
 		public void RegisterProviderTwiceShouldFail()
 		{
-			var contextProvider = new TraceContextProvider();
+			var contextProvider = new MyTraceContextProvider();
 			EventSourceImplementer.RegisterProvider<ILog2>(contextProvider);
 			Assert.Throws<InvalidOperationException>(() => EventSourceImplementer.RegisterProvider<ILog>(contextProvider));
 		}
@@ -85,13 +85,13 @@ namespace EventSourceProxy.Tests
 		{
 			var log = EventSourceImplementer.GetEventSource<ILog3>();
 
-			var contextProvider = new TraceContextProvider();
+			var contextProvider = new MyTraceContextProvider();
 			Assert.Throws<InvalidOperationException>(() => EventSourceImplementer.RegisterProvider<ILog>(contextProvider));
 		}
 		#endregion
 
 		#region Attribute Tests
-		[TraceContextProvider(typeof(TraceContextProvider))]
+		[TraceContextProvider(typeof(MyTraceContextProvider))]
 		public interface ILogWithProviderAttribute
 		{
 			void DoSomething();

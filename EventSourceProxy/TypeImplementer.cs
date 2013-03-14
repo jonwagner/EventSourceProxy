@@ -243,9 +243,11 @@ namespace EventSourceProxy
 			Dictionary<string, ulong> autoKeywords = new Dictionary<string, ulong>();
 			foreach (MethodInfo interfaceMethod in interfaceMethods)
 			{
-				var beginMethod = EmitMethodImpl(interfaceMethod, ref eventId, (EventKeywords)autoKeyword);
-				var faultedMethod = EmitMethodFaultedImpl(interfaceMethod, beginMethod, ref eventId, (EventKeywords)autoKeyword);
-				EmitMethodCompletedImpl(interfaceMethod, beginMethod, ref eventId, (EventKeywords)autoKeyword, faultedMethod);
+				var invocationContext = new InvocationContext(interfaceMethod, InvocationContextType.MethodCall);
+
+				var beginMethod = EmitMethodImpl(invocationContext, ref eventId, (EventKeywords)autoKeyword);
+				var faultedMethod = EmitMethodFaultedImpl(invocationContext, beginMethod, ref eventId, (EventKeywords)autoKeyword);
+				EmitMethodCompletedImpl(invocationContext, beginMethod, ref eventId, (EventKeywords)autoKeyword, faultedMethod);
 
 				// shift to the next keyword
 				autoKeywords.Add(beginMethod.Name, autoKeyword);
@@ -301,12 +303,14 @@ namespace EventSourceProxy
 		/// <summary>
 		/// Emits an implementation of a given method.
 		/// </summary>
-		/// <param name="interfaceMethod">The method to implement.</param>
+		/// <param name="invocationContext">The InvocationContext for this call.</param>
 		/// <param name="eventId">The next eventID to use.</param>
 		/// <param name="autoKeyword">The auto-keyword to use if enabled.</param>
 		/// <returns>The method that is implemented.</returns>
-		private MethodBuilder EmitMethodImpl(MethodInfo interfaceMethod, ref int eventId, EventKeywords autoKeyword)
+		private MethodBuilder EmitMethodImpl(InvocationContext invocationContext, ref int eventId, EventKeywords autoKeyword)
 		{
+			var interfaceMethod = invocationContext.MethodInfo;
+
 			// look at the parameters on the interface
 			var parameters = interfaceMethod.GetParameters();
 			var parameterTypes = parameters.Select(p => p.ParameterType).ToArray();
@@ -368,7 +372,7 @@ namespace EventSourceProxy
 			if (interfaceMethod.IsAbstract)
 			{
 				// for interface methods, implement a call to write event
-				EmitCallWriteEvent(m, eventAttribute, parameterTypes, targetParameterTypes);
+				EmitCallWriteEvent(invocationContext, m, eventAttribute, parameterTypes, targetParameterTypes);
 
 				// since EventSource only accepts non-virtual methods, and we need a virtual method to implement the abstract method
 				// we need to implement a wrapper method on the interface that calls into the base method
@@ -395,7 +399,7 @@ namespace EventSourceProxy
 				// call IsEnabled with the given event level and keywords to check whether we should log
 				ProxyHelper.EmitDefaultValue(m.GetILGenerator(), m.ReturnType);
 				if (EmitIsEnabled(m, eventAttribute))
-					EmitCallWriteEvent(m, eventAttribute, parameterTypes, targetParameterTypes);
+					EmitCallWriteEvent(invocationContext, m, eventAttribute, parameterTypes, targetParameterTypes);
 			}
 
 			return m;
@@ -405,36 +409,36 @@ namespace EventSourceProxy
 		/// Emits a _Completed version of a given event that logs the result of an operation.
 		/// The _Completed event is used by TracingProxy to signal the end of a method call.
 		/// </summary>
-		/// <param name="interfaceMethod">The method to use as a template.</param>
+		/// <param name="invocationContext">The InvocationContext for this call.</param>
 		/// <param name="beginMethod">The begin method for this interface call.</param>
 		/// <param name="eventId">The next available event ID.</param>
 		/// <param name="autoKeyword">The auto-keyword to use if enabled.</param>
 		/// <param name="faultedMethod">A faulted method to call or null if no other faulted method is available.</param>
 		/// <returns>The MethodBuilder for the method.</returns>
-		private MethodBuilder EmitMethodCompletedImpl(MethodInfo interfaceMethod, MethodInfo beginMethod, ref int eventId, EventKeywords autoKeyword, MethodBuilder faultedMethod)
+		private MethodBuilder EmitMethodCompletedImpl(InvocationContext invocationContext, MethodInfo beginMethod, ref int eventId, EventKeywords autoKeyword, MethodBuilder faultedMethod)
 		{
-			return EmitMethodComplementImpl(interfaceMethod, CompletedSuffix, interfaceMethod.ReturnType, beginMethod, ref eventId, autoKeyword, EventLevel.Informational, faultedMethod);
+			return EmitMethodComplementImpl(invocationContext.SpecifyType(InvocationContextType.MethodCompletion), CompletedSuffix, invocationContext.MethodInfo.ReturnType, beginMethod, ref eventId, autoKeyword, EventLevel.Informational, faultedMethod);
 		}
 
 		/// <summary>
 		/// Emits a _Faulted version of a given event that logs the result of an operation.
 		/// The _Completed event is used by TracingProxy to signal an exception in a method call.
 		/// </summary>
-		/// <param name="interfaceMethod">The method to use as a template.</param>
+		/// <param name="invocationContext">The InvocationContext for this call.</param>
 		/// <param name="beginMethod">The begin method for this interface call.</param>
 		/// <param name="eventId">The next available event ID.</param>
 		/// <param name="autoKeyword">The auto-keyword to use if enabled.</param>
 		/// <returns>The MethodBuilder for the method.</returns>
-		private MethodBuilder EmitMethodFaultedImpl(MethodInfo interfaceMethod, MethodInfo beginMethod, ref int eventId, EventKeywords autoKeyword)
+		private MethodBuilder EmitMethodFaultedImpl(InvocationContext invocationContext, MethodInfo beginMethod, ref int eventId, EventKeywords autoKeyword)
 		{
-			return EmitMethodComplementImpl(interfaceMethod, FaultedSuffix, typeof(Exception), beginMethod, ref eventId, autoKeyword, EventLevel.Warning, null);
+			return EmitMethodComplementImpl(invocationContext.SpecifyType(InvocationContextType.MethodFaulted), FaultedSuffix, typeof(Exception), beginMethod, ref eventId, autoKeyword, EventLevel.Warning, null);
 		}
 
 		/// <summary>
 		/// Emits a method to complement an interface method. The complement method will have a suffix such as _Completed,
 		/// and will take one parameter.
 		/// </summary>
-		/// <param name="interfaceMethod">The method to use as a template.</param>
+		/// <param name="invocationContext">The InvocationContext for this call.</param>
 		/// <param name="suffix">The suffix to use on the method.</param>
 		/// <param name="parameterType">The type of the parameter of the method.</param>
 		/// <param name="beginMethod">The begin method for this interface call.</param>
@@ -443,8 +447,10 @@ namespace EventSourceProxy
 		/// <param name="level">The level of the event.</param>
 		/// <param name="faultedMethod">A faulted method to call or null if no other faulted method is available.</param>
 		/// <returns>The MethodBuilder for the method.</returns>
-		private MethodBuilder EmitMethodComplementImpl(MethodInfo interfaceMethod, string suffix, Type parameterType, MethodInfo beginMethod, ref int eventId, EventKeywords autoKeyword, EventLevel level, MethodBuilder faultedMethod)
+		private MethodBuilder EmitMethodComplementImpl(InvocationContext invocationContext, string suffix, Type parameterType, MethodInfo beginMethod, ref int eventId, EventKeywords autoKeyword, EventLevel level, MethodBuilder faultedMethod)
 		{
+			var interfaceMethod = invocationContext.MethodInfo;
+
 			// if there is a NonEvent attribute, then no need to emit this method
 			if (interfaceMethod.GetCustomAttribute<NonEventAttribute>() != null)
 				return null;
@@ -487,7 +493,7 @@ namespace EventSourceProxy
 				// emit the internal method
 				MethodBuilder m = _typeBuilder.DefineMethod(methodName, MethodAttributes.Public, typeof(void), targetParameterTypes);
 				m.SetCustomAttribute(EventAttributeHelper.ConvertEventAttributeToAttributeBuilder(eventAttribute));
-				EmitCallWriteEvent(m, eventAttribute, targetParameterTypes, targetParameterTypes);
+				EmitCallWriteEvent(invocationContext, m, eventAttribute, targetParameterTypes, targetParameterTypes);
 
 				// emit an overloaded wrapper method that calls the method when it's enabled
 				// note this is a non-event so EventSource doesn't try to log it
@@ -518,7 +524,7 @@ namespace EventSourceProxy
 				m.SetCustomAttribute(EventAttributeHelper.ConvertEventAttributeToAttributeBuilder(eventAttribute));
 				ProxyHelper.EmitDefaultValue(m.GetILGenerator(), m.ReturnType);
 				if (EmitIsEnabled(m, eventAttribute))
-					EmitCallWriteEvent(m, eventAttribute, targetParameterTypes, targetParameterTypes);
+					EmitCallWriteEvent(invocationContext, m, eventAttribute, targetParameterTypes, targetParameterTypes);
 
 				return m;
 			}
@@ -660,11 +666,12 @@ namespace EventSourceProxy
 		/// <summary>
 		/// Emit a call to WriteEvent(param object[]).
 		/// </summary>
+		/// <param name="invocationContext">The InvocationContext for this call.</param>
 		/// <param name="methodBuilder">The MethodBuilder to append to.</param>
 		/// <param name="eventAttribute">The EventAttribute to use as values in the method.</param>
 		/// <param name="sourceParameterTypes">The types of parameters on the source method.</param>
 		/// <param name="targetParameterTypes">The types of the parameters on the target method.</param>
-		private void EmitCallWriteEvent(MethodBuilder methodBuilder, EventAttribute eventAttribute, Type[] sourceParameterTypes, Type[] targetParameterTypes)
+		private void EmitCallWriteEvent(InvocationContext invocationContext, MethodBuilder methodBuilder, EventAttribute eventAttribute, Type[] sourceParameterTypes, Type[] targetParameterTypes)
 		{
 			ILGenerator mIL = methodBuilder.GetILGenerator();
 
@@ -707,15 +714,18 @@ namespace EventSourceProxy
 			}
 
 			// if there is a context, call the context provider and add the context parameter
-			if (_supportsContext)
+			if (_supportsContext && _contextProvider.ShouldProvideContext(invocationContext))
 			{
 				// load the array and index onto the stack
 				mIL.Emit(OpCodes.Dup);
 				mIL.Emit(OpCodes.Ldc_I4, (int)targetParameterTypes.Length - 1);
 
-				// load the context provider and get the context
+				// load the context provider, create an InvocationContext and get the context
 				mIL.Emit(OpCodes.Ldarg_0);
 				mIL.Emit(OpCodes.Ldfld, _contextProviderField);
+				mIL.Emit(OpCodes.Ldtoken, invocationContext.MethodInfo);
+				mIL.Emit(OpCodes.Ldc_I4, (int)invocationContext.ContextType);
+				mIL.Emit(OpCodes.Newobj, typeof(InvocationContext).GetConstructor(new Type[] { typeof(RuntimeMethodHandle), typeof(InvocationContextType) }));
 				mIL.Emit(OpCodes.Callvirt, typeof(ITraceContextProvider).GetMethod("ProvideContext"));
 
 				// put the result into the array

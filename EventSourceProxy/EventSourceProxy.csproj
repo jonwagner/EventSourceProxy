@@ -44,6 +44,9 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="InvocationContext.cs" />
+    <Compile Include="InvocationContextType.cs" />
+    <Compile Include="TraceContextProvider.cs" />
     <Compile Include="TraceProviderAttribute.cs" />
     <Compile Include="TraceSerializationProviderAttribute.cs" />
     <Compile Include="EventActivityScope.cs" />
