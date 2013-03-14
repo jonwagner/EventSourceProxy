@@ -36,6 +36,7 @@ namespace EventSourceProxy.Tests
 		}
 		#endregion
 
+		#region Base Test Cases
 		[Test]
 		public void ProviderShouldBeCalledOnLog()
 		{
@@ -87,5 +88,28 @@ namespace EventSourceProxy.Tests
 			var contextProvider = new TraceContextProvider();
 			Assert.Throws<InvalidOperationException>(() => EventSourceImplementer.RegisterProvider<ILog>(contextProvider));
 		}
+		#endregion
+
+		#region Attribute Tests
+		[TraceContextProvider(typeof(TraceContextProvider))]
+		public interface ILogWithProviderAttribute
+		{
+			void DoSomething();
+		}
+
+		[Test]
+		public void ProviderCanBeSpecifiedByAttribute()
+		{
+			var testLog = EventSourceImplementer.GetEventSourceAs<ILogWithProviderAttribute>();
+			_listener.EnableEvents((EventSource)testLog, EventLevel.LogAlways, (EventKeywords)(-1));
+
+			testLog.DoSomething();
+
+			// look at the events
+			var events = _listener.Events.ToArray();
+			Assert.AreEqual(1, events.Length);
+			Assert.AreEqual("context", events[0].Payload[0]);
+		}
+		#endregion
 	}
 }

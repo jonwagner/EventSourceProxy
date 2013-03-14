@@ -41,13 +41,15 @@ namespace EventSourceProxy
 		/// </summary>
 		/// <typeparam name="T">The type of provider being provided.</typeparam>
 		/// <param name="logType">The type of event source to register with.</param>
+		/// <param name="attributeType">The type of the ProviderAttribute that can specify the provider.</param>
 		/// <param name="defaultConstructor">The constructor to use to create the provider if it does not exist.</param>
 		/// <returns>The provider for a given type, or null if there is no provider.</returns>
-		internal static T GetProvider<T>(Type logType, Func<T> defaultConstructor)
+		internal static T GetProvider<T>(Type logType, Type attributeType, Func<T> defaultConstructor)
 		{
 			if (defaultConstructor == null)
 				defaultConstructor = () => default(T);
-			return (T)GetProvider(logType, typeof(T), () => defaultConstructor());
+
+			return (T)GetProvider(logType, typeof(T), attributeType, () => defaultConstructor());
 		}
 
 		/// <summary>
@@ -55,13 +57,25 @@ namespace EventSourceProxy
 		/// </summary>
 		/// <param name="logType">The type of event source to register with.</param>
 		/// <param name="providerType">The type of provider being provided.</param>
+		/// <param name="attributeType">The type of the ProviderAttribute that can specify the provider.</param>
 		/// <param name="defaultConstructor">The constructor to use to create the provider if it does not exist.</param>
 		/// <returns>The provider for a given type, or null if there is no provider.</returns>
-		private static object GetProvider(Type logType, Type providerType, Func<object> defaultConstructor)
+		private static object GetProvider(Type logType, Type providerType, Type attributeType, Func<object> defaultConstructor)
 		{
 			var key = Tuple.Create(logType, providerType);
 
-			return _providers.GetOrAdd(key, _ => defaultConstructor());
+			return _providers.GetOrAdd(
+				key,
+				_ =>
+				{
+					// if there is a provider attribute on the class or interface,
+					// then instantiate the given type
+					var providerAttribute = (TraceProviderAttribute)logType.GetCustomAttributes(attributeType, true).FirstOrDefault();
+					if (providerAttribute != null)
+						return providerAttribute.ProviderType.GetConstructor(Type.EmptyTypes).Invoke(null);
+
+					return defaultConstructor();
+				});
 		}
 	}
 }

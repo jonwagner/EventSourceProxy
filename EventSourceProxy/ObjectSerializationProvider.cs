@@ -37,7 +37,7 @@ namespace EventSourceProxy
 		/// <returns>The serialization provider or the default JSON provider.</returns>
 		internal static ITraceSerializationProvider GetSerializationProvider(Type type)
 		{
-			return ProviderManager.GetProvider<ITraceSerializationProvider>(type, () => new ToStringObjectSerializer());
+			return ProviderManager.GetProvider<ITraceSerializationProvider>(type, typeof(TraceSerializationProviderAttribute), () => new ToStringObjectSerializer());
 		}
 	}
 }

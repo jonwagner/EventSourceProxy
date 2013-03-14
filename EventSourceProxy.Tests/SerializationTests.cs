@@ -224,5 +224,36 @@ namespace EventSourceProxy.Tests
 			Assert.AreEqual(null, events[0].Payload[0]);
 		}
 		#endregion
+
+		#region Attribute Tests
+		[TraceSerializationProvider(typeof(FakeSerializer))]
+		public interface ILogInterfaceWithAttribute
+		{
+			void SendData(ClassData data);
+		}
+
+		public class FakeSerializer : ObjectSerializationProvider
+		{
+			public override string SerializeObject(object value, TraceSerializationContext context)
+			{
+				return "nope";
+			}
+		}
+
+		[Test]
+		public void AttributeShouldDetermineSerializer()
+		{
+			var logger = EventSourceImplementer.GetEventSourceAs<ILogInterfaceWithAttribute>();
+			_listener.EnableEvents((EventSource)logger, EventLevel.LogAlways, (EventKeywords)(-1));
+
+			logger.SendData(new ClassData() { Name = "Fred", Age = 38 });
+
+			// look at the events
+			var events = _listener.Events.ToArray();
+			Assert.AreEqual(1, events.Length);
+			Assert.AreEqual(1, events[0].EventId);
+			Assert.AreEqual("nope", events[0].Payload[0]);
+		}
+		#endregion
 	}
 }

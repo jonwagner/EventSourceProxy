@@ -44,6 +44,8 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="TraceProviderAttribute.cs" />
+    <Compile Include="TraceSerializationProviderAttribute.cs" />
     <Compile Include="EventActivityScope.cs" />
     <Compile Include="NullObjectSerializer.cs" />
     <Compile Include="ObjectSerializationProvider.cs" />
@@ -58,6 +60,7 @@
     <Compile Include="ITraceSerializationProvider.cs" />
     <Compile Include="JsonObjectSerializer.cs" />
     <Compile Include="ProviderManager.cs" />
+    <Compile Include="TraceContextProviderAttribute.cs" />
     <Compile Include="TraceSerializationContext.cs" />
     <Compile Include="TracingProxy.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
