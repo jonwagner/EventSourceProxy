@@ -64,11 +64,6 @@ namespace EventSourceProxy
 		private Type _interfaceType;
 
 		/// <summary>
-		/// The constructor for the type.
-		/// </summary>
-		private ConstructorInfo _constructor;
-
-		/// <summary>
 		/// The type builder being used for the new type.
 		/// </summary>
 		private TypeBuilder _typeBuilder;
@@ -86,12 +81,12 @@ namespace EventSourceProxy
 		/// <summary>
 		/// The context provider for this type.
 		/// </summary>
-		private ITraceContextProvider _contextProvider;
+		private TraceContextProvider _contextProvider;
 
 		/// <summary>
 		/// The serialization provider for this type.
 		/// </summary>
-		private ITraceSerializationProvider _serializationProvider;
+		private TraceSerializationProvider _serializationProvider;
 
 		/// <summary>
 		/// The list of invocation contexts during code generation.
@@ -111,7 +106,7 @@ namespace EventSourceProxy
 		/// <param name="interfaceType">The type to implement.</param>
 		/// <param name="contextProvider">The context provider for the event source.</param>
 		/// <param name="serializationProvider">The serialization provider for the event source.</param>
-		public TypeImplementer(Type interfaceType, ITraceContextProvider contextProvider, ITraceSerializationProvider serializationProvider)
+		public TypeImplementer(Type interfaceType, TraceContextProvider contextProvider, TraceSerializationProvider serializationProvider)
 		{
 			_interfaceType = interfaceType;
 			_contextProvider = contextProvider;
@@ -123,16 +118,12 @@ namespace EventSourceProxy
 
 			ImplementType();
 		}
+		#endregion
 
 		/// <summary>
-		/// Creates a new instance of the generated EventSource.
+		/// Gets the EventSource created by this implementer.
 		/// </summary>
-		/// <returns>A newly constructed EventSource.</returns>
-		public object Create()
-		{
-			return _constructor.Invoke(null);
-		}
-		#endregion
+		public EventSource EventSource { get; private set; }
 
 		#region Helper Functions
 		/// <summary>
@@ -262,8 +253,12 @@ namespace EventSourceProxy
 			t.GetField(_serializationProviderField.Name, BindingFlags.Static | BindingFlags.NonPublic).SetValue(null, _serializationProvider);
 			t.GetField(_contextProviderField.Name, BindingFlags.Static | BindingFlags.NonPublic).SetValue(null, _contextProvider);
 
-			// return the constructor for our type
-			_constructor = t.GetConstructor(Type.EmptyTypes);
+			// instantiate the singleton
+			EventSource = (EventSource)t.GetConstructor(Type.EmptyTypes).Invoke(null);
+
+			// fill in the event source for all of the invocation contexts
+			foreach (var context in _invocationContexts)
+				context.EventSource = EventSource;
 		}
 
 		/// <summary>
@@ -273,8 +268,8 @@ namespace EventSourceProxy
 		{
 			// static fields
 			_invocationContextsField = _typeBuilder.DefineField("_invocationContexts", typeof(InvocationContext[]), FieldAttributes.Private | FieldAttributes.Static);
-			_serializationProviderField = _typeBuilder.DefineField("_serializationProvider", typeof(ITraceSerializationProvider), FieldAttributes.Private | FieldAttributes.Static);
-			_contextProviderField = _typeBuilder.DefineField("_contextProvider", typeof(ITraceContextProvider), FieldAttributes.Private | FieldAttributes.Static);
+			_serializationProviderField = _typeBuilder.DefineField("_serializationProvider", typeof(TraceSerializationProvider), FieldAttributes.Private | FieldAttributes.Static);
+			_contextProviderField = _typeBuilder.DefineField("_contextProvider", typeof(TraceContextProvider), FieldAttributes.Private | FieldAttributes.Static);
 		}
 		#endregion
 
@@ -708,7 +703,7 @@ namespace EventSourceProxy
 				mIL.Emit(OpCodes.Ldsfld, _invocationContextsField);
 				mIL.Emit(OpCodes.Ldc_I4, _invocationContexts.Count);
 				mIL.Emit(OpCodes.Ldelem, typeof(InvocationContext));
-				mIL.Emit(OpCodes.Callvirt, typeof(ITraceContextProvider).GetMethod("ProvideContext"));
+				mIL.Emit(OpCodes.Callvirt, typeof(TraceContextProvider).GetMethod("ProvideContext"));
 				_invocationContexts.Add(invocationContext);
 
 				// put the result into the array

@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics.Tracing;
 using System.Linq;
 using System.Reflection;
 using System.Reflection.Emit;
@@ -23,6 +24,11 @@ namespace EventSourceProxy
 			MethodInfo = methodInfo;
 			ContextType = contextType;
 		}
+
+		/// <summary>
+		/// Gets the EventSource associated with the InvocationContext.
+		/// </summary>
+		public EventSource EventSource { get; internal set; }
 
 		/// <summary>
 		/// Gets the method being invoked.

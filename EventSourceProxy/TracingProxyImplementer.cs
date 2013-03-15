@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics.Tracing;
 using System.Globalization;
 using System.Linq;
 using System.Reflection;
@@ -54,7 +55,7 @@ namespace EventSourceProxy
 		/// <summary>
 		/// The serialization provider for the type.
 		/// </summary>
-		private ITraceSerializationProvider _serializationProvider;
+		private TraceSerializationProvider _serializationProvider;
 
 		/// <summary>
 		/// The type builder for the type.
@@ -98,7 +99,7 @@ namespace EventSourceProxy
 		{
 			_executeType = executeType;
 			_callWithActivityScope = callWithActivityScope;
-			_serializationProvider = ObjectSerializationProvider.GetSerializationProvider(logType);
+			_serializationProvider = TraceSerializationProvider.GetSerializationProvider(logType);
 
 			// create a log of the given log type
 			var log = EventSourceImplementer.GetEventSource(logType);
@@ -121,7 +122,7 @@ namespace EventSourceProxy
 		/// </summary>
 		/// <param name="log">The log to use for the proxy.</param>
 		/// <returns>A static method that can be used to construct the proxy.</returns>
-		private MethodInfo ImplementProxy(object log)
+		private MethodInfo ImplementProxy(EventSource log)
 		{
 			// create a new assembly
 			AssemblyName an = Assembly.GetExecutingAssembly().GetName();
@@ -153,6 +154,10 @@ namespace EventSourceProxy
 			t.GetField(_serializerField.Name, BindingFlags.Static | BindingFlags.NonPublic).SetValue(null, _serializationProvider);
 			t.GetField(_invocationContextsField.Name, BindingFlags.Static | BindingFlags.NonPublic).SetValue(null, _invocationContexts.ToArray());
 
+			// fill in the event source for all of the invocation contexts
+			foreach (var context in _invocationContexts)
+				context.EventSource = log;
+
 			// return the create method
 			return t.GetMethod(createMethod.Name, BindingFlags.Static | BindingFlags.Public, null, _createParameterTypes, null);
 		}
@@ -165,7 +170,7 @@ namespace EventSourceProxy
 		{
 			// static fields
 			_logField = _typeBuilder.DefineField(LogFieldName, _logType, FieldAttributes.Static | FieldAttributes.Private);
-			_serializerField = _typeBuilder.DefineField(SerializerFieldName, typeof(ITraceSerializationProvider), FieldAttributes.Static | FieldAttributes.Private);
+			_serializerField = _typeBuilder.DefineField(SerializerFieldName, typeof(TraceSerializationProvider), FieldAttributes.Static | FieldAttributes.Private);
 			_invocationContextsField = _typeBuilder.DefineField("_invocationContexts", typeof(InvocationContext[]), FieldAttributes.Static | FieldAttributes.Private);
 
 			// instance fields

@@ -75,8 +75,8 @@ namespace EventSourceProxy
 					type,
 					t => new TypeImplementer(
 						t,
-						ProviderManager.GetProvider<ITraceContextProvider>(type, typeof(TraceContextProviderAttribute), null),
-						ObjectSerializationProvider.GetSerializationProvider(type)).Create());
+						ProviderManager.GetProvider<TraceContextProvider>(type, typeof(TraceContextProviderAttribute), null),
+						TraceSerializationProvider.GetSerializationProvider(type)).EventSource);
 			}
 		}
 
@@ -85,9 +85,9 @@ namespace EventSourceProxy
 		/// </summary>
 		/// <typeparam name="TLog">The type of event source to register with.</typeparam>
 		/// <param name="provider">The provider to register.</param>
-		public static void RegisterProvider<TLog>(ITraceContextProvider provider)
+		public static void RegisterProvider<TLog>(TraceContextProvider provider)
 		{
-			RegisterProvider(typeof(TLog), typeof(ITraceContextProvider), provider);
+			RegisterProvider(typeof(TLog), typeof(TraceContextProvider), provider);
 		}
 
 		/// <summary>
@@ -95,9 +95,9 @@ namespace EventSourceProxy
 		/// </summary>
 		/// <param name="type">The type of event source to register with.</param>
 		/// <param name="provider">The provider to register.</param>
-		public static void RegisterProvider(Type type, ITraceContextProvider provider)
+		public static void RegisterProvider(Type type, TraceContextProvider provider)
 		{
-			RegisterProvider(type, typeof(ITraceContextProvider), provider);
+			RegisterProvider(type, typeof(TraceContextProvider), provider);
 		}
 
 		/// <summary>
@@ -105,9 +105,9 @@ namespace EventSourceProxy
 		/// </summary>
 		/// <typeparam name="TLog">The type of event source to register with.</typeparam>
 		/// <param name="provider">The provider to register.</param>
-		public static void RegisterProvider<TLog>(ITraceSerializationProvider provider)
+		public static void RegisterProvider<TLog>(TraceSerializationProvider provider)
 		{
-			RegisterProvider(typeof(TLog), typeof(ITraceSerializationProvider), provider);
+			RegisterProvider(typeof(TLog), typeof(TraceSerializationProvider), provider);
 		}
 
 		/// <summary>
@@ -115,9 +115,9 @@ namespace EventSourceProxy
 		/// </summary>
 		/// <param name="type">The type of event source to register with.</param>
 		/// <param name="provider">The provider to register.</param>
-		public static void RegisterProvider(Type type, ITraceSerializationProvider provider)
+		public static void RegisterProvider(Type type, TraceSerializationProvider provider)
 		{
-			RegisterProvider(type, typeof(ITraceSerializationProvider), provider);
+			RegisterProvider(type, typeof(TraceSerializationProvider), provider);
 		}
 		#endregion
 

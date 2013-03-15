@@ -92,7 +92,7 @@ namespace EventSourceProxy
 			int i,
 			Type sourceType,
 			Type targetType,
-			ITraceSerializationProvider serializationProvider,
+			TraceSerializationProvider serializationProvider,
 			FieldBuilder serializationProviderField)
 		{
 			ILGenerator mIL = methodBuilder.GetILGenerator();
@@ -130,7 +130,8 @@ namespace EventSourceProxy
 
 			// non-fundamental types use the object serializer
 			var context = new TraceSerializationContext(invocationContext, i);
-			if (serializationProvider.ShouldSerialize(context))
+			context.EventLevel = serializationProvider.GetEventLevelForContext(context);
+			if (context.EventLevel != null)
 			{
 				// get the object serializer from the this pointer
 				mIL.Emit(OpCodes.Ldsfld, serializationProviderField);
@@ -155,7 +156,7 @@ namespace EventSourceProxy
 				mIL.Emit(OpCodes.Ldelem, typeof(TraceSerializationContext));
 				invocationContexts.Add(context);
 
-				mIL.Emit(OpCodes.Callvirt, typeof(ITraceSerializationProvider).GetMethod("SerializeObject", BindingFlags.Instance | BindingFlags.Public));
+				mIL.Emit(OpCodes.Callvirt, typeof(TraceSerializationProvider).GetMethod("ProvideSerialization", BindingFlags.Instance | BindingFlags.Public));
 			}
 			else
 				mIL.Emit(OpCodes.Ldnull);

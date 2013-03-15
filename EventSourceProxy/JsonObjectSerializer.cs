@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
+using System.Diagnostics.Tracing;
 using System.Globalization;
 using System.Linq;
 using System.Text;
@@ -12,8 +13,30 @@ namespace EventSourceProxy
 	/// <summary>
 	/// Used internally to serialize a string. By default, it uses Newtonsoft.Json to JSON serialize the object.
 	/// </summary>
-	public class JsonObjectSerializer : ObjectSerializationProvider
+	public class JsonObjectSerializer : TraceSerializationProvider
 	{
+		#region Constructors
+		/// <summary>
+		/// Initializes a new instance of the JsonObjectSerializer class.
+		/// The default is to allow serialization whenever tracing occurs.
+		/// </summary>
+		public JsonObjectSerializer()
+		{
+		}
+
+		/// <summary>
+		/// Initializes a new instance of the JsonObjectSerializer class.
+		/// </summary>
+		/// <param name="defaultEventLevel">
+		/// The default EventLevel to allow object serialization.
+		/// The default is to serialize objects whenever tracing occurs, but this can be used to allow serialization
+		/// only when logging is at a particular level of verbosity.
+		/// </param>
+		public JsonObjectSerializer(EventLevel defaultEventLevel) : base(defaultEventLevel)
+		{
+		}
+		#endregion
+
 		/// <summary>
 		/// Serializes an object to a string.
 		/// </summary>

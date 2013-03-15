@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics.Tracing;
 using System.Linq;
 using System.Reflection;
 using System.Text;
@@ -11,8 +12,41 @@ namespace EventSourceProxy
 	/// <summary>
 	/// Serializes an object by returning null. This is effectively a NoOp.
 	/// </summary>
-	public class NullObjectSerializer : ObjectSerializationProvider
+	public class NullObjectSerializer : TraceSerializationProvider
 	{
+		#region Constructors
+		/// <summary>
+		/// Initializes a new instance of the NullObjectSerializer class.
+		/// The default is to allow serialization whenever tracing occurs.
+		/// </summary>
+		public NullObjectSerializer()
+		{
+		}
+
+		/// <summary>
+		/// Initializes a new instance of the NullObjectSerializer class.
+		/// </summary>
+		/// <param name="defaultEventLevel">
+		/// The default EventLevel to allow object serialization.
+		/// The default is to serialize objects whenever tracing occurs, but this can be used to allow serialization
+		/// only when logging is at a particular level of verbosity.
+		/// </param>
+		public NullObjectSerializer(EventLevel defaultEventLevel) : base(defaultEventLevel)
+		{
+		}
+		#endregion
+
+		/// <summary>
+		/// Returns the EventLevel at which to enable serialization for the given context.
+		/// This method looks at the TraceSerializationAttributes on the parameter, method, or class.
+		/// </summary>
+		/// <param name="context">The serialization context to evaluate.</param>
+		/// <returns>The EventLevel at which to enable serialization for the given context.</returns>
+		public override EventLevel? GetEventLevelForContext(TraceSerializationContext context)
+		{
+			return null;
+		}
+
 		/// <summary>
 		/// Serializes an object to a string.
 		/// </summary>

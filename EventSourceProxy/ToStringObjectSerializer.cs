@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics.Tracing;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -10,8 +11,30 @@ namespace EventSourceProxy
 	/// <summary>
 	/// Serializes objects by calling ToString on them.
 	/// </summary>
-	public class ToStringObjectSerializer : ObjectSerializationProvider
+	public class ToStringObjectSerializer : TraceSerializationProvider
 	{
+		#region Constructors
+		/// <summary>
+		/// Initializes a new instance of the ToStringObjectSerializer class.
+		/// The default is to allow serialization whenever tracing occurs.
+		/// </summary>
+		public ToStringObjectSerializer()
+		{
+		}
+
+		/// <summary>
+		/// Initializes a new instance of the ToStringObjectSerializer class.
+		/// </summary>
+		/// <param name="defaultEventLevel">
+		/// The default EventLevel to allow object serialization.
+		/// The default is to serialize objects whenever tracing occurs, but this can be used to allow serialization
+		/// only when logging is at a particular level of verbosity.
+		/// </param>
+		public ToStringObjectSerializer(EventLevel defaultEventLevel) : base(defaultEventLevel)
+		{
+		}
+		#endregion
+
 		/// <summary>
 		/// Serializes an object to a string.
 		/// </summary>

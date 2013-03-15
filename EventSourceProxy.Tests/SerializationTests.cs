@@ -44,7 +44,12 @@ namespace EventSourceProxy.Tests
 			public abstract void SendData(StructData data);
 		}
 
-		public class ILogClassWithClassData : ILogInterfaceWithClassData
+		public interface ILogInterfaceWithClassData2
+		{
+			void SendData(ClassData data);
+		}
+
+		public class ILogClassWithClassData : ILogInterfaceWithClassData2
 		{
 			public void SendData(ClassData data)
 			{
@@ -56,7 +61,7 @@ namespace EventSourceProxy.Tests
 		[Test]
 		public void InterfaceWithClassShouldSerializeAsJson()
 		{
-			EventSourceImplementer.RegisterProvider<ILogInterfaceWithStructData>(new JsonObjectSerializer());
+			EventSourceImplementer.RegisterProvider<ILogInterfaceWithClassData>(new JsonObjectSerializer());
 			var logger = EventSourceImplementer.GetEventSourceAs<ILogInterfaceWithClassData>();
 			_listener.EnableEvents((EventSource)logger, EventLevel.LogAlways, (EventKeywords)(-1));
 
@@ -120,11 +125,11 @@ namespace EventSourceProxy.Tests
 		[Test]
 		public void ClassImplementingAnInterfaceShouldSerializeData()
 		{
-			EventSourceImplementer.RegisterProvider<ILogInterfaceWithClassData>(new JsonObjectSerializer());
-			var logger = EventSourceImplementer.GetEventSourceAs<ILogInterfaceWithClassData>();
+			EventSourceImplementer.RegisterProvider<ILogInterfaceWithClassData2>(new JsonObjectSerializer());
+			var logger = EventSourceImplementer.GetEventSourceAs<ILogInterfaceWithClassData2>();
 			_listener.EnableEvents((EventSource)logger, EventLevel.LogAlways, (EventKeywords)(-1));
 
-			var proxy = TracingProxy.Create<ILogInterfaceWithClassData>(new ILogClassWithClassData());
+			var proxy = TracingProxy.Create<ILogInterfaceWithClassData2>(new ILogClassWithClassData());
 
 			proxy.SendData(new ClassData() { Name = "Fred", Age = 38 });
 
@@ -194,12 +199,18 @@ namespace EventSourceProxy.Tests
 			void SendData(ClassData data);
 		}
 
-		class CustomSerializer : ObjectSerializationProvider
+		class CustomSerializer : TraceSerializationProvider
 		{
 			public override string SerializeObject(object value, TraceSerializationContext context)
 			{
 				throw new NotImplementedException();
 			}
+
+			public override EventLevel? GetEventLevelForContext(TraceSerializationContext context)
+			{
+				return null;
+			}
+
 			public override bool ShouldSerialize(TraceSerializationContext context)
 			{
 				return false;
@@ -226,14 +237,14 @@ namespace EventSourceProxy.Tests
 		}
 		#endregion
 
-		#region Attribute Tests
+		#region Provider Attribute Tests
 		[TraceSerializationProvider(typeof(FakeSerializer))]
 		public interface ILogInterfaceWithAttribute
 		{
 			void SendData(ClassData data);
 		}
 
-		public class FakeSerializer : ObjectSerializationProvider
+		public class FakeSerializer : TraceSerializationProvider
 		{
 			public override string SerializeObject(object value, TraceSerializationContext context)
 			{
@@ -254,6 +265,127 @@ namespace EventSourceProxy.Tests
 			Assert.AreEqual(1, events.Length);
 			Assert.AreEqual(1, events[0].EventId);
 			Assert.AreEqual("nope", events[0].Payload[0]);
+		}
+		#endregion
+
+		#region Level Attribute Tests
+		[TraceSerialization(EventLevel.Verbose)]
+		public interface ISerializeVerbosely
+		{
+			void SendData(ClassData data);
+		}
+
+		public interface ISerializeVerboselyByMethod
+		{
+			[TraceSerialization(EventLevel.Verbose)]
+			void SendData(ClassData data);
+		}
+
+		public interface ISerializeVerboselyByParameter
+		{
+			void SendData([TraceSerialization(EventLevel.Verbose)]ClassData data);
+		}
+
+		[TraceSerialization(EventLevel.Verbose)]
+		public class ClassData2 : ClassData
+		{
+		}
+
+		public interface ISerializeVerboselyByParameterClass
+		{
+			void SendData(ClassData2 data);
+		}
+
+		[Test]
+		public void AttributeCanChangeLevelAtClassLevel()
+		{
+			var logger = EventSourceImplementer.GetEventSourceAs<ISerializeVerbosely>();
+			_listener.EnableEvents((EventSource)logger, EventLevel.Informational, (EventKeywords)(-1));
+
+			logger.SendData(new ClassData() { Name = "Fred", Age = 38 });
+
+			// look at the events
+			var events = _listener.Events.ToArray();
+			Assert.AreEqual(1, events.Length);
+			Assert.AreEqual(1, events[0].EventId);
+			Assert.IsNull(events[0].Payload[0]);
+
+			_listener.Reset();
+			_listener.EnableEvents((EventSource)logger, EventLevel.Verbose, (EventKeywords)(-1));
+			logger.SendData(new ClassData() { Name = "Fred", Age = 38 });
+			events = _listener.Events.ToArray();
+			Assert.AreEqual(1, events.Length);
+			Assert.AreEqual(1, events[0].EventId);
+			Assert.IsNotNull(events[0].Payload[0]);
+		}
+
+		[Test]
+		public void AttributeCanChangeLevelAtMethodLevel()
+		{
+			var logger = EventSourceImplementer.GetEventSourceAs<ISerializeVerboselyByMethod>();
+			_listener.EnableEvents((EventSource)logger, EventLevel.Informational, (EventKeywords)(-1));
+
+			logger.SendData(new ClassData() { Name = "Fred", Age = 38 });
+
+			// look at the events
+			var events = _listener.Events.ToArray();
+			Assert.AreEqual(1, events.Length);
+			Assert.AreEqual(1, events[0].EventId);
+			Assert.IsNull(events[0].Payload[0]);
+
+			_listener.Reset();
+			_listener.EnableEvents((EventSource)logger, EventLevel.Verbose, (EventKeywords)(-1));
+			logger.SendData(new ClassData() { Name = "Fred", Age = 38 });
+			events = _listener.Events.ToArray();
+			Assert.AreEqual(1, events.Length);
+			Assert.AreEqual(1, events[0].EventId);
+			Assert.IsNotNull(events[0].Payload[0]);
+		}
+
+		[Test]
+		public void AttributeCanChangeLevelAtParameterLevel()
+		{
+			var logger = EventSourceImplementer.GetEventSourceAs<ISerializeVerboselyByParameter>();
+			_listener.EnableEvents((EventSource)logger, EventLevel.Informational, (EventKeywords)(-1));
+
+			logger.SendData(new ClassData() { Name = "Fred", Age = 38 });
+
+			// look at the events
+			var events = _listener.Events.ToArray();
+			Assert.AreEqual(1, events.Length);
+			Assert.AreEqual(1, events[0].EventId);
+			Assert.IsNull(events[0].Payload[0]);
+
+			_listener.Reset();
+			_listener.EnableEvents((EventSource)logger, EventLevel.Verbose, (EventKeywords)(-1));
+			logger.SendData(new ClassData() { Name = "Fred", Age = 38 });
+			events = _listener.Events.ToArray();
+			Assert.AreEqual(1, events.Length);
+			Assert.AreEqual(1, events[0].EventId);
+			Assert.IsNotNull(events[0].Payload[0]);
+		}
+
+		[Test]
+		public void AttributeCanChangeLevelAtParameterTypeLevel()
+		{
+			var logger = EventSourceImplementer.GetEventSourceAs<ISerializeVerboselyByParameterClass>();
+			_listener.EnableEvents((EventSource)logger, EventLevel.Informational, (EventKeywords)(-1));
+
+			logger.SendData(new ClassData2() { Name = "Fred", Age = 38 });
+
+			// look at the events
+			var events = _listener.Events.ToArray();
+			Assert.AreEqual(1, events.Length);
+			Assert.AreEqual(1, events[0].EventId);
+			Assert.IsNull(events[0].Payload[0]);
+
+			_listener.Reset();
+			_listener.EnableEvents((EventSource)logger, EventLevel.Verbose, (EventKeywords)(-1));
+			logger.SendData(new ClassData2() { Name = "Fred", Age = 38 });
+			events = _listener.Events.ToArray();
+			Assert.AreEqual(1, events.Length);
+			Assert.AreEqual(1, events[0].EventId);
+			Assert.IsNotNull(events[0].Payload[0]);
 		}
 		#endregion
 	}

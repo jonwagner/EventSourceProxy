@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics.Tracing;
 using System.Linq;
 using System.Reflection;
 using System.Reflection.Emit;
@@ -28,5 +29,10 @@ namespace EventSourceProxy
 		/// Gets the index of the parameter being serialized.
 		/// </summary>
 		public int ParameterIndex { get; private set; }
+
+		/// <summary>
+		/// Gets the EventLevel required to serialize this object.
+		/// </summary>
+		public EventLevel? EventLevel { get; internal set; }
 	}
 }

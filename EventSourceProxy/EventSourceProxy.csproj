@@ -44,6 +44,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="TraceSerializationAttribute.cs" />
     <Compile Include="TraceContextAttribute.cs" />
     <Compile Include="InvocationContext.cs" />
     <Compile Include="InvocationContextType.cs" />
@@ -52,7 +53,7 @@
     <Compile Include="TraceSerializationProviderAttribute.cs" />
     <Compile Include="EventActivityScope.cs" />
     <Compile Include="NullObjectSerializer.cs" />
-    <Compile Include="ObjectSerializationProvider.cs" />
+    <Compile Include="TraceSerializationProvider.cs" />
     <Compile Include="ProxyHelper.cs" />
     <Compile Include="ToStringObjectSerializer.cs" />
     <Compile Include="EventAttributeHelper.cs" />
@@ -60,8 +61,6 @@
     <Compile Include="EventSourceImplementationAttribute.cs" />
     <Compile Include="EventSourceImplementer.cs" />
     <Compile Include="EventSourceManifest.cs" />
-    <Compile Include="ITraceContextProvider.cs" />
-    <Compile Include="ITraceSerializationProvider.cs" />
     <Compile Include="JsonObjectSerializer.cs" />
     <Compile Include="ProviderManager.cs" />
     <Compile Include="TraceContextProviderAttribute.cs" />

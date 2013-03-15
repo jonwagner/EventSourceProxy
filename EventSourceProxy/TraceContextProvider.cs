@@ -11,7 +11,7 @@ namespace EventSourceProxy
 	/// The base class for a TraceContextProvider. TraceContextProvider properly determines whether
 	/// context is needed for a given method invocation.
 	/// </summary>
-	public abstract class TraceContextProvider : ITraceContextProvider
+	public abstract class TraceContextProvider
 	{
 		/// <summary>
 		/// Provides context information, such as security context, for a trace session.
