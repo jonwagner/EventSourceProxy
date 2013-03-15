@@ -34,7 +34,7 @@ namespace EventSourceProxy
 		/// <summary>
 		/// The types of parameters passed to the tracing proxy constructor.
 		/// </summary>
-		private static Type[] _createParameterTypes = new Type[] { typeof(object), typeof(object), typeof(object) };
+		private static Type[] _createParameterTypes = new Type[] { typeof(object) };
 
 		/// <summary>
 		/// The type of object to execute.
@@ -62,19 +62,29 @@ namespace EventSourceProxy
 		private TypeBuilder _typeBuilder;
 
 		/// <summary>
-		/// The field containing the logger.
-		/// </summary>
-		private FieldBuilder _logField;
-
-		/// <summary>
 		/// The field containing the object to execute.
 		/// </summary>
 		private FieldBuilder _executeField;
 
 		/// <summary>
-		/// Thje field containing the serialization provider.
+		/// The static field containing the logger.
+		/// </summary>
+		private FieldBuilder _logField;
+
+		/// <summary>
+		/// The static field containing the serialization provider.
 		/// </summary>
 		private FieldBuilder _serializerField;
+
+		/// <summary>
+		/// The list of invocation contexts during code generation.
+		/// </summary>
+		private List<InvocationContext> _invocationContexts = new List<InvocationContext>();
+
+		/// <summary>
+		/// The static field holding the invocation contexts at runtime.
+		/// </summary>
+		private FieldBuilder _invocationContextsField;
 		#endregion
 
 		#region Constructors
@@ -87,11 +97,14 @@ namespace EventSourceProxy
 		public TracingProxyImplementer(Type executeType, Type logType, bool callWithActivityScope)
 		{
 			_executeType = executeType;
-			_logType = logType;
 			_callWithActivityScope = callWithActivityScope;
 			_serializationProvider = ObjectSerializationProvider.GetSerializationProvider(logType);
 
-			CreateMethod = ImplementProxy();
+			// create a log of the given log type
+			var log = EventSourceImplementer.GetEventSource(logType);
+			_logType = log.GetType();
+
+			CreateMethod = ImplementProxy(log);
 		}
 		#endregion
 
@@ -106,8 +119,9 @@ namespace EventSourceProxy
 		/// <summary>
 		/// Implements a logging proxy around a given interface type.
 		/// </summary>
+		/// <param name="log">The log to use for the proxy.</param>
 		/// <returns>A static method that can be used to construct the proxy.</returns>
-		private MethodInfo ImplementProxy()
+		private MethodInfo ImplementProxy(object log)
 		{
 			// create a new assembly
 			AssemblyName an = Assembly.GetExecutingAssembly().GetName();
@@ -130,8 +144,14 @@ namespace EventSourceProxy
 			foreach (MethodInfo interfaceMethod in interfaceMethods.Where(m => !m.IsFinal))
 				EmitMethodImpl(interfaceMethod);
 
-			// create a class
+			// create the class
 			Type t = _typeBuilder.CreateType();
+
+			// initialize the logger and serializer fields to the static logger and serializer
+			// so we never need to create them again
+			t.GetField(_logField.Name, BindingFlags.Static | BindingFlags.NonPublic).SetValue(null, log);
+			t.GetField(_serializerField.Name, BindingFlags.Static | BindingFlags.NonPublic).SetValue(null, _serializationProvider);
+			t.GetField(_invocationContextsField.Name, BindingFlags.Static | BindingFlags.NonPublic).SetValue(null, _invocationContexts.ToArray());
 
 			// return the create method
 			return t.GetMethod(createMethod.Name, BindingFlags.Static | BindingFlags.Public, null, _createParameterTypes, null);
@@ -143,33 +163,26 @@ namespace EventSourceProxy
 		/// <returns>The constructor.</returns>
 		private ConstructorInfo EmitFieldsAndConstructor()
 		{
-			// define the fields
-			_logField = _typeBuilder.DefineField(LogFieldName, _logType, FieldAttributes.InitOnly | FieldAttributes.Private);
+			// static fields
+			_logField = _typeBuilder.DefineField(LogFieldName, _logType, FieldAttributes.Static | FieldAttributes.Private);
+			_serializerField = _typeBuilder.DefineField(SerializerFieldName, typeof(ITraceSerializationProvider), FieldAttributes.Static | FieldAttributes.Private);
+			_invocationContextsField = _typeBuilder.DefineField("_invocationContexts", typeof(InvocationContext[]), FieldAttributes.Static | FieldAttributes.Private);
+
+			// instance fields
 			_executeField = _typeBuilder.DefineField(ExecuteFieldName, _executeType, FieldAttributes.InitOnly | FieldAttributes.Private);
-			_serializerField = _typeBuilder.DefineField(SerializerFieldName, typeof(ITraceSerializationProvider), FieldAttributes.InitOnly | FieldAttributes.Private);
 
 			// create a constructor for the type
-			// we just store the log and execute interfaces in the fields
 			/*
-			 * public T (I log, I execute, ITraceSerializationProvoder serializer)
+			 * public T (I execute)
 			 * {
-			 *		_log = log;
 			 *		_execute = execute;
-			 *		_serializer = serializer
 			 * }
 			 */
-			var constructorParameterTypes = new Type[] { _executeType, _logType, typeof(ITraceSerializationProvider) };
-			ConstructorBuilder ctor = _typeBuilder.DefineConstructor(MethodAttributes.Public, CallingConventions.Standard, constructorParameterTypes);
+			ConstructorBuilder ctor = _typeBuilder.DefineConstructor(MethodAttributes.Public, CallingConventions.Standard, new Type[] { _executeType });
 			ILGenerator ctorIL = ctor.GetILGenerator();
 			ctorIL.Emit(OpCodes.Ldarg_0);
 			ctorIL.Emit(OpCodes.Ldarg_1);
 			ctorIL.Emit(OpCodes.Stfld, _executeField);
-			ctorIL.Emit(OpCodes.Ldarg_0);
-			ctorIL.Emit(OpCodes.Ldarg_2);
-			ctorIL.Emit(OpCodes.Stfld, _logField);
-			ctorIL.Emit(OpCodes.Ldarg_0);
-			ctorIL.Emit(OpCodes.Ldarg_3);
-			ctorIL.Emit(OpCodes.Stfld, _serializerField);
 			ctorIL.Emit(OpCodes.Ret);
 
 			return ctor;
@@ -183,15 +196,14 @@ namespace EventSourceProxy
 		private MethodBuilder EmitCreateImpl(ConstructorInfo constructorInfo)
 		{
 			/*
-			 * public static T Create (I log, I execute)
+			 * public static T Create (I execute)
 			 * {
-			 *		return new T (log, execute);
+			 *		return new T (execute);
 			 * }
 			 */
 			MethodBuilder mb = _typeBuilder.DefineMethod("Create", MethodAttributes.Static | MethodAttributes.Public, typeof(object), _createParameterTypes);
 			ILGenerator mIL = mb.GetILGenerator();
-			for (int i = 0; i < _createParameterTypes.Length; i++)
-				mIL.Emit(OpCodes.Ldarg, (int)i);
+			mIL.Emit(OpCodes.Ldarg_0);
 			mIL.Emit(OpCodes.Newobj, constructorInfo);
 			mIL.Emit(OpCodes.Ret);
 
@@ -207,12 +219,21 @@ namespace EventSourceProxy
 			/*
 			 * public TReturn Method (params)
 			 * {
-			 *		// make sure that there is an Activity ID wrapped around the calls
-			 *		using (var EventActivityScope = new EventActivityScope(true))
+			 *		var scope = new EventActivityScope(true);
+			 *		try
 			 *		{
 			 *			_log.Method(params);
 			 *			object value = _execute.Method(params);
 			 *			_log.Method_Completed(value);
+			 *		}
+			 *		catch (Exception e)
+			 *		{
+			 *			_log.Method_Faulted(e);
+			 *			throw;
+			 *		}
+			 *		finally
+			 *		{
+			 *			scope.Dispose();
 			 *		}
 			 * }
 			 */
@@ -347,13 +368,13 @@ namespace EventSourceProxy
 				ProxyHelper.EmitSerializeValue(
 					m,
 					invocationContext,
+					_invocationContexts,
+					_invocationContextsField,
 					i,
 					sourceParameters[i].ParameterType,
 					targetParameters[i].ParameterType,
 					_serializationProvider,
-					_serializerField,
-					il => il.Emit(OpCodes.Ldarg, (int)i + 1),
-					il => il.Emit(OpCodes.Ldarga_S, (int)i + 1));
+					_serializerField);
 			}
 
 			// call the method

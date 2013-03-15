@@ -56,6 +56,7 @@ namespace EventSourceProxy.Tests
 		[Test]
 		public void InterfaceWithClassShouldSerializeAsJson()
 		{
+			EventSourceImplementer.RegisterProvider<ILogInterfaceWithStructData>(new JsonObjectSerializer());
 			var logger = EventSourceImplementer.GetEventSourceAs<ILogInterfaceWithClassData>();
 			_listener.EnableEvents((EventSource)logger, EventLevel.LogAlways, (EventKeywords)(-1));
 

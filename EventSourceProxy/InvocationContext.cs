@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+using System.Reflection.Emit;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -13,48 +14,20 @@ namespace EventSourceProxy
 	public class InvocationContext
 	{
 		/// <summary>
-		/// The handle of the method being invoked.
-		/// </summary>
-		/// <remarks>This will be null when the MethodInfo is provided in the constructor.</remarks>
-		private RuntimeMethodHandle _methodHandle;
-
-		/// <summary>
-		/// The method being invoked.
-		/// </summary>
-		private MethodInfo _methodInfo;
-
-		/// <summary>
-		/// Initializes a new instance of the InvocationContext class.
-		/// </summary>
-		/// <param name="methodHandle">The handle of the method being invoked.</param>
-		/// <param name="contextType">The context type for this invocation.</param>
-		public InvocationContext(RuntimeMethodHandle methodHandle, InvocationContextType contextType)
-		{
-			_methodHandle = methodHandle;
-			ContextType = contextType;
-		}
-
-		/// <summary>
 		/// Initializes a new instance of the InvocationContext class.
 		/// </summary>
 		/// <param name="methodInfo">The handle of the method being invoked.</param>
 		/// <param name="contextType">The context type for this invocation.</param>
-		public InvocationContext(MethodInfo methodInfo, InvocationContextType contextType)
+		internal InvocationContext(MethodInfo methodInfo, InvocationContextType contextType)
 		{
-			_methodInfo = methodInfo;
+			MethodInfo = methodInfo;
 			ContextType = contextType;
 		}
 
 		/// <summary>
 		/// Gets the method being invoked.
 		/// </summary>
-		public MethodInfo MethodInfo
-		{
-			get
-			{
-				return _methodInfo = _methodInfo ?? (MethodInfo)MethodBase.GetMethodFromHandle(_methodHandle);
-			}
-		}
+		public MethodInfo MethodInfo { get; private set; }
 
 		/// <summary>
 		/// Gets the type of the invocation.

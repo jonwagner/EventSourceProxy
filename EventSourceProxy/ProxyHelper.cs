@@ -74,6 +74,8 @@ namespace EventSourceProxy
 		/// </summary>
 		/// <param name="methodBuilder">The method currently being built.</param>
 		/// <param name="invocationContext">The invocation context for this call.</param>
+		/// <param name="invocationContexts">A list of invocation contexts that will be appended to.</param>
+		/// <param name="invocationContextsField">The static field containing the array of invocation contexts at runtime.</param>
 		/// <param name="i">The index of the current parameter being pushed.</param>
 		/// <param name="sourceType">The type that the parameter is being converted from.</param>
 		/// <param name="targetType">The type that the parameter is being converted to.</param>
@@ -82,25 +84,23 @@ namespace EventSourceProxy
 		/// The field on the current object that contains the serialization provider at runtime.
 		/// This method assume the current object is stored in arg.0.
 		/// </param>
-		/// <param name="emitLoadValue">An action that emits the code needed to load the value onto the stack.</param>
-		/// <param name="emitLoadValueReference">An action that emits the code needed to load a reference to the value onto the stack.</param>
 		internal static void EmitSerializeValue(
 			MethodBuilder methodBuilder,
 			InvocationContext invocationContext,
+			List<InvocationContext> invocationContexts,
+			FieldBuilder invocationContextsField,
 			int i,
 			Type sourceType,
 			Type targetType,
 			ITraceSerializationProvider serializationProvider,
-			FieldBuilder serializationProviderField,
-			Action<ILGenerator> emitLoadValue,
-			Action<ILGenerator> emitLoadValueReference)
+			FieldBuilder serializationProviderField)
 		{
 			ILGenerator mIL = methodBuilder.GetILGenerator();
 
 			// if the source type is a reference to the target type, we have to dereference it
 			if (sourceType.IsByRef && sourceType.GetElementType() == targetType)
 			{
-				emitLoadValue(mIL);
+				mIL.Emit(OpCodes.Ldarg, (int)i + 1);
 				sourceType = sourceType.GetElementType();
 				mIL.Emit(OpCodes.Ldobj, sourceType);
 				return;
@@ -109,7 +109,7 @@ namespace EventSourceProxy
 			// if the types match, just put the argument on the stack
 			if (sourceType == targetType)
 			{
-				emitLoadValue(mIL);
+				mIL.Emit(OpCodes.Ldarg, (int)i + 1);
 				return;
 			}
 
@@ -123,24 +123,20 @@ namespace EventSourceProxy
 			if (!sourceType.IsGenericParameter && (underlyingType.IsEnum || (underlyingType.IsValueType && underlyingType.Assembly == typeof(string).Assembly)))
 			{
 				// convert the argument to a string with ToString
-				emitLoadValueReference(mIL);
+				mIL.Emit(OpCodes.Ldarga_S, i + 1);
 				mIL.Emit(OpCodes.Call, sourceType.GetMethod("ToString", Type.EmptyTypes));
 				return;
 			}
 
-			// note that the parameter index is 1-based, but the parameters from the method builder will be 0-based
-			int parameterIndex = i - 1;
-
 			// non-fundamental types use the object serializer
-			var context = new TraceSerializationContext(invocationContext, parameterIndex);
+			var context = new TraceSerializationContext(invocationContext, i);
 			if (serializationProvider.ShouldSerialize(context))
 			{
 				// get the object serializer from the this pointer
-				mIL.Emit(OpCodes.Ldarg_0);
-				mIL.Emit(OpCodes.Ldfld, serializationProviderField);
+				mIL.Emit(OpCodes.Ldsfld, serializationProviderField);
 
 				// load the value
-				emitLoadValue(mIL);
+				mIL.Emit(OpCodes.Ldarg, (int)i + 1);
 
 				// if the source type is a reference to the target type, we have to dereference it
 				if (sourceType.IsByRef)
@@ -153,11 +149,11 @@ namespace EventSourceProxy
 				if (sourceType.IsGenericParameter || sourceType.IsValueType)
 					mIL.Emit(OpCodes.Box, sourceType);
 
-				// add the method builder and parameter index
-				mIL.Emit(OpCodes.Ldtoken, invocationContext.MethodInfo);
-				mIL.Emit(OpCodes.Ldc_I4, (int)invocationContext.ContextType);
-				mIL.Emit(OpCodes.Ldc_I4, parameterIndex);
-				mIL.Emit(OpCodes.Newobj, typeof(TraceSerializationContext).GetConstructor(new Type[] { typeof(RuntimeMethodHandle), typeof(InvocationContextType), typeof(int) }));
+				// get the invocation context from the array on the provider
+				mIL.Emit(OpCodes.Ldsfld, invocationContextsField);
+				mIL.Emit(OpCodes.Ldc_I4, invocationContexts.Count);
+				mIL.Emit(OpCodes.Ldelem, typeof(TraceSerializationContext));
+				invocationContexts.Add(context);
 
 				mIL.Emit(OpCodes.Callvirt, typeof(ITraceSerializationProvider).GetMethod("SerializeObject", BindingFlags.Instance | BindingFlags.Public));
 			}

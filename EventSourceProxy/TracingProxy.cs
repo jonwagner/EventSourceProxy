@@ -20,8 +20,8 @@ namespace EventSourceProxy
 		/// <summary>
 		/// A cache of the constructors for the proxies.
 		/// </summary>
-		private static ConcurrentDictionary<Tuple<Type, Type, bool>, Func<object, object, object, object>> _constructors =
-			new ConcurrentDictionary<Tuple<Type, Type, bool>, Func<object, object, object, object>>();
+		private static ConcurrentDictionary<Tuple<Type, Type, bool>, Func<object, object>> _constructors =
+			new ConcurrentDictionary<Tuple<Type, Type, bool>, Func<object, object>>();
 		#endregion
 
 		#region Public Members
@@ -36,9 +36,7 @@ namespace EventSourceProxy
 		public static T CreateWithActivityScope<T>(object instance)
 			where T : class
 		{
-			var logger = EventSourceImplementer.GetEventSource<T>();
-
-			return (T)CreateInternal(instance, typeof(T), logger, logger.GetType(), callWithActivityScope: true);
+			return (T)CreateInternal(instance, typeof(T), typeof(T), callWithActivityScope: true);
 		}
 
 		/// <summary>
@@ -54,9 +52,7 @@ namespace EventSourceProxy
 		public static T Create<T>(object instance)
 			where T : class
 		{
-			var logger = EventSourceImplementer.GetEventSource<T>();
-
-			return (T)CreateInternal(instance, typeof(T), logger, logger.GetType(), callWithActivityScope: false);
+			return (T)CreateInternal(instance, typeof(T), typeof(T), callWithActivityScope: false);
 		}
 
 		/// <summary>
@@ -73,8 +69,7 @@ namespace EventSourceProxy
 			where T : class
 			where TEventSource : class
 		{
-			var logger = EventSourceImplementer.GetEventSourceAs<TEventSource>();
-			return (T)CreateInternal(instance, typeof(T), logger, logger.GetType(), callWithActivityScope: true);
+			return (T)CreateInternal(instance, typeof(T), typeof(TEventSource), callWithActivityScope: true);
 		}
 
 		/// <summary>
@@ -93,8 +88,7 @@ namespace EventSourceProxy
 			where T : class
 			where TEventSource : class
 		{
-			var logger = EventSourceImplementer.GetEventSourceAs<TEventSource>();
-			return (T)CreateInternal(instance, typeof(T), logger, logger.GetType(), callWithActivityScope: false);
+			return (T)CreateInternal(instance, typeof(T), typeof(TEventSource), callWithActivityScope: false);
 		}
 
 		/// <summary>
@@ -107,9 +101,7 @@ namespace EventSourceProxy
 		/// <returns>A proxy object of type interfaceType that traces calls.</returns>
 		public static object CreateWithActivityScope(object instance, Type interfaceType)
 		{
-			var logger = EventSourceImplementer.GetEventSource(interfaceType);
-
-			return CreateInternal(instance, interfaceType, logger, logger.GetType(), callWithActivityScope: true);
+			return CreateInternal(instance, interfaceType, interfaceType, callWithActivityScope: true);
 		}
 
 		/// <summary>
@@ -124,9 +116,7 @@ namespace EventSourceProxy
 		/// <returns>A proxy object of type interfaceType that traces calls.</returns>
 		public static object Create(object instance, Type interfaceType)
 		{
-			var logger = EventSourceImplementer.GetEventSource(interfaceType);
-
-			return CreateInternal(instance, interfaceType, logger, logger.GetType(), callWithActivityScope: false);
+			return CreateInternal(instance, interfaceType, interfaceType, callWithActivityScope: false);
 		}
 		#endregion
 
@@ -138,11 +128,10 @@ namespace EventSourceProxy
 		/// <typeparam name="T">The interface that is shared.</typeparam>
 		/// <param name="execute">The instance of the object that executes the interface.</param>
 		/// <param name="executeType">The type of the execute object.</param>
-		/// <param name="log">The instance of the logging interface.</param>
 		/// <param name="logType">The type on the log object that should be mapped to the execute object.</param>
 		/// <param name="callWithActivityScope">True to create a proxy that guarantees there is an activity scope around each call.</param>
 		/// <returns>A proxy object of type T that logs to the log object and executes on the execute object.</returns>
-		private static object CreateInternal(object execute, Type executeType, object log, Type logType, bool callWithActivityScope)
+		private static object CreateInternal(object execute, Type executeType, Type logType, bool callWithActivityScope)
 		{
 			if (!executeType.IsInstanceOfType(execute))
 				throw new ArgumentException("execute", String.Format(CultureInfo.InvariantCulture, "Object must implement {0} in order to proxy it.", executeType.FullName));
@@ -150,15 +139,12 @@ namespace EventSourceProxy
 			// cache constructors based on tuple of types, including logoverride
 			var tuple = Tuple.Create(executeType, logType, callWithActivityScope);
 
-			// get the serialization provider
-			var serializer = ObjectSerializationProvider.GetSerializationProvider(logType);
-
 			// get the constructor
 			var creator = _constructors.GetOrAdd(
 				tuple,
-				t => (Func<object, object, object, object>)new TracingProxyImplementer(t.Item1, t.Item2, t.Item3).CreateMethod.CreateDelegate(typeof(Func<object, object, object, object>)));
+				t => (Func<object, object>)new TracingProxyImplementer(t.Item1, t.Item2, t.Item3).CreateMethod.CreateDelegate(typeof(Func<object, object>)));
 
-			return creator(execute, log, serializer);
+			return creator(execute);
 		}
 		#endregion
 	}

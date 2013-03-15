@@ -49,11 +49,6 @@ namespace EventSourceProxy
 		private const string Context = "Context";
 
 		/// <summary>
-		/// The parameter types for the constructor.
-		/// </summary>
-		private static Type[] _eventSourceConstructorParameters = new Type[] { typeof(ITraceContextProvider), typeof(ITraceSerializationProvider) };
-
-		/// <summary>
 		/// The WriteEvent method for EventSource.
 		/// </summary>
 		private static MethodInfo _writeEvent = typeof(EventSource).GetMethod("WriteEvent", BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.InvokeMethod, null, new[] { typeof(int), typeof(object[]) }, null);
@@ -97,6 +92,16 @@ namespace EventSourceProxy
 		/// The serialization provider for this type.
 		/// </summary>
 		private ITraceSerializationProvider _serializationProvider;
+
+		/// <summary>
+		/// The list of invocation contexts during code generation.
+		/// </summary>
+		private List<InvocationContext> _invocationContexts = new List<InvocationContext>();
+
+		/// <summary>
+		/// The static field holding the invocation contexts at runtime.
+		/// </summary>
+		private FieldBuilder _invocationContextsField;
 		#endregion
 
 		#region Public Methods
@@ -125,14 +130,7 @@ namespace EventSourceProxy
 		/// <returns>A newly constructed EventSource.</returns>
 		public object Create()
 		{
-			// get the providers
-			object[] providers = new object[2] 
-			{ 
-				_contextProvider, 
-				_serializationProvider
-			};
-
-			return _constructor.Invoke(providers);
+			return _constructor.Invoke(null);
 		}
 		#endregion
 
@@ -215,7 +213,7 @@ namespace EventSourceProxy
 			_typeBuilder.SetCustomAttribute(EventSourceAttributeHelper.GetEventSourceAttributeBuilder(_interfaceType));
 
 			// implement the fields and constructor
-			EmitFieldsAndConstructor();
+			EmitFields();
 
 			// find all of the methods that need to be implemented
 			var interfaceMethods = ProxyHelper.DiscoverMethods(_interfaceType);
@@ -259,37 +257,24 @@ namespace EventSourceProxy
 			EmitEnumImplementation(implementationAttribute.OpCodes, Opcodes, typeof(EventOpcode));
 			EmitEnumImplementation(implementationAttribute.Tasks, Tasks, typeof(EventTask));
 
+			// initialize the static fields
+			t.GetField(_invocationContextsField.Name, BindingFlags.Static | BindingFlags.NonPublic).SetValue(null, _invocationContexts.ToArray());
+			t.GetField(_serializationProviderField.Name, BindingFlags.Static | BindingFlags.NonPublic).SetValue(null, _serializationProvider);
+			t.GetField(_contextProviderField.Name, BindingFlags.Static | BindingFlags.NonPublic).SetValue(null, _contextProvider);
+
 			// return the constructor for our type
-			_constructor = t.GetConstructor(_eventSourceConstructorParameters);
+			_constructor = t.GetConstructor(Type.EmptyTypes);
 		}
 
 		/// <summary>
-		/// Emit the internal fields and the constructor.
+		/// Emit the internal fields.
 		/// </summary>
-		private void EmitFieldsAndConstructor()
+		private void EmitFields()
 		{
-			// emit provider fields 
-			_contextProviderField = _typeBuilder.DefineField("_contextProvider", typeof(ITraceContextProvider), FieldAttributes.Private | FieldAttributes.InitOnly);
-			_serializationProviderField = _typeBuilder.DefineField("_serializationProvider", typeof(ITraceSerializationProvider), FieldAttributes.Private | FieldAttributes.InitOnly);
-
-			/*
-			 * public ctor(ITraceContextProvider contextProvider, ITraceSerializationProvider serializationProvider)
-			 * {
-			 *		_contextProvider = contextProvider;
-			 *		_serializationProvider = serializationProvider;
-			 * }
-			 */
-			ConstructorBuilder cb = _typeBuilder.DefineConstructor(MethodAttributes.Public, CallingConventions.Standard, _eventSourceConstructorParameters);
-			ILGenerator il = cb.GetILGenerator();
-			il.Emit(OpCodes.Ldarg_0);
-			il.Emit(OpCodes.Call, _typeBuilder.BaseType.GetConstructor(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic, null, Type.EmptyTypes, null));
-			il.Emit(OpCodes.Ldarg_0);
-			il.Emit(OpCodes.Ldarg_1);
-			il.Emit(OpCodes.Stfld, _contextProviderField);
-			il.Emit(OpCodes.Ldarg_0);
-			il.Emit(OpCodes.Ldarg_2);
-			il.Emit(OpCodes.Stfld, _serializationProviderField);
-			il.Emit(OpCodes.Ret);
+			// static fields
+			_invocationContextsField = _typeBuilder.DefineField("_invocationContexts", typeof(InvocationContext[]), FieldAttributes.Private | FieldAttributes.Static);
+			_serializationProviderField = _typeBuilder.DefineField("_serializationProvider", typeof(ITraceSerializationProvider), FieldAttributes.Private | FieldAttributes.Static);
+			_contextProviderField = _typeBuilder.DefineField("_contextProvider", typeof(ITraceContextProvider), FieldAttributes.Private | FieldAttributes.Static);
 		}
 		#endregion
 
@@ -710,19 +695,21 @@ namespace EventSourceProxy
 			}
 
 			// if there is a context, call the context provider and add the context parameter
-			if (_contextProvider != null && _contextProvider.ShouldProvideContext(invocationContext))
+			if (SupportsContext(invocationContext))
 			{
 				// load the array and index onto the stack
 				mIL.Emit(OpCodes.Dup);
 				mIL.Emit(OpCodes.Ldc_I4, (int)targetParameterTypes.Length - 1);
 
-				// load the context provider, create an InvocationContext and get the context
-				mIL.Emit(OpCodes.Ldarg_0);
-				mIL.Emit(OpCodes.Ldfld, _contextProviderField);
-				mIL.Emit(OpCodes.Ldtoken, invocationContext.MethodInfo);
-				mIL.Emit(OpCodes.Ldc_I4, (int)invocationContext.ContextType);
-				mIL.Emit(OpCodes.Newobj, typeof(InvocationContext).GetConstructor(new Type[] { typeof(RuntimeMethodHandle), typeof(InvocationContextType) }));
+				// load the context provider
+				mIL.Emit(OpCodes.Ldsfld, _contextProviderField);
+
+				// get the invocation context from the array on the provider
+				mIL.Emit(OpCodes.Ldsfld, _invocationContextsField);
+				mIL.Emit(OpCodes.Ldc_I4, _invocationContexts.Count);
+				mIL.Emit(OpCodes.Ldelem, typeof(InvocationContext));
 				mIL.Emit(OpCodes.Callvirt, typeof(ITraceContextProvider).GetMethod("ProvideContext"));
+				_invocationContexts.Add(invocationContext);
 
 				// put the result into the array
 				mIL.Emit(OpCodes.Stelem, typeof(object));
@@ -759,18 +746,18 @@ namespace EventSourceProxy
 			// arg.0 = this
 			// so we go to length+1
 			mIL.Emit(OpCodes.Ldarg_0);
-			for (int i = 1; i < sourceParameterTypes.Length + 1; i++)
+			for (int i = 0; i < sourceParameterTypes.Length; i++)
 			{
 				ProxyHelper.EmitSerializeValue(
 					methodBuilder,
 					invocationContext,
+					_invocationContexts,
+					_invocationContextsField,
 					i,
-					sourceParameterTypes[i - 1],
-					targetParameterTypes[i - 1],
+					sourceParameterTypes[i],
+					targetParameterTypes[i],
 					_serializationProvider,
-					_serializationProviderField,
-					il => il.Emit(OpCodes.Ldarg, i),
-					il => il.Emit(OpCodes.Ldarga_S, i));
+					_serializationProviderField);
 			}
 
 			// if this method supports context, then add a context parameter

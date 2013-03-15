@@ -27,9 +27,11 @@ namespace EventSourceProxy.Tests
 		class MyTraceContextProvider : TraceContextProvider
 		{
 			public bool WasCalled = false;
+			public string Method = null;
 
 			public override string ProvideContext(InvocationContext context)
 			{
+				Method = context.MethodInfo.Name;
 				WasCalled = true;
 				return "context";
 			}
@@ -49,6 +51,7 @@ namespace EventSourceProxy.Tests
 			testLog.DoSomething();
 
 			Assert.IsTrue(contextProvider.WasCalled);
+			Assert.AreEqual("DoSomething", contextProvider.Method);
 
 			// look at the events
 			var events = _listener.Events.ToArray();
@@ -66,6 +69,7 @@ namespace EventSourceProxy.Tests
 			testLog.DoSomething();
 
 			Assert.IsFalse(contextProvider.WasCalled);
+			Assert.IsNull(contextProvider.Method);
 
 			// look at the events
 			var events = _listener.Events.ToArray();
