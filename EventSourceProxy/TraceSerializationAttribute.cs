@@ -17,15 +17,15 @@ namespace EventSourceProxy
 		/// <summary>
 		/// Initializes a new instance of the TraceSerializationAttribute class.
 		/// </summary>
-		/// <param name="eventLevel">The minimum EventLevel required to enable serialization.</param>
-		public TraceSerializationAttribute(EventLevel eventLevel)
+		/// <param name="level">The minimum EventLevel required to enable serialization.</param>
+		public TraceSerializationAttribute(EventLevel level)
 		{
-			EventLevel = eventLevel;
+			Level = level;
 		}
 
 		/// <summary>
 		/// Gets the minimum EventLevel required to enable serialization.
 		/// </summary>
-		public EventLevel EventLevel { get; private set; }
+		public EventLevel Level { get; private set; }
 	}
 }

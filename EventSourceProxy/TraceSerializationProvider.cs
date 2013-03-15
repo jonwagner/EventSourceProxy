@@ -57,10 +57,10 @@ namespace EventSourceProxy
 			ParameterInfo parameterInfo = null;
 			switch (context.ContextType)
 			{
-				case InvocationContextType.MethodCall:
+				case InvocationContextTypes.MethodCall:
 					parameterInfo = context.MethodInfo.GetParameters()[context.ParameterIndex];
 					break;
-				case InvocationContextType.MethodCompletion:
+				case InvocationContextTypes.MethodCompletion:
 					parameterInfo = context.MethodInfo.ReturnParameter;
 					break;
 			}
@@ -70,23 +70,23 @@ namespace EventSourceProxy
 				// look at the attribute on the parameter
 				attribute = parameterInfo.GetCustomAttribute<TraceSerializationAttribute>();
 				if (attribute != null)
-					return attribute.EventLevel;
+					return attribute.Level;
 
 				// look at the attribute on the parameter's type
 				attribute = parameterInfo.ParameterType.GetCustomAttribute<TraceSerializationAttribute>();
 				if (attribute != null)
-					return attribute.EventLevel;
+					return attribute.Level;
 			}
 
 			// now look on the method
 			attribute = context.MethodInfo.GetCustomAttribute<TraceSerializationAttribute>();
 			if (attribute != null)
-				return attribute.EventLevel;
+				return attribute.Level;
 
 			// now look at the type
 			attribute = context.MethodInfo.DeclaringType.GetCustomAttribute<TraceSerializationAttribute>();
 			if (attribute != null)
-				return attribute.EventLevel;
+				return attribute.Level;
 
 			return _defaultEventLevel;
 		}

@@ -34,12 +34,12 @@ namespace EventSourceProxy
 			// check the method first
 			var attribute = context.MethodInfo.GetCustomAttribute<TraceContextAttribute>();
 			if (attribute != null)
-				return attribute.Enabled;
+				return attribute.EnabledFor.HasFlag(context.ContextType);
 
 			// now check the class
 			attribute = context.MethodInfo.DeclaringType.GetCustomAttribute<TraceContextAttribute>();
 			if (attribute != null)
-				return attribute.Enabled;
+				return attribute.EnabledFor.HasFlag(context.ContextType);
 
 			// it's enabled by default
 			return true;

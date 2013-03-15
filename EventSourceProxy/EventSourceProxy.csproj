@@ -50,7 +50,7 @@
     <Compile Include="TraceSerializationAttribute.cs" />
     <Compile Include="TraceContextAttribute.cs" />
     <Compile Include="InvocationContext.cs" />
-    <Compile Include="InvocationContextType.cs" />
+    <Compile Include="InvocationContextTypes.cs" />
     <Compile Include="TraceContextProvider.cs" />
     <Compile Include="TraceProviderAttribute.cs" />
     <Compile Include="TraceSerializationProviderAttribute.cs" />

@@ -9,23 +9,34 @@ namespace EventSourceProxy
 	/// <summary>
 	/// Specifies the type of invocation of the method.
 	/// </summary>
-	public enum InvocationContextType
+	[Flags]
+	public enum InvocationContextTypes
 	{
 		/// <summary>
 		/// The invocation is the method call.
 		/// </summary>
-		MethodCall,
+		MethodCall = 1 << 0,
 
 		/// <summary>
 		/// The invocation is the completion of the method.
 		/// The parameter is the return value, if any.
 		/// </summary>
-		MethodCompletion,
+		MethodCompletion = 1 << 1,
 
 		/// <summary>
 		/// The invocation is the exception event.
 		/// The parameter is the exception.
 		/// </summary>
-		MethodFaulted
+		MethodFaulted = 1 << 2,
+
+		/// <summary>
+		/// No types of method invocations.
+		/// </summary>
+		None = 0,
+
+		/// <summary>
+		/// All types of method invocations.
+		/// </summary>
+		All = MethodCall | MethodCompletion | MethodFaulted
 	}
 }

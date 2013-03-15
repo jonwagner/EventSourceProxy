@@ -19,7 +19,7 @@ namespace EventSourceProxy
 		/// </summary>
 		/// <param name="methodInfo">The handle of the method being invoked.</param>
 		/// <param name="contextType">The context type for this invocation.</param>
-		internal InvocationContext(MethodInfo methodInfo, InvocationContextType contextType)
+		internal InvocationContext(MethodInfo methodInfo, InvocationContextTypes contextType)
 		{
 			MethodInfo = methodInfo;
 			ContextType = contextType;
@@ -38,14 +38,14 @@ namespace EventSourceProxy
 		/// <summary>
 		/// Gets the type of the invocation.
 		/// </summary>
-		public InvocationContextType ContextType { get; private set; }
+		public InvocationContextTypes ContextType { get; private set; }
 
 		/// <summary>
 		/// Creates a clone of this InvocationContext, changing the type of the context.
 		/// </summary>
 		/// <param name="contextType">The new InvocationContextType.</param>
 		/// <returns>A clone of this InvocationContext with a new context type.</returns>
-		internal InvocationContext SpecifyType(InvocationContextType contextType)
+		internal InvocationContext SpecifyType(InvocationContextTypes contextType)
 		{
 			InvocationContext context = (InvocationContext)this.MemberwiseClone();
 			context.ContextType = contextType;

@@ -218,7 +218,7 @@ namespace EventSourceProxy
 			Dictionary<string, ulong> autoKeywords = new Dictionary<string, ulong>();
 			foreach (MethodInfo interfaceMethod in interfaceMethods)
 			{
-				var invocationContext = new InvocationContext(interfaceMethod, InvocationContextType.MethodCall);
+				var invocationContext = new InvocationContext(interfaceMethod, InvocationContextTypes.MethodCall);
 
 				var beginMethod = EmitMethodImpl(invocationContext, ref eventId, (EventKeywords)autoKeyword);
 				var faultedMethod = EmitMethodFaultedImpl(invocationContext, beginMethod, ref eventId, (EventKeywords)autoKeyword);
@@ -380,7 +380,7 @@ namespace EventSourceProxy
 		/// <returns>The MethodBuilder for the method.</returns>
 		private MethodBuilder EmitMethodCompletedImpl(InvocationContext invocationContext, MethodInfo beginMethod, ref int eventId, EventKeywords autoKeyword, MethodBuilder faultedMethod)
 		{
-			return EmitMethodComplementImpl(invocationContext.SpecifyType(InvocationContextType.MethodCompletion), CompletedSuffix, invocationContext.MethodInfo.ReturnType, beginMethod, ref eventId, autoKeyword, faultedMethod);
+			return EmitMethodComplementImpl(invocationContext.SpecifyType(InvocationContextTypes.MethodCompletion), CompletedSuffix, invocationContext.MethodInfo.ReturnType, beginMethod, ref eventId, autoKeyword, faultedMethod);
 		}
 
 		/// <summary>
@@ -394,7 +394,7 @@ namespace EventSourceProxy
 		/// <returns>The MethodBuilder for the method.</returns>
 		private MethodBuilder EmitMethodFaultedImpl(InvocationContext invocationContext, MethodInfo beginMethod, ref int eventId, EventKeywords autoKeyword)
 		{
-			return EmitMethodComplementImpl(invocationContext.SpecifyType(InvocationContextType.MethodFaulted), FaultedSuffix, typeof(Exception), beginMethod, ref eventId, autoKeyword, null);
+			return EmitMethodComplementImpl(invocationContext.SpecifyType(InvocationContextTypes.MethodFaulted), FaultedSuffix, typeof(Exception), beginMethod, ref eventId, autoKeyword, null);
 		}
 
 		/// <summary>

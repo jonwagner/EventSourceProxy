@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics.Tracing;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -36,5 +37,10 @@ namespace EventSourceProxy
 		/// Gets or sets the type that contains the Opcodes enumeration for the EventSource.
 		/// </summary>
 		public Type OpCodes { get; set; }
+
+		/// <summary>
+		/// Gets or sets the default event level for the EventSource.
+		/// </summary>
+		public EventLevel? Level { get; set; }
 	}
 }

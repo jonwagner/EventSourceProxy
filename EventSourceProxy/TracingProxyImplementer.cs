@@ -243,7 +243,7 @@ namespace EventSourceProxy
 			 * }
 			 */
 
-			var invocationContext = new InvocationContext(executeMethod, InvocationContextType.MethodCall);
+			var invocationContext = new InvocationContext(executeMethod, InvocationContextTypes.MethodCall);
 
 			// start building the interface
 			MethodBuilder m = _typeBuilder.DefineMethod(executeMethod.Name, MethodAttributes.Public | MethodAttributes.Virtual);

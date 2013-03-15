@@ -91,18 +91,23 @@ namespace EventSourceProxy
 		protected virtual EventLevel GetEventLevelForContext(InvocationContext context, EventAttribute baseAttribute)
 		{
 			// for faulted methods, allow the EventExceptionAttribute to override the event level
-			if (context.ContextType == InvocationContextType.MethodFaulted)
+			if (context.ContextType == InvocationContextTypes.MethodFaulted)
 			{
 				var attribute = context.MethodInfo.GetCustomAttribute<EventExceptionAttribute>();
 				if (attribute != null)
-					return attribute.EventLevel;
+					return attribute.Level;
 
 				attribute = context.MethodInfo.DeclaringType.GetCustomAttribute<EventExceptionAttribute>();
 				if (attribute != null)
-					return attribute.EventLevel;
+					return attribute.Level;
 
 				return ExceptionEventLevel;
 			}
+
+			// check for an attribute on the type
+			var implementationAttribute = context.MethodInfo.DeclaringType.GetCustomAttribute<EventSourceImplementationAttribute>();
+			if (implementationAttribute != null && implementationAttribute.Level.HasValue)
+				return implementationAttribute.Level.Value;
 
 			if (baseAttribute != null)
 				return baseAttribute.Level;
@@ -119,13 +124,13 @@ namespace EventSourceProxy
 		{
 			switch (context.ContextType)
 			{
-				case InvocationContextType.MethodCall:
+				case InvocationContextTypes.MethodCall:
 					return String.Join(" ", Enumerable.Range(0, context.MethodInfo.GetParameters().Length).Select(i => String.Format(CultureInfo.InvariantCulture, "{{{0}}}", i)));
 
-				case InvocationContextType.MethodFaulted:
+				case InvocationContextTypes.MethodFaulted:
 					return "{0}";
 
-				case InvocationContextType.MethodCompletion:
+				case InvocationContextTypes.MethodCompletion:
 					if (context.MethodInfo.ReturnType != typeof(void))
 						return "{0}";
 					else
