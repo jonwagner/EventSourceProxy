@@ -70,9 +70,12 @@ namespace EventSourceProxy
 				{
 					// if there is a provider attribute on the class or interface,
 					// then instantiate the given type
-					var providerAttribute = (TraceProviderAttribute)logType.GetCustomAttributes(attributeType, true).FirstOrDefault();
-					if (providerAttribute != null)
-						return providerAttribute.ProviderType.GetConstructor(Type.EmptyTypes).Invoke(null);
+					if (attributeType != null)
+					{
+						var providerAttribute = (TraceProviderAttribute)logType.GetCustomAttributes(attributeType, true).FirstOrDefault();
+						if (providerAttribute != null)
+							return providerAttribute.ProviderType.GetConstructor(Type.EmptyTypes).Invoke(null);
+					}
 
 					return defaultConstructor();
 				});

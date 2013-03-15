@@ -79,6 +79,11 @@ namespace EventSourceProxy
 		private FieldBuilder _serializationProviderField;
 
 		/// <summary>
+		/// Provides the event attributes for the event methods.
+		/// </summary>
+		private EventAttributeProvider _eventAttributeProvider;
+
+		/// <summary>
 		/// The context provider for this type.
 		/// </summary>
 		private TraceContextProvider _contextProvider;
@@ -104,16 +109,15 @@ namespace EventSourceProxy
 		/// Initializes a new instance of the TypeImplementer class.
 		/// </summary>
 		/// <param name="interfaceType">The type to implement.</param>
-		/// <param name="contextProvider">The context provider for the event source.</param>
-		/// <param name="serializationProvider">The serialization provider for the event source.</param>
-		public TypeImplementer(Type interfaceType, TraceContextProvider contextProvider, TraceSerializationProvider serializationProvider)
+		public TypeImplementer(Type interfaceType)
 		{
 			_interfaceType = interfaceType;
-			_contextProvider = contextProvider;
-			_serializationProvider = serializationProvider;
+			_contextProvider = ProviderManager.GetProvider<TraceContextProvider>(interfaceType, typeof(TraceContextProviderAttribute), null);
+			_serializationProvider = TraceSerializationProvider.GetSerializationProvider(interfaceType);
+			_eventAttributeProvider = ProviderManager.GetProvider<EventAttributeProvider>(interfaceType, typeof(EventAttributeProviderAttribute), () => new EventAttributeProvider());
 
 			// only interfaces support context
-			if (contextProvider != null && !_interfaceType.IsInterface)
+			if (_contextProvider != null && !_interfaceType.IsInterface)
 				throw new InvalidOperationException("Context Providers can only be added to interface-based logs.");
 
 			ImplementType();
@@ -169,18 +173,6 @@ namespace EventSourceProxy
 		#endregion
 
 		#region Type Implementation
-		/// <summary>
-		/// Returns the message to display for a given event.
-		/// </summary>
-		/// <param name="parameterTypes">The types of the parameters.</param>
-		/// <returns>A templated message string.</returns>
-		private static string GetEventMessage(Type[] parameterTypes)
-		{
-			var message = String.Join(" ", Enumerable.Range(0, parameterTypes.Length).Select(i => String.Format(CultureInfo.InvariantCulture, "{{{0}}}", i)));
-
-			return message;
-		}
-
 		/// <summary>
 		/// Implement the type.
 		/// </summary>
@@ -310,12 +302,8 @@ namespace EventSourceProxy
 			EventAttribute eventAttribute = null;
 			if (interfaceMethod.GetCustomAttribute<NonEventAttribute>() == null)
 			{
-				eventAttribute = interfaceMethod.GetCustomAttribute<EventAttribute>();
-				if (eventAttribute == null)
-				{
-					eventAttribute = new EventAttribute(eventId++);
-					eventAttribute.Message = GetEventMessage(parameterTypes);
-				}
+				eventAttribute = _eventAttributeProvider.GetEventAttribute(invocationContext, eventId);
+				eventId = Math.Max(eventId, eventAttribute.EventId + 1);
 			}
 
 			// if auto-keywords are enabled, use them
@@ -392,7 +380,7 @@ namespace EventSourceProxy
 		/// <returns>The MethodBuilder for the method.</returns>
 		private MethodBuilder EmitMethodCompletedImpl(InvocationContext invocationContext, MethodInfo beginMethod, ref int eventId, EventKeywords autoKeyword, MethodBuilder faultedMethod)
 		{
-			return EmitMethodComplementImpl(invocationContext.SpecifyType(InvocationContextType.MethodCompletion), CompletedSuffix, invocationContext.MethodInfo.ReturnType, beginMethod, ref eventId, autoKeyword, EventLevel.Informational, faultedMethod);
+			return EmitMethodComplementImpl(invocationContext.SpecifyType(InvocationContextType.MethodCompletion), CompletedSuffix, invocationContext.MethodInfo.ReturnType, beginMethod, ref eventId, autoKeyword, faultedMethod);
 		}
 
 		/// <summary>
@@ -406,7 +394,7 @@ namespace EventSourceProxy
 		/// <returns>The MethodBuilder for the method.</returns>
 		private MethodBuilder EmitMethodFaultedImpl(InvocationContext invocationContext, MethodInfo beginMethod, ref int eventId, EventKeywords autoKeyword)
 		{
-			return EmitMethodComplementImpl(invocationContext.SpecifyType(InvocationContextType.MethodFaulted), FaultedSuffix, typeof(Exception), beginMethod, ref eventId, autoKeyword, EventLevel.Warning, null);
+			return EmitMethodComplementImpl(invocationContext.SpecifyType(InvocationContextType.MethodFaulted), FaultedSuffix, typeof(Exception), beginMethod, ref eventId, autoKeyword, null);
 		}
 
 		/// <summary>
@@ -419,10 +407,9 @@ namespace EventSourceProxy
 		/// <param name="beginMethod">The begin method for this interface call.</param>
 		/// <param name="eventId">The next available event ID.</param>
 		/// <param name="autoKeyword">The auto-keyword to use if enabled.</param>
-		/// <param name="level">The level of the event.</param>
 		/// <param name="faultedMethod">A faulted method to call or null if no other faulted method is available.</param>
 		/// <returns>The MethodBuilder for the method.</returns>
-		private MethodBuilder EmitMethodComplementImpl(InvocationContext invocationContext, string suffix, Type parameterType, MethodInfo beginMethod, ref int eventId, EventKeywords autoKeyword, EventLevel level, MethodBuilder faultedMethod)
+		private MethodBuilder EmitMethodComplementImpl(InvocationContext invocationContext, string suffix, Type parameterType, MethodInfo beginMethod, ref int eventId, EventKeywords autoKeyword, MethodBuilder faultedMethod)
 		{
 			var interfaceMethod = invocationContext.MethodInfo;
 
@@ -451,15 +438,8 @@ namespace EventSourceProxy
 			// determine if this is a non-event or an event
 			// if an event, but there is no event attribute, just add one to the last event id
 			EventAttribute startEventAttribute = interfaceMethod.GetCustomAttribute<EventAttribute>() ?? new EventAttribute(eventId);
-			EventAttribute eventAttribute = new EventAttribute(eventId++)
-			{
-				Keywords = startEventAttribute.Keywords,
-				Level = level,
-				Message = GetEventMessage(parameterTypes),
-				Opcode = startEventAttribute.Opcode,
-				Task = startEventAttribute.Task,
-				Version = startEventAttribute.Version
-			};
+			EventAttribute eventAttribute = _eventAttributeProvider.CopyEventAttribute(startEventAttribute, invocationContext, eventId);
+			eventId = Math.Max(eventId, eventAttribute.EventId + 1);
 			if (eventAttribute.Keywords == EventKeywords.None)
 				eventAttribute.Keywords = autoKeyword;
 

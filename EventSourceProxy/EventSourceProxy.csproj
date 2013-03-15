@@ -44,6 +44,9 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="EventAttributeProviderAttribute.cs" />
+    <Compile Include="EventExceptionAttribute.cs" />
+    <Compile Include="EventAttributeProvider.cs" />
     <Compile Include="TraceSerializationAttribute.cs" />
     <Compile Include="TraceContextAttribute.cs" />
     <Compile Include="InvocationContext.cs" />

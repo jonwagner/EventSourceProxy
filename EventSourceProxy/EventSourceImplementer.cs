@@ -71,12 +71,7 @@ namespace EventSourceProxy
 		{
 			lock (_eventSources)
 			{
-				return (EventSource)_eventSources.GetOrAdd(
-					type,
-					t => new TypeImplementer(
-						t,
-						ProviderManager.GetProvider<TraceContextProvider>(type, typeof(TraceContextProviderAttribute), null),
-						TraceSerializationProvider.GetSerializationProvider(type)).EventSource);
+				return (EventSource)_eventSources.GetOrAdd(type, t => new TypeImplementer(t).EventSource);
 			}
 		}
 
@@ -118,6 +113,26 @@ namespace EventSourceProxy
 		public static void RegisterProvider(Type type, TraceSerializationProvider provider)
 		{
 			RegisterProvider(type, typeof(TraceSerializationProvider), provider);
+		}
+
+		/// <summary>
+		/// Registers an EventAttributeProvider for a given event source.
+		/// </summary>
+		/// <typeparam name="TLog">The type of event source to register with.</typeparam>
+		/// <param name="provider">The provider to register.</param>
+		public static void RegisterProvider<TLog>(EventAttributeProvider provider)
+		{
+			RegisterProvider(typeof(TLog), typeof(EventAttributeProvider), provider);
+		}
+
+		/// <summary>
+		/// Registers a EventAttributeProvider for a given event source.
+		/// </summary>
+		/// <param name="type">The type of event source to register with.</param>
+		/// <param name="provider">The provider to register.</param>
+		public static void RegisterProvider(Type type, EventAttributeProvider provider)
+		{
+			RegisterProvider(type, typeof(EventAttributeProvider), provider);
 		}
 		#endregion
 
