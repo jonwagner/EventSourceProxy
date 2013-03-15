@@ -18,9 +18,9 @@ namespace EventSourceProxy
 		#region Constructors
 		/// <summary>
 		/// Initializes a new instance of the JsonObjectSerializer class.
-		/// The default is to allow serialization whenever tracing occurs.
+		/// The default is to serialize objects only in Verbose tracing.
 		/// </summary>
-		public JsonObjectSerializer()
+		public JsonObjectSerializer() : base(EventLevel.Verbose)
 		{
 		}
 

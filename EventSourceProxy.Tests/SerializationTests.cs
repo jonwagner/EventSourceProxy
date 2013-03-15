@@ -243,7 +243,7 @@ namespace EventSourceProxy.Tests
 
 		#region Provider Attribute Tests
 		[TraceSerializationProvider(typeof(FakeSerializer))]
-		public interface ILogInterfaceWithAttribute
+		public interface ILogInterfaceWithSerializationAttribute
 		{
 			void SendData(ClassData data);
 		}
@@ -265,7 +265,7 @@ namespace EventSourceProxy.Tests
 		[Test]
 		public void AttributeShouldDetermineSerializer()
 		{
-			var logger = EventSourceImplementer.GetEventSourceAs<ILogInterfaceWithAttribute>();
+			var logger = EventSourceImplementer.GetEventSourceAs<ILogInterfaceWithSerializationAttribute>();
 			_listener.EnableEvents((EventSource)logger, EventLevel.LogAlways, (EventKeywords)(-1));
 
 			logger.SendData(ClassData.Test);

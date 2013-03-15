@@ -17,21 +17,9 @@ namespace EventSourceProxy
 		#region Constructors
 		/// <summary>
 		/// Initializes a new instance of the NullObjectSerializer class.
-		/// The default is to allow serialization whenever tracing occurs.
+		/// The Null serializer serializes everything as null.
 		/// </summary>
 		public NullObjectSerializer()
-		{
-		}
-
-		/// <summary>
-		/// Initializes a new instance of the NullObjectSerializer class.
-		/// </summary>
-		/// <param name="defaultEventLevel">
-		/// The default EventLevel to allow object serialization.
-		/// The default is to serialize objects whenever tracing occurs, but this can be used to allow serialization
-		/// only when logging is at a particular level of verbosity.
-		/// </param>
-		public NullObjectSerializer(EventLevel defaultEventLevel) : base(defaultEventLevel)
 		{
 		}
 		#endregion
