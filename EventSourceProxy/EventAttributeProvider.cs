@@ -18,7 +18,7 @@ namespace EventSourceProxy
 		/// <summary>
 		/// Initializes a new instance of the EventAttributeProvider class.
 		/// </summary>
-		public EventAttributeProvider() : this(EventLevel.Informational, EventLevel.Warning)
+		public EventAttributeProvider() : this(EventLevel.Informational, EventLevel.Error)
 		{
 		}
 

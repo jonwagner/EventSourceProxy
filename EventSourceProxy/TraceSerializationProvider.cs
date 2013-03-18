@@ -23,9 +23,9 @@ namespace EventSourceProxy
 		#region Constructors
 		/// <summary>
 		/// Initializes a new instance of the TraceSerializationProvider class.
-		/// The default is to allow serialization whenever tracing occurs.
+		/// The default is to only allow serialization in Verbose mode.
 		/// </summary>
-		protected TraceSerializationProvider() : this(EventLevel.LogAlways)
+		protected TraceSerializationProvider() : this(EventLevel.Verbose)
 		{
 		}
 

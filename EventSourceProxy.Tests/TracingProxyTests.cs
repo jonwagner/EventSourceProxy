@@ -581,7 +581,7 @@ namespace EventSourceProxy.Tests
 			// the exception is logged
 			Assert.AreEqual(logger, events[1].EventSource);
 			Assert.AreEqual("{0}", events[1].Message);
-			Assert.AreEqual(EventLevel.Warning, events[1].Level);
+			Assert.AreEqual(EventLevel.Error, events[1].Level);
 			Assert.AreEqual((EventKeywords)1, events[1].Keywords);
 			Assert.AreEqual(1, events[1].Payload.Count);
 			Assert.IsTrue(events[1].Payload[0].ToString().Contains("Whoops!"));
@@ -613,7 +613,7 @@ namespace EventSourceProxy.Tests
 			// the exception is logged
 			Assert.AreEqual(logger, events[1].EventSource);
 			Assert.AreEqual("{0}", events[1].Message);
-			Assert.AreEqual(EventLevel.Warning, events[1].Level);
+			Assert.AreEqual(EventLevel.Error, events[1].Level);
 			Assert.AreEqual((EventKeywords)1, events[1].Keywords);
 			Assert.AreEqual(1, events[1].Payload.Count);
 			Assert.IsTrue(events[1].Payload[0].ToString().Contains("WhoopsAsync!"));

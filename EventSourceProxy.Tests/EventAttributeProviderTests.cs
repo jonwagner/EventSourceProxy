@@ -80,7 +80,7 @@ namespace EventSourceProxy.Tests
 		[Test]
 		public void ExceptionAttributeShouldDetermineLevel()
 		{
-			Assert.AreEqual(EventLevel.Warning, new EventAttributeProvider().ExceptionEventLevel);
+			Assert.AreEqual(EventLevel.Error, new EventAttributeProvider().ExceptionEventLevel);
 
 			var logger = EventSourceImplementer.GetEventSourceAs<ILogInterfaceWithExceptionAttribute>();
 			_listener.EnableEvents((EventSource)logger, EventLevel.LogAlways, (EventKeywords)(-1));
@@ -105,7 +105,7 @@ namespace EventSourceProxy.Tests
 		[Test]
 		public void ExceptionAttributeOnMethodShouldDetermineLevel()
 		{
-			Assert.AreEqual(EventLevel.Warning, new EventAttributeProvider().ExceptionEventLevel);
+			Assert.AreEqual(EventLevel.Error, new EventAttributeProvider().ExceptionEventLevel);
 
 			var logger = EventSourceImplementer.GetEventSourceAs<ILogInterfaceWithExceptionMethodAttribute>();
 			_listener.EnableEvents((EventSource)logger, EventLevel.LogAlways, (EventKeywords)(-1));

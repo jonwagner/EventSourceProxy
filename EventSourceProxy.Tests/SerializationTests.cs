@@ -305,7 +305,12 @@ namespace EventSourceProxy.Tests
 		#endregion
 
 		#region Level Attribute Tests
-		[TraceSerialization(EventLevel.Verbose)]
+		public interface ISerializeNormally
+		{
+			void SendData(ClassData data);
+		}
+
+		[TraceSerialization(EventLevel.Informational)]
 		public interface ISerializeVerbosely
 		{
 			void SendData(ClassData data);
@@ -313,16 +318,16 @@ namespace EventSourceProxy.Tests
 
 		public interface ISerializeVerboselyByMethod
 		{
-			[TraceSerialization(EventLevel.Verbose)]
+			[TraceSerialization(EventLevel.Informational)]
 			void SendData(ClassData data);
 		}
 
 		public interface ISerializeVerboselyByParameter
 		{
-			void SendData([TraceSerialization(EventLevel.Verbose)]ClassData data);
+			void SendData([TraceSerialization(EventLevel.Informational)]ClassData data);
 		}
 
-		[TraceSerialization(EventLevel.Verbose)]
+		[TraceSerialization(EventLevel.Informational)]
 		public class ClassData2 : ClassData
 		{
 		}
@@ -333,9 +338,9 @@ namespace EventSourceProxy.Tests
 		}
 
 		[Test]
-		public void AttributeCanChangeLevelAtClassLevel()
+		public void ShouldNormallyBeDisabledAtInfoAndEnabledAtVerbose()
 		{
-			var logger = EventSourceImplementer.GetEventSourceAs<ISerializeVerbosely>();
+			var logger = EventSourceImplementer.GetEventSourceAs<ISerializeNormally>();
 			_listener.EnableEvents((EventSource)logger, EventLevel.Informational, (EventKeywords)(-1));
 
 			logger.SendData(ClassData.Test);
@@ -350,6 +355,21 @@ namespace EventSourceProxy.Tests
 			_listener.EnableEvents((EventSource)logger, EventLevel.Verbose, (EventKeywords)(-1));
 			logger.SendData(ClassData.Test);
 			events = _listener.Events.ToArray();
+			Assert.AreEqual(1, events.Length);
+			Assert.AreEqual(1, events[0].EventId);
+			Assert.IsNotNull(events[0].Payload[0]);
+		}
+
+		[Test]
+		public void AttributeCanChangeLevelAtClassLevel()
+		{
+			var logger = EventSourceImplementer.GetEventSourceAs<ISerializeVerbosely>();
+			_listener.EnableEvents((EventSource)logger, EventLevel.Informational, (EventKeywords)(-1));
+
+			logger.SendData(ClassData.Test);
+
+			// look at the events
+			var events = _listener.Events.ToArray();
 			Assert.AreEqual(1, events.Length);
 			Assert.AreEqual(1, events[0].EventId);
 			Assert.IsNotNull(events[0].Payload[0]);
@@ -367,14 +387,6 @@ namespace EventSourceProxy.Tests
 			var events = _listener.Events.ToArray();
 			Assert.AreEqual(1, events.Length);
 			Assert.AreEqual(1, events[0].EventId);
-			Assert.IsNull(events[0].Payload[0]);
-
-			_listener.Reset();
-			_listener.EnableEvents((EventSource)logger, EventLevel.Verbose, (EventKeywords)(-1));
-			logger.SendData(ClassData.Test);
-			events = _listener.Events.ToArray();
-			Assert.AreEqual(1, events.Length);
-			Assert.AreEqual(1, events[0].EventId);
 			Assert.IsNotNull(events[0].Payload[0]);
 		}
 
@@ -390,14 +402,6 @@ namespace EventSourceProxy.Tests
 			var events = _listener.Events.ToArray();
 			Assert.AreEqual(1, events.Length);
 			Assert.AreEqual(1, events[0].EventId);
-			Assert.IsNull(events[0].Payload[0]);
-
-			_listener.Reset();
-			_listener.EnableEvents((EventSource)logger, EventLevel.Verbose, (EventKeywords)(-1));
-			logger.SendData(ClassData.Test);
-			events = _listener.Events.ToArray();
-			Assert.AreEqual(1, events.Length);
-			Assert.AreEqual(1, events[0].EventId);
 			Assert.IsNotNull(events[0].Payload[0]);
 		}
 
@@ -411,14 +415,6 @@ namespace EventSourceProxy.Tests
 
 			// look at the events
 			var events = _listener.Events.ToArray();
-			Assert.AreEqual(1, events.Length);
-			Assert.AreEqual(1, events[0].EventId);
-			Assert.IsNull(events[0].Payload[0]);
-
-			_listener.Reset();
-			_listener.EnableEvents((EventSource)logger, EventLevel.Verbose, (EventKeywords)(-1));
-			logger.SendData(new ClassData2() { Name = "Fred", Age = 38 });
-			events = _listener.Events.ToArray();
 			Assert.AreEqual(1, events.Length);
 			Assert.AreEqual(1, events[0].EventId);
 			Assert.IsNotNull(events[0].Payload[0]);
