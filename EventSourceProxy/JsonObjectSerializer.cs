@@ -60,7 +60,7 @@ namespace EventSourceProxy
 			catch (Exception e)
 			{
 				// don't let serialization exceptions blow up processing
-				return String.Format(CultureInfo.InvariantCulture, "{ Exception: '{0}'", e.Message.Replace("'", "\\'"));
+				return String.Format(CultureInfo.InvariantCulture, "{{ Exception: '{0}' }}", e.Message.Replace("'", "\\'"));
 			}
 		}
 	}
