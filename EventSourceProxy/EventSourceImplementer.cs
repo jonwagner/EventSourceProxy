@@ -53,6 +53,7 @@ namespace EventSourceProxy
 		/// </summary>
 		/// <typeparam name="T">An type to implement as an EventSource.</typeparam>
 		/// <returns>An EventSource that is compatible with the given type.</returns>
+		[System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Design", "CA1004:GenericMethodsShouldProvideTypeParameter")]
 		public static EventSource GetEventSource<T>() where T : class
 		{
 			return GetEventSource(typeof(T));
@@ -80,6 +81,7 @@ namespace EventSourceProxy
 		/// </summary>
 		/// <typeparam name="TLog">The type of event source to register with.</typeparam>
 		/// <param name="provider">The provider to register.</param>
+		[System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Design", "CA1004:GenericMethodsShouldProvideTypeParameter")]
 		public static void RegisterProvider<TLog>(TraceContextProvider provider)
 		{
 			RegisterProvider(typeof(TLog), typeof(TraceContextProvider), provider);
@@ -100,6 +102,7 @@ namespace EventSourceProxy
 		/// </summary>
 		/// <typeparam name="TLog">The type of event source to register with.</typeparam>
 		/// <param name="provider">The provider to register.</param>
+		[System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Design", "CA1004:GenericMethodsShouldProvideTypeParameter")]
 		public static void RegisterProvider<TLog>(TraceSerializationProvider provider)
 		{
 			RegisterProvider(typeof(TLog), typeof(TraceSerializationProvider), provider);
@@ -120,6 +123,7 @@ namespace EventSourceProxy
 		/// </summary>
 		/// <typeparam name="TLog">The type of event source to register with.</typeparam>
 		/// <param name="provider">The provider to register.</param>
+		[System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Design", "CA1004:GenericMethodsShouldProvideTypeParameter")]
 		public static void RegisterProvider<TLog>(EventAttributeProvider provider)
 		{
 			RegisterProvider(typeof(TLog), typeof(EventAttributeProvider), provider);
@@ -145,6 +149,10 @@ namespace EventSourceProxy
 		/// <param name="provider">The provider to register.</param>
 		public static void RegisterProvider(Type logType, Type providerType, object provider)
 		{
+			if (logType == null) throw new ArgumentNullException("logType");
+			if (providerType == null) throw new ArgumentNullException("providerType");
+			if (provider == null) throw new ArgumentNullException("provider");
+
 			lock (_eventSources)
 			{
 				// if the eventsource already exists, then fail

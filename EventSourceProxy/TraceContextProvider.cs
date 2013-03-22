@@ -27,6 +27,8 @@ namespace EventSourceProxy
 		/// <returns>True if EventSourceProxy should ask for context, false to skip context generation.</returns>
 		public virtual bool ShouldProvideContext(InvocationContext context)
 		{
+			if (context == null) throw new ArgumentNullException("context");
+
 			// NOTE: this method is called at proxy generation time and is not called at runtime
 			// so we don't need to cache anything here
 			// if this returns false, then ProvideContext will never be called for the given context

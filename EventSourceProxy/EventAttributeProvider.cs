@@ -51,6 +51,8 @@ namespace EventSourceProxy
 		/// <returns>The EventAttribute for the call context.</returns>
 		public virtual EventAttribute GetEventAttribute(InvocationContext context, int nextEventId)
 		{
+			if (context == null) throw new ArgumentNullException("context");
+
 			EventAttribute eventAttribute = context.MethodInfo.GetCustomAttribute<EventAttribute>();
 			if (eventAttribute != null)
 				return eventAttribute;
@@ -71,6 +73,9 @@ namespace EventSourceProxy
 		/// <returns>The EventAttribute for the call context.</returns>
 		public virtual EventAttribute CopyEventAttribute(EventAttribute baseAttribute, InvocationContext context, int nextEventId)
 		{
+			if (baseAttribute == null) throw new ArgumentNullException("baseAttribute");
+			if (context == null) throw new ArgumentNullException("context");
+
 			return new EventAttribute(nextEventId)
 			{
 				Keywords = baseAttribute.Keywords,
@@ -90,6 +95,8 @@ namespace EventSourceProxy
 		/// <returns>The EventLevel for the call context.</returns>
 		protected virtual EventLevel GetEventLevelForContext(InvocationContext context, EventAttribute baseAttribute)
 		{
+			if (context == null) throw new ArgumentNullException("context");
+
 			// for faulted methods, allow the EventExceptionAttribute to override the event level
 			if (context.ContextType == InvocationContextTypes.MethodFaulted)
 			{
@@ -122,6 +129,8 @@ namespace EventSourceProxy
 		/// <returns>The message for the event.</returns>
 		protected virtual string GetEventMessage(InvocationContext context)
 		{
+			if (context == null) throw new ArgumentNullException("context");
+
 			switch (context.ContextType)
 			{
 				case InvocationContextTypes.MethodCall:

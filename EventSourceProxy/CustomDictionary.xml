@@ -1,0 +1,13 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<Dictionary>
+	<Words>
+		<Recognized>
+			<Word>GetEventSource</Word>
+			<Word>EventSource</Word>
+			<Word>EventActivityIdControl</Word>
+		</Recognized>
+		<DiscreteExceptions>
+			<Term>EventSource</Term>
+		</DiscreteExceptions>
+	</Words>
+</Dictionary>

@@ -51,6 +51,8 @@ namespace EventSourceProxy
 		/// <returns>The EventLevel at which to enable serialization for the given context.</returns>
 		public virtual EventLevel? GetEventLevelForContext(TraceSerializationContext context)
 		{
+			if (context == null) throw new ArgumentNullException("context");
+
 			TraceSerializationAttribute attribute = null;
 
 			// look on the parameter first
@@ -113,6 +115,8 @@ namespace EventSourceProxy
 		/// <returns>True if the value should be serialized, false otherwise.</returns>
 		public virtual bool ShouldSerialize(TraceSerializationContext context)
 		{
+			if (context == null) throw new ArgumentNullException("context");
+
 			if (context.EventLevel == null)
 				return false;
 

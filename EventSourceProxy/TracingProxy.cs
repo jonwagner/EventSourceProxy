@@ -65,6 +65,7 @@ namespace EventSourceProxy
 		/// <typeparam name="TEventSource">The matching interface to log to.</typeparam>
 		/// <param name="instance">The instance of the object to log.</param>
 		/// <returns>A proxy object of type T that traces calls.</returns>
+		[System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Design", "CA1004:GenericMethodsShouldProvideTypeParameter")]
 		public static T CreateWithActivityScope<T, TEventSource>(T instance)
 			where T : class
 			where TEventSource : class
@@ -84,6 +85,7 @@ namespace EventSourceProxy
 		/// <typeparam name="TEventSource">The matching interface to log to.</typeparam>
 		/// <param name="instance">The instance of the object to log.</param>
 		/// <returns>A proxy object of type T that traces calls.</returns>
+		[System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Design", "CA1004:GenericMethodsShouldProvideTypeParameter")]
 		public static T Create<T, TEventSource>(T instance)
 			where T : class
 			where TEventSource : class

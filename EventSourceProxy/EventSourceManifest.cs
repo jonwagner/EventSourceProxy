@@ -22,6 +22,8 @@ namespace EventSourceProxy
 		/// <returns>The GUID representing the name.</returns>
 		public static Guid GetGuidFromProviderName(string providerName)
 		{
+			if (providerName == null) throw new ArgumentNullException("providerName");
+
 			string name = providerName.ToUpperInvariant();
 			byte[] buffer = new byte[(name.Length * 2) + 0x10];
 			uint num = 0x482c2db2;
@@ -46,25 +48,14 @@ namespace EventSourceProxy
 				buffer[(2 * j) + 0x10] = (byte)(name[j] >> 8);
 			}
 
-			byte[] buffer2 = SHA1.Create().ComputeHash(buffer);
-			int a = (((((buffer2[3] << 8) + buffer2[2]) << 8) + buffer2[1]) << 8) + buffer2[0];
-			short b = (short)((buffer2[5] << 8) + buffer2[4]);
-			short num9 = (short)((buffer2[7] << 8) + buffer2[6]);
-			return new System.Guid(a, b, (short)((num9 & 0xfff) | 0x5000), buffer2[8], buffer2[9], buffer2[10], buffer2[11], buffer2[12], buffer2[13], buffer2[14], buffer2[15]);
-		}
-
-		/// <summary>
-		/// Return the GUID of a provider from the assembly and type.
-		/// </summary>
-		/// <param name="assemblyPath">The path to the assembly containing the type.</param>
-		/// <param name="typeName">The full name of the type.</param>
-		/// <returns>The GUID representing the name.</returns>
-		public static Guid GetGuid(string assemblyPath, string typeName)
-		{
-			Assembly assembly = Assembly.LoadFrom(assemblyPath);
-			Type type = assembly.GetType(typeName);
-
-			return GetGuid(type);
+			using (SHA1 sha = SHA1.Create())
+			{
+				byte[] buffer2 = sha.ComputeHash(buffer);
+				int a = (((((buffer2[3] << 8) + buffer2[2]) << 8) + buffer2[1]) << 8) + buffer2[0];
+				short b = (short)((buffer2[5] << 8) + buffer2[4]);
+				short num9 = (short)((buffer2[7] << 8) + buffer2[6]);
+				return new System.Guid(a, b, (short)((num9 & 0xfff) | 0x5000), buffer2[8], buffer2[9], buffer2[10], buffer2[11], buffer2[12], buffer2[13], buffer2[14], buffer2[15]);
+			}
 		}
 
 		/// <summary>
@@ -76,20 +67,6 @@ namespace EventSourceProxy
 		{
 			EventSource eventSource = EventSourceImplementer.GetEventSource(type);
 			return eventSource.Guid;
-		}
-
-		/// <summary>
-		/// Return the manifest of a provider from the assembly and type.
-		/// </summary>
-		/// <param name="assemblyPath">The path to the assembly containing the type.</param>
-		/// <param name="typeName">The full name of the type.</param>
-		/// <returns>The XML manifest content.</returns>
-		public static string GenerateManifest(string assemblyPath, string typeName)
-		{
-			Assembly assembly = Assembly.LoadFrom(assemblyPath);
-			Type type = assembly.GetType(typeName);
-
-			return GenerateManifest(type);
 		}
 
 		/// <summary>

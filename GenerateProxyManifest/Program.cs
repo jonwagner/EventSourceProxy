@@ -94,9 +94,37 @@ Parameters:
 			else if (_name != null)
 				Console.WriteLine(EventSourceManifest.GetGuidFromProviderName(_name));
 			else if (_outputGuid)
-				Console.WriteLine(EventSourceManifest.GetGuid(_assemblyPath, _typeName));
+				Console.WriteLine(GetGuid(_assemblyPath, _typeName));
 			else
-				Console.WriteLine(EventSourceManifest.GenerateManifest(_assemblyPath, _typeName));
+				Console.WriteLine(GenerateManifest(_assemblyPath, _typeName));
+		}
+
+		/// <summary>
+		/// Return the GUID of a provider from the assembly and type.
+		/// </summary>
+		/// <param name="assemblyPath">The path to the assembly containing the type.</param>
+		/// <param name="typeName">The full name of the type.</param>
+		/// <returns>The GUID representing the name.</returns>
+		private static Guid GetGuid(string assemblyPath, string typeName)
+		{
+			Assembly assembly = Assembly.LoadFrom(assemblyPath);
+			Type type = assembly.GetType(typeName);
+
+			return EventSourceManifest.GetGuid(type);
+		}
+
+		/// <summary>
+		/// Return the manifest of a provider from the assembly and type.
+		/// </summary>
+		/// <param name="assemblyPath">The path to the assembly containing the type.</param>
+		/// <param name="typeName">The full name of the type.</param>
+		/// <returns>The XML manifest content.</returns>
+		private static string GenerateManifest(string assemblyPath, string typeName)
+		{
+			Assembly assembly = Assembly.LoadFrom(assemblyPath);
+			Type type = assembly.GetType(typeName);
+
+			return EventSourceManifest.GenerateManifest(type);
 		}
 	}
 }
