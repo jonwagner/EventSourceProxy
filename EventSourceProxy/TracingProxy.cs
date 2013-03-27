@@ -127,7 +127,6 @@ namespace EventSourceProxy
 		/// Creates a proxy out of a logger and an object to give you automatic logging of an instance.
 		/// The logger and object must implement the same interface.
 		/// </summary>
-		/// <typeparam name="T">The interface that is shared.</typeparam>
 		/// <param name="execute">The instance of the object that executes the interface.</param>
 		/// <param name="executeType">The type of the execute object.</param>
 		/// <param name="logType">The type on the log object that should be mapped to the execute object.</param>
