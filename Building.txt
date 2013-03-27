@@ -1,0 +1,4 @@
+Notes for Building EventSourceProxy
+===================================
+
+* Building requires Psake - you can get it from http://nuget.org/packages/psake/
