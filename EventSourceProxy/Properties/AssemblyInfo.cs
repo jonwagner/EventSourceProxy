@@ -38,5 +38,4 @@ using System.Security;
 [assembly: AssemblyFileVersion("1.0.0.0")]
 
 [assembly: CLSCompliant(true)]
-[assembly: InternalsVisibleTo("EventSourceProxy.Tests")]
 [assembly: SecurityRules(SecurityRuleSet.Level2)]

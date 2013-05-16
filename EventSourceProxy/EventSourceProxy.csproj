@@ -43,6 +43,12 @@
     <StyleCopEnabled>True</StyleCopEnabled>
     <StyleCopTreatErrorsAsWarnings>False</StyleCopTreatErrorsAsWarnings>
   </PropertyGroup>
+  <PropertyGroup>
+    <SignAssembly>true</SignAssembly>
+  </PropertyGroup>
+  <PropertyGroup>
+    <AssemblyOriginatorKeyFile>..\EventSourceProxy.snk</AssemblyOriginatorKeyFile>
+  </PropertyGroup>
   <ItemGroup>
     <Reference Include="Newtonsoft.Json">
       <HintPath>..\packages\Newtonsoft.Json.4.5.11\lib\net40\Newtonsoft.Json.dll</HintPath>
@@ -88,6 +94,9 @@
     <Compile Include="UnsafeNativeMethods.cs" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="..\EventSourceProxy.snk">
+      <Link>EventSourceProxy.snk</Link>
+    </None>
     <None Include="CodeAnalysisRules.ruleset" />
     <None Include="packages.config" />
     <None Include="Settings.StyleCop" />

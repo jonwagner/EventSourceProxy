@@ -24,6 +24,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 		Build.psake.ps1 = Build.psake.ps1
 		Building.txt = Building.txt
 		EventSourceProxy.nuspec = EventSourceProxy.nuspec
+		EventSourceProxy.snk = EventSourceProxy.snk
 		README.md = README.md
 	EndProjectSection
 EndProject

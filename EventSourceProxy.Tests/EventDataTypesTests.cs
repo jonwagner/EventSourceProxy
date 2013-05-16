@@ -36,7 +36,7 @@ namespace EventSourceProxy.Tests
 					tLog.Log(t);
 
 					object value = listener.Events.Last().Payload[0];
-					if (TypeImplementer.TypeIsSupportedByEventSource(typeof(T)))
+					if (TypeIsSupportedByEventSource(typeof(T)))
 						Assert.AreEqual(t, value);
 					else
 						Assert.AreEqual(t.ToString(), value);
@@ -44,6 +44,25 @@ namespace EventSourceProxy.Tests
 					listener.DisableEvents(testLog);
 				}
 			}
+
+            internal static bool TypeIsSupportedByEventSource(Type type)
+            {
+                if (type == typeof(string)) return true;
+                if (type == typeof(int)) return true;
+                if (type == typeof(long)) return true;
+                if (type == typeof(ulong)) return true;
+                if (type == typeof(byte)) return true;
+                if (type == typeof(sbyte)) return true;
+                if (type == typeof(short)) return true;
+                if (type == typeof(ushort)) return true;
+                if (type == typeof(float)) return true;
+                if (type == typeof(double)) return true;
+                if (type == typeof(bool)) return true;
+                if (type == typeof(Guid)) return true;
+                if (type.IsEnum) return true;
+
+                return false;
+            }
 		}
 
 		[Test]
