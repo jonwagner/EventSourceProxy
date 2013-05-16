@@ -30,19 +30,6 @@ namespace EventSourceProxy
 		private const ulong Success = 0;
 
 		/// <summary>
-		/// Returns the current Activity ID.
-		/// </summary>
-		/// <returns>The current Activity ID.</returns>
-		internal static Guid GetActivityId()
-		{
-			Guid g = Guid.Empty;
-
-			CallEventActivityIdControl(ActivityIdGet, ref g);
-
-			return g;
-		}
-
-		/// <summary>
 		/// Sets the current Activity ID.
 		/// </summary>
 		/// <param name="guid">The new Activity Id.</param>
