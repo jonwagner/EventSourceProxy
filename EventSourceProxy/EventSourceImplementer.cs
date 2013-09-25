@@ -147,7 +147,7 @@ namespace EventSourceProxy
 		/// <param name="logType">The type of event source to register with.</param>
 		/// <param name="providerType">The type of provider being provided.</param>
 		/// <param name="provider">The provider to register.</param>
-		public static void RegisterProvider(Type logType, Type providerType, object provider)
+		private static void RegisterProvider(Type logType, Type providerType, object provider)
 		{
 			if (logType == null) throw new ArgumentNullException("logType");
 			if (providerType == null) throw new ArgumentNullException("providerType");
