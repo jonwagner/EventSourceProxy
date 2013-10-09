@@ -143,9 +143,9 @@ namespace EventSourceProxy.Tests
 		#region Serialized Types in Direct Methods Tests
 		public class TypeLogWithSerializedTypesInDirectMethod : EventSource
 		{
-			public void LogIntPtr(IntPtr p) { WriteEvent(1, p.ToString()); }
-			public void LogChar(char c) { WriteEvent(2, c.ToString()); }
-			public void LogDecimal(decimal d) { WriteEvent(3, d.ToString()); }
+			public void LogIntPtr(IntPtr p) { WriteEvent(1, p); }
+			public void LogChar(char c) { WriteEvent(2, c); }
+			public void LogDecimal(decimal d) { WriteEvent(3, d); }
 		}
 
 		[Test]

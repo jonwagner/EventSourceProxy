@@ -74,7 +74,7 @@ namespace EventSourceProxy.Tests
 			Assert.AreEqual(1, events[0].EventId);
 			Assert.AreEqual("Application Failure: {0}", events[0].Message);
 			Assert.AreEqual(EventLevel.Error, events[0].Level);
-			Assert.AreEqual(TestLog.Keywords.Diagnostic, events[0].Keywords);
+			Assert.IsTrue(events[0].Keywords.HasFlag(TestLog.Keywords.Diagnostic));
 			Assert.AreEqual(TestLog.Tasks.DBQuery, events[0].Task);
 			Assert.AreEqual(1, events[0].Payload.Count);
 			Assert.AreEqual("whoops!", events[0].Payload[0]);
@@ -83,7 +83,7 @@ namespace EventSourceProxy.Tests
 			Assert.AreEqual(4, events[1].EventId);
 			Assert.AreEqual("Other Information: {0} {1}", events[1].Message);
 			Assert.AreEqual(EventLevel.Informational, events[1].Level);
-			Assert.AreEqual(TestLog.Keywords.Perf, events[1].Keywords);
+			Assert.IsTrue(events[1].Keywords.HasFlag(TestLog.Keywords.Perf));
 			Assert.AreEqual(2, events[1].Payload.Count);
 			Assert.AreEqual("doing something", events[1].Payload[0]);
 			Assert.AreEqual(19, events[1].Payload[1]);
@@ -92,7 +92,7 @@ namespace EventSourceProxy.Tests
 			Assert.AreEqual(5, events[2].EventId);
 			Assert.AreEqual("Direct Call: {0}", events[2].Message);
 			Assert.AreEqual(EventLevel.Warning, events[2].Level);
-			Assert.AreEqual(TestLog.Keywords.Diagnostic, events[2].Keywords);
+			Assert.IsTrue(events[2].Keywords.HasFlag(TestLog.Keywords.Diagnostic));
 			Assert.AreEqual(1, events[2].Payload.Count);
 			Assert.AreEqual("factory direct", events[2].Payload[0]);
 		}
@@ -134,7 +134,7 @@ namespace EventSourceProxy.Tests
 			Assert.AreEqual(1, events[0].EventId);
 			Assert.AreEqual("Application Failure: {0}", events[0].Message);
 			Assert.AreEqual(EventLevel.Error, events[0].Level);
-			Assert.AreEqual(TestLog.Keywords.Diagnostic, events[0].Keywords);
+			Assert.IsTrue(events[0].Keywords.HasFlag(TestLog.Keywords.Diagnostic));
 			Assert.AreEqual(TestLog.Tasks.DBQuery, events[0].Task);
 			Assert.AreEqual(1, events[0].Payload.Count);
 			Assert.AreEqual("whoops!", events[0].Payload[0]);
@@ -143,7 +143,7 @@ namespace EventSourceProxy.Tests
 			Assert.AreEqual(4, events[1].EventId);
 			Assert.AreEqual("Other Information: {0} {1}", events[1].Message);
 			Assert.AreEqual(EventLevel.Informational, events[1].Level);
-			Assert.AreEqual(TestLog.Keywords.Perf, events[1].Keywords);
+			Assert.IsTrue(events[1].Keywords.HasFlag(TestLog.Keywords.Perf));
 			Assert.AreEqual(2, events[1].Payload.Count);
 			Assert.AreEqual("doing something", events[1].Payload[0]);
 			Assert.AreEqual(19, events[1].Payload[1]);
@@ -152,7 +152,7 @@ namespace EventSourceProxy.Tests
 			Assert.AreEqual(5, events[2].EventId);
 			Assert.AreEqual("Direct Call: {0}", events[2].Message);
 			Assert.AreEqual(EventLevel.Warning, events[2].Level);
-			Assert.AreEqual(TestLog.Keywords.Diagnostic, events[2].Keywords);
+			Assert.IsTrue(events[2].Keywords.HasFlag(TestLog.Keywords.Diagnostic));
 			Assert.AreEqual(1, events[2].Payload.Count);
 			Assert.AreEqual("factory direct", events[2].Payload[0]);
 		}
@@ -189,7 +189,7 @@ namespace EventSourceProxy.Tests
 			Assert.AreEqual(1, events[0].EventId);
 			Assert.AreEqual("Event: {0}", events[0].Message);
 			Assert.AreEqual(EventLevel.Informational, events[0].Level);
-			Assert.AreEqual(KeywordsFoo.Startup, events[0].Keywords);
+			Assert.IsTrue(events[0].Keywords.HasFlag(KeywordsFoo.Startup));
 			Assert.AreEqual(1, events[0].Payload.Count);
 			Assert.AreEqual("hello, world!", events[0].Payload[0]);
 		}
@@ -206,11 +206,11 @@ namespace EventSourceProxy.Tests
 			OpCodes = typeof(OpcodesFoo))]
 		public interface ITestLog
 		{
-			[Event(10, Message = "Startup: {0}", Level = EventLevel.Warning, Keywords = KeywordsFoo.Startup, Task = TasksFoo.Task1, Opcode=OpcodesFoo.Opcode1)]
+			[Event(10, Message = "Startup: {0}", Level = EventLevel.Warning, Task = TasksFoo.Task1, Opcode = OpcodesFoo.Opcode1, Keywords = KeywordsFoo.Startup)]
 			void Startup(string message);
 
 			// this tests that the interface can return a value and things still work
-			[Event(5, Message = "WithReturn: {0} {1}", Level = EventLevel.Warning, Keywords = KeywordsFoo.Return, Task = TasksFoo.Task2, Opcode = OpcodesFoo.Opcode2)]
+			[Event(5, Message = "WithReturn: {0} {1}", Level = EventLevel.Warning, Task = TasksFoo.Task2, Opcode = OpcodesFoo.Opcode2, Keywords = KeywordsFoo.Return)]
 			int WithReturn(string message, int value);
 		}
 
@@ -257,7 +257,7 @@ namespace EventSourceProxy.Tests
 			Assert.AreEqual(10, events[0].EventId);
 			Assert.AreEqual("Startup: {0}", events[0].Message);
 			Assert.AreEqual(EventLevel.Warning, events[0].Level);
-			Assert.AreEqual(KeywordsFoo.Startup, events[0].Keywords);
+			Assert.IsTrue(events[0].Keywords.HasFlag(KeywordsFoo.Startup));
 			Assert.AreEqual(TasksFoo.Task1, events[0].Task);
 			Assert.AreEqual(OpcodesFoo.Opcode1, events[0].Opcode);
 			Assert.AreEqual(1, events[0].Payload.Count);
@@ -267,7 +267,7 @@ namespace EventSourceProxy.Tests
 			Assert.AreEqual(5, events[1].EventId);
 			Assert.AreEqual("WithReturn: {0} {1}", events[1].Message);
 			Assert.AreEqual(EventLevel.Warning, events[1].Level);
-			Assert.AreEqual(KeywordsFoo.Return, events[1].Keywords);
+			Assert.IsTrue(events[1].Keywords.HasFlag(KeywordsFoo.Return));
 			Assert.AreEqual(TasksFoo.Task2, events[1].Task);
 			Assert.AreEqual(OpcodesFoo.Opcode2, events[1].Opcode);
 			Assert.AreEqual(2, events[1].Payload.Count);
@@ -308,7 +308,7 @@ namespace EventSourceProxy.Tests
 			Assert.AreEqual(1, events[0].EventId);
 			Assert.AreEqual("{0} {1}", events[0].Message);
 			Assert.AreEqual(EventLevel.Informational, events[0].Level);
-			Assert.AreEqual((EventKeywords)1, events[0].Keywords);
+			Assert.IsTrue(events[0].Keywords.HasFlag((EventKeywords)1));
 			Assert.AreEqual(2, events[0].Payload.Count);
 			Assert.AreEqual(2, events[0].Payload[0]);
 			Assert.AreEqual(3, events[0].Payload[1]);
@@ -317,7 +317,7 @@ namespace EventSourceProxy.Tests
 			Assert.AreEqual(4, events[1].EventId);
 			Assert.AreEqual("{0} {1}", events[1].Message);
 			Assert.AreEqual(EventLevel.Informational, events[1].Level);
-			Assert.AreEqual((EventKeywords)2, events[1].Keywords);
+			Assert.IsTrue(events[1].Keywords.HasFlag((EventKeywords)2));
 			Assert.AreEqual(2, events[1].Payload.Count);
 			Assert.AreEqual(4, events[1].Payload[0]);
 			Assert.AreEqual(5, events[1].Payload[1]);
@@ -354,7 +354,7 @@ namespace EventSourceProxy.Tests
 			Assert.AreEqual(1, events[0].EventId);
 			Assert.AreEqual("{0} {1}", events[0].Message);
 			Assert.AreEqual(EventLevel.Informational, events[0].Level);
-			Assert.AreEqual((EventKeywords)1, events[0].Keywords);
+			Assert.IsTrue(events[0].Keywords.HasFlag((EventKeywords)1));
 			Assert.AreEqual(2, events[0].Payload.Count);
 			Assert.AreEqual(2, events[0].Payload[0]);
 			Assert.AreEqual(3, events[0].Payload[1]);
@@ -363,7 +363,7 @@ namespace EventSourceProxy.Tests
 			Assert.AreEqual(4, events[1].EventId);
 			Assert.AreEqual("{0} {1}", events[1].Message);
 			Assert.AreEqual(EventLevel.Informational, events[1].Level);
-			Assert.AreEqual((EventKeywords)2, events[1].Keywords);
+			Assert.IsTrue(events[1].Keywords.HasFlag((EventKeywords)2));
 			Assert.AreEqual(2, events[1].Payload.Count);
 			Assert.AreEqual(4, events[1].Payload[0]);
 			Assert.AreEqual(5, events[1].Payload[1]);
