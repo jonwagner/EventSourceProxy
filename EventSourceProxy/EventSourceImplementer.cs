@@ -98,6 +98,15 @@ namespace EventSourceProxy
 		}
 
 		/// <summary>
+		/// Registers a default TraceContextProvider for all event sources.
+		/// </summary>
+		/// <param name="provider">The provider to register.</param>
+		public static void RegisterDefaultProvider(TraceContextProvider provider)
+		{
+			RegisterProvider(null, provider);
+		}
+
+		/// <summary>
 		/// Registers a Serialization Provider for a given event source.
 		/// </summary>
 		/// <typeparam name="TLog">The type of event source to register with.</typeparam>
@@ -116,6 +125,15 @@ namespace EventSourceProxy
 		public static void RegisterProvider(Type type, TraceSerializationProvider provider)
 		{
 			RegisterProvider(type, typeof(TraceSerializationProvider), provider);
+		}
+
+		/// <summary>
+		/// Registers a default TraceSerializationProvider for all event sources.
+		/// </summary>
+		/// <param name="provider">The provider to register.</param>
+		public static void RegisterDefaultProvider(TraceSerializationProvider provider)
+		{
+			RegisterProvider(null, provider);
 		}
 
 		/// <summary>
@@ -138,25 +156,62 @@ namespace EventSourceProxy
 		{
 			RegisterProvider(type, typeof(EventAttributeProvider), provider);
 		}
+
+		/// <summary>
+		/// Registers a default EventAttributeProvider for all event sources.
+		/// </summary>
+		/// <param name="provider">The provider to register.</param>
+		public static void RegisterDefaultProvider(EventAttributeProvider provider)
+		{
+			RegisterProvider(null, provider);
+		}
+
+		/// <summary>
+		/// Registers an TraceParameterProvider for a given event source.
+		/// </summary>
+		/// <typeparam name="TLog">The type of event source to register with.</typeparam>
+		/// <param name="provider">The provider to register.</param>
+		[System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Design", "CA1004:GenericMethodsShouldProvideTypeParameter")]
+		public static void RegisterProvider<TLog>(TraceParameterProvider provider)
+		{
+			RegisterProvider(typeof(TLog), typeof(TraceParameterProvider), provider);
+		}
+
+		/// <summary>
+		/// Registers a TraceParameterProvider for a given event source.
+		/// </summary>
+		/// <param name="type">The type of event source to register with.</param>
+		/// <param name="provider">The provider to register.</param>
+		public static void RegisterProvider(Type type, TraceParameterProvider provider)
+		{
+			RegisterProvider(type, typeof(TraceParameterProvider), provider);
+		}
+
+		/// <summary>
+		/// Registers a default TraceParameterProvider for all event sources.
+		/// </summary>
+		/// <param name="provider">The provider to register.</param>
+		public static void RegisterDefaultProvider(TraceParameterProvider provider)
+		{
+			RegisterProvider(null, provider);
+		}
 		#endregion
 
 		#region Internal Members
 		/// <summary>
 		/// Registers a Provider for a given event source.
 		/// </summary>
-		/// <param name="logType">The type of event source to register with.</param>
+		/// <param name="logType">The type of event source to register with. If null, then the default provider is overridden.</param>
 		/// <param name="providerType">The type of provider being provided.</param>
 		/// <param name="provider">The provider to register.</param>
 		private static void RegisterProvider(Type logType, Type providerType, object provider)
 		{
-			if (logType == null) throw new ArgumentNullException("logType");
 			if (providerType == null) throw new ArgumentNullException("providerType");
-			if (provider == null) throw new ArgumentNullException("provider");
 
 			lock (_eventSources)
 			{
 				// if the eventsource already exists, then fail
-				if (_eventSources.ContainsKey(logType))
+				if (logType != null && _eventSources.ContainsKey(logType))
 					throw new InvalidOperationException(String.Format(CultureInfo.InvariantCulture, "Cannot register {0} after creating a log for type {1}", providerType.Name, logType.Name));
 
 				ProviderManager.RegisterProvider(logType, providerType, provider);

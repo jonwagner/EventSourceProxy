@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics.Tracing;
 using System.Globalization;
 using System.Linq;
+using System.Linq.Expressions;
 using System.Reflection;
 using System.Reflection.Emit;
 using System.Text;
@@ -72,6 +73,103 @@ namespace EventSourceProxy
 		/// Emits the code needed to properly push an object on the stack,
 		/// serializing the value if necessary.
 		/// </summary>
+		/// <param name="typeBuilder">The TypeBuilder for the method being built.</param>
+		/// <param name="methodBuilder">The method currently being built.</param>
+		/// <param name="invocationContext">The invocation context for this call.</param>
+		/// <param name="invocationContexts">A list of invocation contexts that will be appended to.</param>
+		/// <param name="invocationContextsField">The static field containing the array of invocation contexts at runtime.</param>
+		/// <param name="parameterMapping">The mapping of source parameters to destination parameters.</param>
+		/// <param name="serializationProvider">The serialization provider for the current interface.</param>
+		/// <param name="serializationProviderField">
+		/// The field on the current object that contains the serialization provider at runtime.
+		/// This method assume the current object is stored in arg.0.
+		/// </param>
+		internal static void EmitSerializeValue(
+			TypeBuilder typeBuilder,
+			MethodBuilder methodBuilder,
+			InvocationContext invocationContext,
+			List<InvocationContext> invocationContexts,
+			FieldBuilder invocationContextsField,
+			ParameterMapping parameterMapping,
+			TraceSerializationProvider serializationProvider,
+			FieldBuilder serializationProviderField)
+		{
+			var sourceCount = parameterMapping.Sources.Count();
+			if (sourceCount == 0)
+				return;
+
+			if (sourceCount == 1)
+			{
+				var parameter = parameterMapping.Sources.First();
+
+				EmitSerializeValue(
+					typeBuilder,
+					methodBuilder,
+					invocationContext,
+					invocationContexts,
+					invocationContextsField,
+					parameter.Position,
+					parameter.SourceType,
+					parameterMapping.CleanTargetType,
+					parameter.Converter,
+					serializationProvider,
+					serializationProviderField);
+				return;
+			}
+
+			var il = methodBuilder.GetILGenerator();
+
+			// use the serializer to serialize the objects
+			var context = new TraceSerializationContext(invocationContext.SpecifyType(InvocationContextTypes.BundleParameters), -1);
+			context.EventLevel = serializationProvider.GetEventLevelForContext(context);
+
+			if (context.EventLevel != null)
+			{
+				// get the object serializer from the this pointer
+				il.Emit(OpCodes.Ldsfld, serializationProviderField);
+
+				// create a new dictionary strings and values
+				il.Emit(OpCodes.Newobj, typeof(Dictionary<string, string>).GetConstructor(Type.EmptyTypes));
+
+				foreach (var parameter in parameterMapping.Sources)
+				{
+					il.Emit(OpCodes.Dup);
+					il.Emit(OpCodes.Ldstr, parameter.Name);
+
+					EmitSerializeValue(
+						typeBuilder,
+						methodBuilder,
+						invocationContext,
+						invocationContexts,
+						invocationContextsField,
+						parameter.Position,
+						parameter.SourceType,
+						parameterMapping.CleanTargetType,
+						parameter.Converter,
+						serializationProvider,
+						serializationProviderField);
+
+					var method = typeof(Dictionary<string, string>).GetMethod("Add");
+					il.Emit(OpCodes.Call, method);
+				}
+
+				// get the invocation context from the array on the provider
+				il.Emit(OpCodes.Ldsfld, invocationContextsField);
+				il.Emit(OpCodes.Ldc_I4, invocationContexts.Count);
+				il.Emit(OpCodes.Ldelem, typeof(TraceSerializationContext));
+				invocationContexts.Add(context);
+
+				il.Emit(OpCodes.Callvirt, typeof(TraceSerializationProvider).GetMethod("ProvideSerialization", BindingFlags.Instance | BindingFlags.Public));
+			}
+			else
+				il.Emit(OpCodes.Ldnull);
+		}
+
+		/// <summary>
+		/// Emits the code needed to properly push an object on the stack,
+		/// serializing the value if necessary.
+		/// </summary>
+		/// <param name="typeBuilder">The TypeBuilder for the method being built.</param>
 		/// <param name="methodBuilder">The method currently being built.</param>
 		/// <param name="invocationContext">The invocation context for this call.</param>
 		/// <param name="invocationContexts">A list of invocation contexts that will be appended to.</param>
@@ -79,12 +177,14 @@ namespace EventSourceProxy
 		/// <param name="i">The index of the current parameter being pushed.</param>
 		/// <param name="sourceType">The type that the parameter is being converted from.</param>
 		/// <param name="targetType">The type that the parameter is being converted to.</param>
+		/// <param name="converter">An optional converter to apply to the source type.</param>
 		/// <param name="serializationProvider">The serialization provider for the current interface.</param>
 		/// <param name="serializationProviderField">
 		/// The field on the current object that contains the serialization provider at runtime.
 		/// This method assume the current object is stored in arg.0.
 		/// </param>
 		internal static void EmitSerializeValue(
+			TypeBuilder typeBuilder,
 			MethodBuilder methodBuilder,
 			InvocationContext invocationContext,
 			List<InvocationContext> invocationContexts,
@@ -92,15 +192,29 @@ namespace EventSourceProxy
 			int i,
 			Type sourceType,
 			Type targetType,
+			LambdaExpression converter,
 			TraceSerializationProvider serializationProvider,
 			FieldBuilder serializationProviderField)
 		{
 			ILGenerator mIL = methodBuilder.GetILGenerator();
 
+			// load the parameter onto the stack
+			mIL.Emit(OpCodes.Ldarg, i + 1);
+
+			// if a converter is passed in, then define a static method and use it to convert
+			if (converter != null)
+			{
+				MethodBuilder mb = typeBuilder.DefineMethod(Guid.NewGuid().ToString(), MethodAttributes.Static | MethodAttributes.Public, converter.ReturnType, converter.Parameters.Select(p => p.Type).ToArray());
+				converter.CompileToMethod(mb);
+				mIL.Emit(OpCodes.Call, mb);
+
+				// the object on the stack is now the return type. we may need to convert it further
+				sourceType = converter.ReturnType;
+			}
+
 			// if the source type is a reference to the target type, we have to dereference it
 			if (sourceType.IsByRef && sourceType.GetElementType() == targetType)
 			{
-				mIL.Emit(OpCodes.Ldarg, (int)i + 1);
 				sourceType = sourceType.GetElementType();
 				mIL.Emit(OpCodes.Ldobj, sourceType);
 				return;
@@ -108,10 +222,7 @@ namespace EventSourceProxy
 
 			// if the types match, just put the argument on the stack
 			if (sourceType == targetType)
-			{
-				mIL.Emit(OpCodes.Ldarg, (int)i + 1);
 				return;
-			}
 
 			// this is not a match, so convert using the serializer.
 			// verify that the target type is a string
@@ -123,7 +234,9 @@ namespace EventSourceProxy
 			if (!sourceType.IsGenericParameter && (underlyingType.IsEnum || (underlyingType.IsValueType && underlyingType.Assembly == typeof(string).Assembly)))
 			{
 				// convert the argument to a string with ToString
-				mIL.Emit(OpCodes.Ldarga_S, i + 1);
+				LocalBuilder lb = mIL.DeclareLocal(sourceType);
+				mIL.Emit(OpCodes.Stloc, lb.LocalIndex);
+				mIL.Emit(OpCodes.Ldloca, lb.LocalIndex);
 				mIL.Emit(OpCodes.Call, sourceType.GetMethod("ToString", Type.EmptyTypes));
 				return;
 			}
@@ -133,11 +246,12 @@ namespace EventSourceProxy
 			context.EventLevel = serializationProvider.GetEventLevelForContext(context);
 			if (context.EventLevel != null)
 			{
+				LocalBuilder lb = mIL.DeclareLocal(sourceType);
+				mIL.Emit(OpCodes.Stloc, lb.LocalIndex);
+
 				// get the object serializer from the this pointer
 				mIL.Emit(OpCodes.Ldsfld, serializationProviderField);
-
-				// load the value
-				mIL.Emit(OpCodes.Ldarg, (int)i + 1);
+				mIL.Emit(OpCodes.Ldloc, lb.LocalIndex);
 
 				// if the source type is a reference to the target type, we have to dereference it
 				if (sourceType.IsByRef)
@@ -159,7 +273,10 @@ namespace EventSourceProxy
 				mIL.Emit(OpCodes.Callvirt, typeof(TraceSerializationProvider).GetMethod("ProvideSerialization", BindingFlags.Instance | BindingFlags.Public));
 			}
 			else
+			{
+				mIL.Emit(OpCodes.Pop);
 				mIL.Emit(OpCodes.Ldnull);
+			}
 		}
 
 		/// <summary>

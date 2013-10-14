@@ -58,6 +58,7 @@
     <Compile Include="BaseLoggingTest.cs" />
     <Compile Include="EventAttributeProviderTests.cs" />
     <Compile Include="EventActivityScopeTests.cs" />
+    <Compile Include="ParameterProviderTests.cs" />
     <Compile Include="SerializationTests.cs" />
     <Compile Include="TraceContextProviderTests.cs" />
     <Compile Include="TracingProxyTests.cs" />

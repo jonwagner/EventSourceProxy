@@ -371,6 +371,7 @@ namespace EventSourceProxy
 			for (int i = 0; i < targetParameters.Length; i++)
 			{
 				ProxyHelper.EmitSerializeValue(
+					_typeBuilder,
 					m,
 					invocationContext,
 					_invocationContexts,
@@ -378,6 +379,7 @@ namespace EventSourceProxy
 					i,
 					sourceParameters[i].ParameterType,
 					targetParameters[i].ParameterType,
+					null,
 					_serializationProvider,
 					_serializerField);
 			}
@@ -396,10 +398,12 @@ namespace EventSourceProxy
 		/// <returns>The method information or null.</returns>
 		private MethodInfo DiscoverMethod(Type type, string methodName, string suffix, Type[] parameterTypes)
 		{
-			var methods = type.GetMethods();
+			// find all of the methods with a matching signature
+			var methods = type.GetMethods().Where(m => ProxyHelper.ParametersMatch(m, parameterTypes));
 
-			var method = methods.FirstOrDefault(m => Regex.IsMatch(m.Name, "_?" + Regex.Escape(methodName + suffix)) && ProxyHelper.ParametersMatch(m, parameterTypes)) ??
-						methods.FirstOrDefault(m => Regex.IsMatch(m.Name, "_?" + Regex.Escape(methodName) + "_\\d+" + Regex.Escape(suffix)) && ProxyHelper.ParametersMatch(m, parameterTypes));
+			// match the one without an integer first, then one with an integer
+			var method = methods.FirstOrDefault(m => Regex.IsMatch(m.Name, "_?" + Regex.Escape(methodName + suffix))) ??
+						methods.FirstOrDefault(m => Regex.IsMatch(m.Name, "_?" + Regex.Escape(methodName) + "_\\d+" + Regex.Escape(suffix)));
 
 			if (method == null && type.IsInterface)
 			{

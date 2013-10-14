@@ -35,8 +35,14 @@ namespace EventSourceProxy
 		None = 0,
 
 		/// <summary>
+		/// The invocation is to bundle a set of parameters into a single parameter.
+		/// The parameter is a string-to-string map.
+		/// </summary>
+		BundleParameters = 1 << 4,
+
+		/// <summary>
 		/// All types of method invocations.
 		/// </summary>
-		All = MethodCall | MethodCompletion | MethodFaulted
+		All = MethodCall | MethodCompletion | MethodFaulted | BundleParameters
 	}
 }

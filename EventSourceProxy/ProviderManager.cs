@@ -26,12 +26,20 @@ namespace EventSourceProxy
 		/// <param name="provider">The provider to register.</param>
 		internal static void RegisterProvider(Type logType, Type providerType, object provider)
 		{
+			var key = Tuple.Create(logType, providerType);
+
+			// if the provider is null, then remove the provider
+			if (provider == null)
+			{
+				_providers.TryRemove(key, out provider);
+				return;
+			}
+
 			if (!providerType.IsInstanceOfType(provider))
 				throw new InvalidOperationException(String.Format(CultureInfo.InvariantCulture, "Provider must be an instance of {0}", providerType.Name));
 
 			// save the provider for future construction
 			// if the provider already exists, then fail
-			var key = Tuple.Create(logType, providerType);
 			if (!_providers.TryAdd(key, provider))
 				throw new InvalidOperationException(String.Format(CultureInfo.InvariantCulture, "{0} already exists for type {1}", providerType.Name, logType.Name));
 		}
@@ -75,6 +83,15 @@ namespace EventSourceProxy
 						var providerAttribute = (TraceProviderAttribute)logType.GetCustomAttributes(attributeType, true).FirstOrDefault();
 						if (providerAttribute != null)
 							return providerAttribute.ProviderType.GetConstructor(Type.EmptyTypes).Invoke(null);
+					}
+
+					// no provider attribute, check for a default provider
+					if (logType != null)
+					{
+						object provider;
+						var defaultKey = Tuple.Create((Type)null, providerType);
+						if (_providers.TryGetValue(defaultKey, out provider))
+							return provider;
 					}
 
 					return defaultConstructor();
