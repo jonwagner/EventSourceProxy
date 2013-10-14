@@ -62,10 +62,16 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="TraceAsAttribute.cs" />
     <Compile Include="EventAttributeProviderAttribute.cs" />
     <Compile Include="EventExceptionAttribute.cs" />
     <Compile Include="EventAttributeProvider.cs" />
     <Compile Include="GlobalSuppressions.cs" />
+    <Compile Include="ParameterDefinition.cs" />
+    <Compile Include="ParameterMapping.cs" />
+    <Compile Include="ParameterMappingType.cs" />
+    <Compile Include="TraceParameterProvider.cs" />
+    <Compile Include="TraceParameterProviderAttribute.cs" />
     <Compile Include="TraceSerializationAttribute.cs" />
     <Compile Include="TraceContextAttribute.cs" />
     <Compile Include="InvocationContext.cs" />

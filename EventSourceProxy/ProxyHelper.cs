@@ -76,6 +76,110 @@ namespace EventSourceProxy
 		/// <param name="invocationContext">The invocation context for this call.</param>
 		/// <param name="invocationContexts">A list of invocation contexts that will be appended to.</param>
 		/// <param name="invocationContextsField">The static field containing the array of invocation contexts at runtime.</param>
+		/// <param name="parameterMapping">The mapping of source parameters to destination parameters.</param>
+		/// <param name="serializationProvider">The serialization provider for the current interface.</param>
+		/// <param name="serializationProviderField">
+		/// The field on the current object that contains the serialization provider at runtime.
+		/// This method assume the current object is stored in arg.0.
+		/// </param>
+		internal static void EmitSerializeValue(
+			MethodBuilder methodBuilder,
+			InvocationContext invocationContext,
+			List<InvocationContext> invocationContexts,
+			FieldBuilder invocationContextsField,
+			ParameterMapping parameterMapping,
+			TraceSerializationProvider serializationProvider,
+			FieldBuilder serializationProviderField)
+		{
+			if (parameterMapping.MappingType == ParameterMappingType.ReturnValue)
+			{
+				EmitSerializeValue(
+					methodBuilder,
+					invocationContext,
+					invocationContexts,
+					invocationContextsField,
+					0,
+					parameterMapping.SourceType,
+					parameterMapping.CleanTargetType,
+					serializationProvider,
+					serializationProviderField);
+				return;
+			}
+
+			var sourceCount = parameterMapping.Sources.Count();
+			if (sourceCount == 0)
+				return;
+
+			if (sourceCount == 1)
+			{
+				var parameter = parameterMapping.Sources.First();
+				EmitSerializeValue(
+					methodBuilder,
+					invocationContext,
+					invocationContexts,
+					invocationContextsField,
+					parameter.Position,
+					parameter.SourceType,
+					parameterMapping.CleanTargetType,
+					serializationProvider,
+					serializationProviderField);
+				return;
+			}
+
+			var il = methodBuilder.GetILGenerator();
+
+			// use the serializer to serialize the objects
+			var context = new TraceSerializationContext(invocationContext.SpecifyType(InvocationContextTypes.BundleParameters), -1);
+			context.EventLevel = serializationProvider.GetEventLevelForContext(context);
+
+			if (context.EventLevel != null)
+			{
+				// get the object serializer from the this pointer
+				il.Emit(OpCodes.Ldsfld, serializationProviderField);
+
+				// create a new dictionary strings and values
+				il.Emit(OpCodes.Newobj, typeof(Dictionary<string, string>).GetConstructor(Type.EmptyTypes));
+
+				foreach (var parameter in parameterMapping.Sources)
+				{
+					il.Emit(OpCodes.Dup);
+					il.Emit(OpCodes.Ldstr, parameter.Name);
+
+					EmitSerializeValue(
+						methodBuilder,
+						invocationContext,
+						invocationContexts,
+						invocationContextsField,
+						parameter.Position,
+						parameter.SourceType,
+						parameterMapping.CleanTargetType,
+						serializationProvider, 
+						serializationProviderField);
+
+					var method = typeof(Dictionary<string, string>).GetMethod("Add");
+					il.Emit(OpCodes.Call, method);
+				}
+
+				// get the invocation context from the array on the provider
+				il.Emit(OpCodes.Ldsfld, invocationContextsField);
+				il.Emit(OpCodes.Ldc_I4, invocationContexts.Count);
+				il.Emit(OpCodes.Ldelem, typeof(TraceSerializationContext));
+				invocationContexts.Add(context);
+
+				il.Emit(OpCodes.Callvirt, typeof(TraceSerializationProvider).GetMethod("ProvideSerialization", BindingFlags.Instance | BindingFlags.Public));
+			}
+			else
+				il.Emit(OpCodes.Ldnull);
+		}
+
+		/// <summary>
+		/// Emits the code needed to properly push an object on the stack,
+		/// serializing the value if necessary.
+		/// </summary>
+		/// <param name="methodBuilder">The method currently being built.</param>
+		/// <param name="invocationContext">The invocation context for this call.</param>
+		/// <param name="invocationContexts">A list of invocation contexts that will be appended to.</param>
+		/// <param name="invocationContextsField">The static field containing the array of invocation contexts at runtime.</param>
 		/// <param name="i">The index of the current parameter being pushed.</param>
 		/// <param name="sourceType">The type that the parameter is being converted from.</param>
 		/// <param name="targetType">The type that the parameter is being converted to.</param>
