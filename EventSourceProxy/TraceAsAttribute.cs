@@ -12,10 +12,11 @@ namespace EventSourceProxy
 	/// <remarks>
 	/// If multiple parameters are traced into the same name, then they are traced as a string-to-string map,
 	/// and serialized into a string by the TraceSerializationProvider.
-	/// If TraceAsAttribute is applied to a method, then all parameters of the method are traced into the specified name.
+	/// If TraceAsAttribute is applied to a method, then all parameters of the method are traced into the specified name
+	/// unless other TraceAsAttributes are applied.
 	/// </remarks>
-	[AttributeUsage(AttributeTargets.Parameter | AttributeTargets.Method, AllowMultiple = false)]
-	public sealed class TraceAsAttribute : Attribute
+	[System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Performance", "CA1813:AvoidUnsealedAttributes"), AttributeUsage(AttributeTargets.Parameter | AttributeTargets.Method, AllowMultiple = false)]
+	public class TraceAsAttribute : Attribute
 	{
 		/// <summary>
 		/// Initializes a new instance of the TraceAsAttribute class, providing a name for the given parameter.

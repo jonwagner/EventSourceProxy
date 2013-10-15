@@ -283,11 +283,11 @@ namespace EventSourceProxy
 		{
 			// get the method we are implementing and the parameter mapping
 			var interfaceMethod = invocationContext.MethodInfo;
-			var parameterMapping = TraceParameterProvider.GetParameterMapping(invocationContext.MethodInfo).ToList();
+			var parameterMapping = TraceParameterProvider.GetParameterMapping(invocationContext.MethodInfo).Where(p => p.HasSource).ToList();
 
 			// if we are implementing an interface, then add an string context parameter
 			if (SupportsContext(invocationContext))
-				parameterMapping.Add(new ParameterMapping(ParameterMappingType.Context, Context, typeof(string)));
+				parameterMapping.Add(new ParameterMapping(Context));
 
 			// calculate the method name
 			// if there is more than one method with the given name, then append an ID to it
@@ -424,11 +424,16 @@ namespace EventSourceProxy
 				return null;
 
 			// create a single parameter for the return value, and a context parameter if its supported
-			var parameterMapping = new List<ParameterMapping>();
+			var parameterMappings = new List<ParameterMapping>();
 			if (parameterType != typeof(void))
-				parameterMapping.Add(new ParameterMapping(ParameterMappingType.ReturnValue, ReturnValue, parameterType));
+			{
+				var mapping = new ParameterMapping(ReturnValue);
+				mapping.AddSource(new ParameterDefinition(0, parameterType, ReturnValue));
+				parameterMappings.Add(mapping);
+			}
+
 			if (SupportsContext(invocationContext))
-				parameterMapping.Add(new ParameterMapping(ParameterMappingType.Context, Context, typeof(string)));
+				parameterMappings.Add(new ParameterMapping(Context));
 
 			// determine if this is a non-event or an event
 			// if an event, but there is no event attribute, just add one to the last event id
@@ -439,13 +444,13 @@ namespace EventSourceProxy
 				eventAttribute.Keywords = autoKeyword;
 
 			// define the internal method
-			MethodBuilder m = _typeBuilder.DefineMethod(methodName, MethodAttributes.Public, typeof(void), parameterMapping.Select(p => p.CleanTargetType).ToArray());
+			MethodBuilder m = _typeBuilder.DefineMethod(methodName, MethodAttributes.Public, typeof(void), parameterMappings.Select(p => p.CleanTargetType).ToArray());
 			m.SetCustomAttribute(EventAttributeHelper.ConvertEventAttributeToAttributeBuilder(eventAttribute));
 
 			// if we have a return type, then we need to implement two methods
 			if (parameterTypes.Length == 1)
 			{
-				EmitCallWriteEvent(invocationContext, m, eventAttribute, parameterMapping);
+				EmitCallWriteEvent(invocationContext, m, eventAttribute, parameterMappings);
 
 				// emit an overloaded wrapper method that calls the method when it's enabled
 				// note this is a non-event so EventSource doesn't try to log it
@@ -463,7 +468,7 @@ namespace EventSourceProxy
 				if (EmitIsEnabled(im, eventAttribute))
 				{
 					EmitTaskCompletion(im, parameterType, faultedMethod);
-					EmitDirectProxy(invocationContext, im, m, parameterMapping);
+					EmitDirectProxy(invocationContext, im, m, parameterMappings);
 				}
 
 				return im;
@@ -474,7 +479,7 @@ namespace EventSourceProxy
 				// so create the internal method that calls WriteEvent
 				ProxyHelper.EmitDefaultValue(m.GetILGenerator(), m.ReturnType);
 				if (EmitIsEnabled(m, eventAttribute))
-					EmitCallWriteEvent(invocationContext, m, eventAttribute, parameterMapping);
+					EmitCallWriteEvent(invocationContext, m, eventAttribute, parameterMappings);
 
 				return m;
 			}
@@ -645,7 +650,8 @@ namespace EventSourceProxy
 				mIL.Emit(OpCodes.Ldc_I4, (int)i);
 
 				var parameter = parameterMapping[i];
-				if (parameter.MappingType == ParameterMappingType.Parameter)
+
+				if (parameter.HasSource)
 				{
 					// load the argument and box it
 					mIL.Emit(OpCodes.Ldarg, i + 1);
@@ -656,13 +662,13 @@ namespace EventSourceProxy
 					// and references have been dereferenced
 					if (parameter.CleanTargetType.IsValueType)
 					{
-						var sourceType = parameter.Source.SourceType;
+						var sourceType = parameter.SourceType;
 						if (sourceType.IsByRef)
 							sourceType = sourceType.GetElementType();
 						mIL.Emit(OpCodes.Box, sourceType);
 					}
 				}
-				else if (parameter.MappingType == ParameterMappingType.Context)
+				else
 				{
 					// there is no source, so get the context from the context provider
 					// load the context provider
@@ -675,13 +681,6 @@ namespace EventSourceProxy
 					mIL.Emit(OpCodes.Callvirt, typeof(TraceContextProvider).GetMethod("ProvideContext"));
 					_invocationContexts.Add(invocationContext);
 				}
-				else if (parameter.MappingType == ParameterMappingType.ReturnValue)
-				{
-					mIL.Emit(OpCodes.Ldarg, i + 1);
-					mIL.Emit(OpCodes.Box, parameter.CleanTargetType);
-				}
-				else
-					throw new InvalidOperationException(String.Format(CultureInfo.InvariantCulture, "Invalid value for Parameter Mapping Type: {0}", parameter.MappingType));
 
 				mIL.Emit(OpCodes.Stelem, typeof(object));
 			}
@@ -720,7 +719,7 @@ namespace EventSourceProxy
 			{
 				var parameter = parameterMapping[i];
 
-				if (parameter.MappingType == ParameterMappingType.Parameter || parameter.MappingType == ParameterMappingType.ReturnValue)
+				if (parameter.HasSource)
 				{
 					ProxyHelper.EmitSerializeValue(
 						methodBuilder,
@@ -731,14 +730,12 @@ namespace EventSourceProxy
 						_serializationProvider,
 						_serializationProviderField);
 				}
-				else if (parameter.MappingType == ParameterMappingType.Context)
+				else
 				{
 					// if this method supports context, then add a context parameter
 					// note that we pass null in here and then build the context from within EmitCallWriteEvent
 					mIL.Emit(OpCodes.Ldnull);
 				}
-				else
-					throw new InvalidOperationException(String.Format(CultureInfo.InvariantCulture, "Invalid Parameter Mapping Type: {0}", parameter.MappingType));
 			}
 
 			// now that all of the parameters have been loaded, call the base method

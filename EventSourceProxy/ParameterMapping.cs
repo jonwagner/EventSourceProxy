@@ -18,42 +18,13 @@ namespace EventSourceProxy
 		private List<ParameterDefinition> _sources = new List<ParameterDefinition>();
 
 		/// <summary>
-		/// The target type of the parameter.
-		/// </summary>
-		private Type _targetType;
-
-		/// <summary>
-		/// Initializes a new instance of the ParameterMapping class from an existing parameter.
+		/// Initializes a new instance of the ParameterMapping class with an empty source list.
 		/// </summary>
 		/// <param name="name">The name of the parameter.</param>
-		/// <param name="pi">The parameter to initialize from.</param>
-		public ParameterMapping(string name, ParameterInfo pi)
+		public ParameterMapping(string name)
 		{
-			if (pi == null) throw new ArgumentNullException("pi");
-
-			MappingType = ParameterMappingType.Parameter;
 			Name = name;
-
-			AddSource(pi);
 		}
-
-		/// <summary>
-		/// Initializes a new instance of the ParameterMapping class from values.
-		/// </summary>
-		/// <param name="mappingType">The type of the mapping.</param>
-		/// <param name="name">The name of the parameter.</param>
-		/// <param name="targetType">The target type of the mapping.</param>
-		public ParameterMapping(ParameterMappingType mappingType, string name, Type targetType)
-		{
-			MappingType = mappingType;
-			Name = name;
-			TargetType = targetType;
-		}
-
-		/// <summary>
-		/// Gets the sources of the parameter.
-		/// </summary>
-		public IEnumerable<ParameterDefinition> Sources { get { return _sources; } }
 
 		/// <summary>
 		/// Gets the name of the parameter.
@@ -61,62 +32,50 @@ namespace EventSourceProxy
 		public string Name { get; private set; }
 
 		/// <summary>
+		/// Gets the sources of the parameter.
+		/// </summary>
+		internal IEnumerable<ParameterDefinition> Sources { get { return _sources; } }
+
+		/// <summary>
 		/// Gets the target type of the parameter.
 		/// </summary>
-		public Type TargetType
+		internal Type TargetType
 		{
 			get
 			{
 				if (_sources.Count == 1)
+				{
+					// if there is one source, then we use the type of the individual source
 					return _sources[0].SourceType;
-				else if (_sources.Count > 1)
-					return typeof(object);
-				else
-					return _targetType;
-			}
+				}
 
-			private set
-			{
-				_targetType = value;
+				// otherwise we have multiple sources, or a context, so we target a string
+				return typeof(string);
 			}
 		}
 
 		/// <summary>
 		/// Gets the target type of the parameter, compatible with ETW.
 		/// </summary>
-		public Type CleanTargetType { get { return TypeImplementer.GetTypeSupportedByEventSource(TargetType); } }
+		internal Type CleanTargetType { get { return TypeImplementer.GetTypeSupportedByEventSource(TargetType); } }
 
 		/// <summary>
-		/// Gets the mapping type.
+		/// Gets a value indicating whether this mapping has any sources.
 		/// </summary>
-		public ParameterMappingType MappingType { get; private set; }
+		internal bool HasSource { get { return _sources.Any(); } }
 
 		/// <summary>
 		/// Gets the source type of the parameter.
 		/// </summary>
-		public Type SourceType
+		internal Type SourceType
 		{
 			get
 			{
-				if (_sources.Count == 0)
-					return TargetType;
-				else if (_sources.Count == 1)
+				// if there is one source, then use its type, otherwise we are reading from an object
+				if (_sources.Count == 1)
 					return _sources[0].SourceType;
 				else
-					throw new InvalidOperationException();
-			}
-		}
-
-		/// <summary>
-		/// Gets the source of the parameter.
-		/// </summary>
-		public ParameterDefinition Source
-		{
-			get
-			{
-				if (_sources.Count == 1)
-					return _sources[0];
-				return null;
+					return typeof(object);
 			}
 		}
 
@@ -128,7 +87,18 @@ namespace EventSourceProxy
 		{
 			if (pi == null) throw new ArgumentNullException("pi");
 
-			_sources.Add(new ParameterDefinition(pi.Position, pi.ParameterType, pi.Name));
+			AddSource(new ParameterDefinition(pi.Position, pi.ParameterType, pi.Name));
+		}
+
+		/// <summary>
+		/// Adds a parameter source to this mapping.
+		/// </summary>
+		/// <param name="source">The parameter to add.</param>
+		internal void AddSource(ParameterDefinition source)
+		{
+			if (source == null) throw new ArgumentNullException("source");
+
+			_sources.Add(source);
 		}
 	}
 }

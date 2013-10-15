@@ -10,7 +10,7 @@ namespace EventSourceProxy
 	/// <summary>
 	/// Represents the definition of a parameter.
 	/// </summary>
-	public class ParameterDefinition
+	class ParameterDefinition
 	{
 		/// <summary>
 		/// Initializes a new instance of the ParameterDefinition class.

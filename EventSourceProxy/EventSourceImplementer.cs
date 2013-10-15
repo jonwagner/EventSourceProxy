@@ -138,6 +138,27 @@ namespace EventSourceProxy
 		{
 			RegisterProvider(type, typeof(EventAttributeProvider), provider);
 		}
+
+		/// <summary>
+		/// Registers an TraceParameterProvider for a given event source.
+		/// </summary>
+		/// <typeparam name="TLog">The type of event source to register with.</typeparam>
+		/// <param name="provider">The provider to register.</param>
+		[System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Design", "CA1004:GenericMethodsShouldProvideTypeParameter")]
+		public static void RegisterProvider<TLog>(TraceParameterProvider provider)
+		{
+			RegisterProvider(typeof(TLog), typeof(TraceParameterProvider), provider);
+		}
+
+		/// <summary>
+		/// Registers a TraceParameterProvider for a given event source.
+		/// </summary>
+		/// <param name="type">The type of event source to register with.</param>
+		/// <param name="provider">The provider to register.</param>
+		public static void RegisterProvider(Type type, TraceParameterProvider provider)
+		{
+			RegisterProvider(type, typeof(TraceParameterProvider), provider);
+		}
 		#endregion
 
 		#region Internal Members

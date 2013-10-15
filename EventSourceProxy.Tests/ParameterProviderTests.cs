@@ -33,5 +33,7 @@ namespace EventSourceProxy.Tests
 
 		// TODO: proxy interface should be collapsable
 		// TODO: concrete class should fail on traceas with collapse
+		// TODO: provider returning an empty parameter should fail
+		// TODO: support for replacing default providers
 	}
 }

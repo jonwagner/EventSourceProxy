@@ -91,21 +91,6 @@ namespace EventSourceProxy
 			TraceSerializationProvider serializationProvider,
 			FieldBuilder serializationProviderField)
 		{
-			if (parameterMapping.MappingType == ParameterMappingType.ReturnValue)
-			{
-				EmitSerializeValue(
-					methodBuilder,
-					invocationContext,
-					invocationContexts,
-					invocationContextsField,
-					0,
-					parameterMapping.SourceType,
-					parameterMapping.CleanTargetType,
-					serializationProvider,
-					serializationProviderField);
-				return;
-			}
-
 			var sourceCount = parameterMapping.Sources.Count();
 			if (sourceCount == 0)
 				return;
