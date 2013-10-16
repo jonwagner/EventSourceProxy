@@ -184,13 +184,13 @@ namespace EventSourceProxy.Tests
 		#endregion
 
 		#region Provider Tests
-		[TraceParameterProvider(typeof(MyTPP))]
+		[TraceParameterProvider(typeof(MyCollapseAllTPP))]
 		public interface InterfaceWithProvider
 		{
 			void TraceAsData(string p1, string p2);
 		}
 
-		public class MyTPP : TraceParameterProvider
+		public class MyCollapseAllTPP : TraceParameterProvider
 		{
 			public override IReadOnlyCollection<ParameterMapping> ProvideParameterMapping(System.Reflection.MethodInfo methodInfo)
 			{
@@ -252,8 +252,34 @@ namespace EventSourceProxy.Tests
 			Assert.AreEqual(1, events.Length);
 			Assert.AreEqual(0, events[0].Payload.Count);
 		}
-		#endregion
 
-		// TODO: support for replacing default providers
+		public interface UntaggedInterface
+		{
+			void TraceAsData(string p1, string p2);
+		}
+
+		[Test]
+		public void CanSetDefaultProvider()
+		{
+			EventSourceImplementer.RegisterDefaultProvider(new MyCollapseAllTPP());
+			try
+			{
+				EnableLogging<UntaggedInterface>();
+
+				var log = EventSourceImplementer.GetEventSourceAs<UntaggedInterface>();
+				log.TraceAsData("p1", "p2");
+
+				// look at the events
+				var events = _listener.Events.ToArray();
+				Assert.AreEqual(1, events.Length);
+				Assert.AreEqual(1, events[0].Payload.Count);
+				Assert.AreEqual("{\"p2\":\"p2\",\"p1\":\"p1\"}", events[0].Payload[0].ToString());
+			}
+			finally
+			{
+				EventSourceImplementer.RegisterDefaultProvider((TraceParameterProvider)null);
+			}
+		}
+		#endregion
 	}
 }
