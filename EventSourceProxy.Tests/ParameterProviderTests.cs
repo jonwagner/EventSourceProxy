@@ -159,8 +159,101 @@ namespace EventSourceProxy.Tests
 		}
 		#endregion
 
-		// TODO: concrete class should fail on traceas with collapse
-		// TODO: provider returning an empty parameter should fail
+		#region EventSource Implementation
+		public abstract class EventSourceWithCollapse : EventSource
+		{
+			[TraceAsData]
+			public abstract void TraceAsData(string p1, string p2);
+		}
+
+		[Test]
+		public void CanApplyTraceAsDataToEventSourceMethods()
+		{
+			EnableLogging<EventSourceWithCollapse>();
+
+			// do some logging
+			var testLog = EventSourceImplementer.GetEventSourceAs<EventSourceWithCollapse>();
+			testLog.TraceAsData("p1", "p2");
+
+			// look at the events
+			var events = _listener.Events.ToArray();
+			Assert.AreEqual(1, events.Length);
+			Assert.AreEqual(1, events[0].Payload.Count);
+			Assert.AreEqual("{\"p1\":\"p1\",\"p2\":\"p2\"}", events[0].Payload[0].ToString());
+		}
+		#endregion
+
+		#region Provider Tests
+		[TraceParameterProvider(typeof(MyTPP))]
+		public interface InterfaceWithProvider
+		{
+			void TraceAsData(string p1, string p2);
+		}
+
+		public class MyTPP : TraceParameterProvider
+		{
+			public override IReadOnlyCollection<ParameterMapping> ProvideParameterMapping(System.Reflection.MethodInfo methodInfo)
+			{
+				var mappings = new List<ParameterMapping>();
+				var mapping = new ParameterMapping("data");
+				mappings.Add(mapping);
+				foreach (var p in methodInfo.GetParameters().Reverse())
+					mapping.AddSource(p);
+
+				return mappings.AsReadOnly();
+			}
+		}
+
+		[Test]
+		public void CanReplaceParameterProvider()
+		{
+			EnableLogging<InterfaceWithProvider>();
+
+			var log = EventSourceImplementer.GetEventSourceAs<InterfaceWithProvider>();
+			log.TraceAsData("p1", "p2");
+
+			// look at the events
+			var events = _listener.Events.ToArray();
+			Assert.AreEqual(1, events.Length);
+			Assert.AreEqual(1, events[0].Payload.Count);
+			Assert.AreEqual("{\"p2\":\"p2\",\"p1\":\"p1\"}", events[0].Payload[0].ToString());
+		}
+
+		[TraceParameterProvider(typeof(MyEmptyTPP))]
+		public interface InterfaceWithEmptyProvider
+		{
+			void TraceAsData(string p1, string p2);
+		}
+
+		public class MyEmptyTPP : TraceParameterProvider
+		{
+			public override IReadOnlyCollection<ParameterMapping> ProvideParameterMapping(System.Reflection.MethodInfo methodInfo)
+			{
+				var mappings = new List<ParameterMapping>();
+				var mapping = new ParameterMapping("data");
+				mappings.Add(mapping);
+
+				// return a mapping with an empty source
+
+				return mappings.AsReadOnly();
+			}
+		}
+
+		[Test]
+		public void CanReturnEmptySourceList()
+		{
+			EnableLogging<InterfaceWithEmptyProvider>();
+
+			var log = EventSourceImplementer.GetEventSourceAs<InterfaceWithEmptyProvider>();
+			log.TraceAsData("p1", "p2");
+
+			// look at the events
+			var events = _listener.Events.ToArray();
+			Assert.AreEqual(1, events.Length);
+			Assert.AreEqual(0, events[0].Payload.Count);
+		}
+		#endregion
+
 		// TODO: support for replacing default providers
 	}
 }
