@@ -33,9 +33,13 @@ namespace EventSourceProxy
 				var traceName = (traceAs != null) ? traceAs.Name : parameter.Name;
 
 				// find the mapping that matches the name or create a new mapping
-				var mapping = parameters.FirstOrDefault(p => String.Compare(p.Name, traceName, StringComparison.OrdinalIgnoreCase) == 0) ?? new ParameterMapping(traceName);
+				var mapping = parameters.FirstOrDefault(p => String.Compare(p.Name, traceName, StringComparison.OrdinalIgnoreCase) == 0);
+				if (mapping == null)
+				{
+					mapping = new ParameterMapping(traceName);
+					parameters.Add(mapping);
+				}
 
-				parameters.Add(mapping);
 				mapping.AddSource(parameter);
 			}
 

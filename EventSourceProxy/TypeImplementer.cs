@@ -327,37 +327,31 @@ namespace EventSourceProxy
 				m.DefineParameter(i + 1, ParameterAttributes.In, parameter.Name);
 			}
 
-			if (interfaceMethod.IsAbstract)
+			if (interfaceMethod.IsAbstract || !interfaceMethod.DeclaringType.IsSubclassOf(typeof(EventSource)))
 			{
 				// for interface methods, implement a call to write event
-				EmitCallWriteEvent(invocationContext, m, eventAttribute, parameterMapping);
+				ProxyHelper.EmitDefaultValue(m.GetILGenerator(), m.ReturnType);
+				if (EmitIsEnabled(m, eventAttribute))
+					EmitCallWriteEvent(invocationContext, m, eventAttribute, parameterMapping);
 
 				// since EventSource only accepts non-virtual methods, and we need a virtual method to implement the abstract method
 				// we need to implement a wrapper method on the interface that calls into the base method
+				// and handles the bundling/unbundling of parameters
 				MethodBuilder im = _typeBuilder.DefineMethod("_" + methodName, MethodAttributes.Public | MethodAttributes.Virtual);
 				ProxyHelper.CopyMethodSignature(interfaceMethod, im);
 				ProxyHelper.EmitDefaultValue(im.GetILGenerator(), im.ReturnType);
 				if (EmitIsEnabled(im, eventAttribute))
 					EmitDirectProxy(invocationContext, im, m, parameterMapping);
 
-				// map our method to the interface implementation
-				_typeBuilder.DefineMethodOverride(im, interfaceMethod);
-			}
-			else if (interfaceMethod.DeclaringType.IsSubclassOf(typeof(EventSource)))
-			{
-				// if we are implementing an event source, then
-				// for non-abstract methods we just proxy the base implementation
-				EmitDirectProxy(invocationContext, m, interfaceMethod, parameterMapping);
+				// if this is an interface, then tell the system to map our method to the interface implementation
+				if (interfaceMethod.IsAbstract)
+					_typeBuilder.DefineMethodOverride(im, interfaceMethod);
 			}
 			else
 			{
-				// the base class is not an event source, so we are creating an eventsource-derived class
-				// that just logs the event
-				// so we need to call write event
-				// call IsEnabled with the given event level and keywords to check whether we should log
-				ProxyHelper.EmitDefaultValue(m.GetILGenerator(), m.ReturnType);
-				if (EmitIsEnabled(m, eventAttribute))
-					EmitCallWriteEvent(invocationContext, m, eventAttribute, parameterMapping);
+				// we are implementing a non-abstract method in event source, then
+				// all we can do is call the base implementation
+				EmitDirectProxy(invocationContext, m, interfaceMethod, parameterMapping);
 			}
 
 			return m;
