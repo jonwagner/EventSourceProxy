@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Linq.Expressions;
 using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
@@ -88,6 +89,23 @@ namespace EventSourceProxy
 			if (pi == null) throw new ArgumentNullException("pi");
 
 			AddSource(new ParameterDefinition(pi.Position, pi.ParameterType, pi.Name));
+		}
+
+		/// <summary>
+		/// Adds a parameter source to this mapping.
+		/// </summary>
+		/// <typeparam name="TIn">The input type of the converter.</typeparam>
+		/// <typeparam name="TOut">The output type of the converter.</typeparam>
+		/// <param name="pi">The parameter to add.</param>
+		/// <param name="converter">A converter that converts the parameter to a desired value.</param>
+		[System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Design", "CA1006:DoNotNestGenericTypesInMemberSignatures"), 
+			System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Design", "CA1011:ConsiderPassingBaseTypesAsParameters", Justification = "This lets the compiler know to generate expressions")]
+		public void AddSource<TIn, TOut>(ParameterInfo pi, Expression<Func<TIn, TOut>> converter)
+		{
+			if (pi == null) throw new ArgumentNullException("pi");
+			if (converter == null) throw new ArgumentNullException("converter");
+
+			_sources.Add(new ParameterDefinition(pi.Position, pi.ParameterType, pi.Name, converter));
 		}
 
 		/// <summary>

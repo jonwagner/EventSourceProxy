@@ -716,6 +716,7 @@ namespace EventSourceProxy
 				if (parameter.HasSource)
 				{
 					ProxyHelper.EmitSerializeValue(
+						_typeBuilder,
 						methodBuilder,
 						invocationContext,
 						_invocationContexts,

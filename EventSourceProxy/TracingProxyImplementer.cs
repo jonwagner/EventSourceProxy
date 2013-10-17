@@ -371,6 +371,7 @@ namespace EventSourceProxy
 			for (int i = 0; i < targetParameters.Length; i++)
 			{
 				ProxyHelper.EmitSerializeValue(
+					_typeBuilder,
 					m,
 					invocationContext,
 					_invocationContexts,
@@ -378,6 +379,7 @@ namespace EventSourceProxy
 					i,
 					sourceParameters[i].ParameterType,
 					targetParameters[i].ParameterType,
+					null,
 					_serializationProvider,
 					_serializerField);
 			}

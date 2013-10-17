@@ -281,5 +281,64 @@ namespace EventSourceProxy.Tests
 			}
 		}
 		#endregion
+
+		#region Exploding Parameters
+		public class EmailChange
+		{
+			public string From;
+			public string To;
+			public DateTime When;
+		}
+
+		[TraceParameterProvider(typeof(TempTPP))]
+		public interface ILogEmailChanges
+		{
+			void LogChange(EmailChange email);
+		}
+
+		[Test]
+		public void ParametersCanBeExploded()
+		{
+			EnableLogging<ILogEmailChanges>();
+
+			// do some logging
+			var log = EventSourceImplementer.GetEventSourceAs<ILogEmailChanges>();
+			var change = new EmailChange() { From = "me", To = "you", When = new DateTime(2010, 1, 1) };
+			log.LogChange(change);
+
+			// look at the events
+			var events = _listener.Events.ToArray();
+			Assert.AreEqual(1, events.Length);
+			Assert.AreEqual(3, events[0].Payload.Count);
+			Assert.AreEqual(change.From, events[0].Payload[0].ToString());
+			Assert.AreEqual(change.To, events[0].Payload[1].ToString());
+			Assert.AreEqual(change.When.ToString(), events[0].Payload[2].ToString());
+		}
+
+		class TempTPP : TraceParameterProvider
+		{
+			public override IReadOnlyCollection<ParameterMapping> ProvideParameterMapping(System.Reflection.MethodInfo methodInfo)
+			{
+				List<ParameterMapping> mapping = new List<ParameterMapping>();
+
+				var from = new ParameterMapping("from");
+				mapping.Add(from);
+				from.AddSource(methodInfo.GetParameters()[0], (EmailChange e) => e.From);
+
+				var to = new ParameterMapping("to");
+				to.AddSource(methodInfo.GetParameters()[0], (EmailChange e) => e.To);
+				mapping.Add(to);
+
+				var when = new ParameterMapping("when");
+				when.AddSource(methodInfo.GetParameters()[0], (EmailChange e) => e.When);
+				mapping.Add(when);
+
+				return mapping.AsReadOnly();
+			}
+		}
+
+		// TODO: test for nice exceptions when the expression input doesn't match the parameter type
+		// TODO: find a way to make this code pretty (e.g. attributes, fluent config)
+		#endregion
 	}
 }
