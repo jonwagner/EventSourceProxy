@@ -29,6 +29,10 @@ namespace EventSourceProxy
 
 			foreach (var parameter in methodInfo.GetParameters())
 			{
+				// if there is a TraceIgnore attribute, then skip this parameter
+				if (parameter.GetCustomAttribute<TraceIgnoreAttribute>() != null)
+					continue;
+
 				// we need one parameter per attribute, and at least one per parameter
 				var attributes = parameter.GetCustomAttributes<TraceAsAttribute>();
 				if (!attributes.Any())

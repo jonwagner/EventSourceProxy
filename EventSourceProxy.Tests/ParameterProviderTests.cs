@@ -298,7 +298,8 @@ namespace EventSourceProxy.Tests
 				[TraceMember("From")]
 				[TraceMember("To")]
 				[TraceMember("When")]
-				EmailChange email);
+				EmailChange email,
+				[TraceIgnore] string ignored);
 		}
 
 		[TraceParameterProvider(typeof(ExpressionTPP))]
@@ -315,7 +316,7 @@ namespace EventSourceProxy.Tests
 			// do some logging
 			var log = EventSourceImplementer.GetEventSourceAs<ILogEmailChangesWithAttributes>();
 			var change = new EmailChange() { From = "me", To = "you", When = new DateTime(2010, 1, 1) };
-			log.LogChange(change);
+			log.LogChange(change, "ignore me");
 
 			// look at the events
 			var events = _listener.Events.ToArray();
@@ -414,9 +415,6 @@ namespace EventSourceProxy.Tests
 			var change = new EmailChange() { From = "me", To = "you", When = new DateTime(2010, 1, 1) };
 			log.LogChange(change);
 		}
-
-		// TODO: find a way to make this code pretty (e.g. attributes, fluent config)
-		// TODO: ability to exclude parameters by attribute
 		#endregion
 	}
 }

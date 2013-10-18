@@ -62,6 +62,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="TraceIgnoreAttribute.cs" />
     <Compile Include="TraceAsDataAttribute.cs" />
     <Compile Include="TraceAsAttribute.cs" />
     <Compile Include="EventAttributeProviderAttribute.cs" />
