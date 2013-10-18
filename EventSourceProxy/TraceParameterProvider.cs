@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Linq.Expressions;
 using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
@@ -28,19 +29,38 @@ namespace EventSourceProxy
 
 			foreach (var parameter in methodInfo.GetParameters())
 			{
-				// determine the name to trace under
-				var traceAs = parameter.GetCustomAttribute<TraceAsAttribute>() ?? traceAsDefault;
-				var traceName = (traceAs != null) ? traceAs.Name : parameter.Name;
+				// we need one parameter per attribute, and at least one per parameter
+				var attributes = parameter.GetCustomAttributes<TraceAsAttribute>();
+				if (!attributes.Any())
+					attributes = new TraceAsAttribute[1] { traceAsDefault ?? new TraceAsAttribute(parameter.Name) };
 
-				// find the mapping that matches the name or create a new mapping
-				var mapping = parameters.FirstOrDefault(p => String.Compare(p.Name, traceName, StringComparison.OrdinalIgnoreCase) == 0);
-				if (mapping == null)
+				foreach (var attribute in attributes)
 				{
-					mapping = new ParameterMapping(traceName);
-					parameters.Add(mapping);
-				}
+					var traceName = attribute.Name;
 
-				mapping.AddSource(parameter);
+					// find the mapping that matches the name or create a new mapping
+					var mapping = parameters.FirstOrDefault(p => String.Compare(p.Name, traceName, StringComparison.OrdinalIgnoreCase) == 0);
+					if (mapping == null)
+					{
+						mapping = new ParameterMapping(traceName);
+						parameters.Add(mapping);
+					}
+
+					// if the attribute is a TraceMember, then create an expression to get the member
+					LambdaExpression expression = null;
+					var traceMember = attribute as TraceMemberAttribute;
+					if (traceMember != null)
+					{
+						var input = Expression.Parameter(parameter.ParameterType);
+						expression = Expression.Lambda(
+							Expression.MakeMemberAccess(
+								input,
+								parameter.ParameterType.GetMember(traceMember.Member).First()),
+							input);
+					}
+
+					mapping.AddSource(parameter, expression);
+				}
 			}
 
 			return parameters.AsReadOnly();

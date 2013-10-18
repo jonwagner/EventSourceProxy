@@ -94,6 +94,18 @@ namespace EventSourceProxy
 		/// <summary>
 		/// Adds a parameter source to this mapping.
 		/// </summary>
+		/// <param name="pi">The parameter to add.</param>
+		/// <param name="converter">A converter that converts the parameter to a desired value.</param>
+		public void AddSource(ParameterInfo pi, LambdaExpression converter)
+		{
+			if (pi == null) throw new ArgumentNullException("pi");
+
+			_sources.Add(new ParameterDefinition(pi.Position, pi.ParameterType, pi.Name, converter));
+		}
+
+		/// <summary>
+		/// Adds a parameter source to this mapping.
+		/// </summary>
 		/// <typeparam name="TIn">The input type of the converter.</typeparam>
 		/// <typeparam name="TOut">The output type of the converter.</typeparam>
 		/// <param name="pi">The parameter to add.</param>
@@ -102,10 +114,7 @@ namespace EventSourceProxy
 			System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Design", "CA1011:ConsiderPassingBaseTypesAsParameters", Justification = "This lets the compiler know to generate expressions")]
 		public void AddSource<TIn, TOut>(ParameterInfo pi, Expression<Func<TIn, TOut>> converter)
 		{
-			if (pi == null) throw new ArgumentNullException("pi");
-			if (converter == null) throw new ArgumentNullException("converter");
-
-			_sources.Add(new ParameterDefinition(pi.Position, pi.ParameterType, pi.Name, converter));
+			AddSource(pi, (LambdaExpression)converter);
 		}
 
 		/// <summary>

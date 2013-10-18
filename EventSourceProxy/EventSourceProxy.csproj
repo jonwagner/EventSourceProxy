@@ -70,6 +70,7 @@
     <Compile Include="GlobalSuppressions.cs" />
     <Compile Include="ParameterDefinition.cs" />
     <Compile Include="ParameterMapping.cs" />
+    <Compile Include="TraceMemberAttribute.cs" />
     <Compile Include="TraceParameterProvider.cs" />
     <Compile Include="TraceParameterProviderAttribute.cs" />
     <Compile Include="TraceSerializationAttribute.cs" />

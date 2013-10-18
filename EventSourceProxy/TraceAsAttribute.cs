@@ -15,7 +15,8 @@ namespace EventSourceProxy
 	/// If TraceAsAttribute is applied to a method, then all parameters of the method are traced into the specified name
 	/// unless other TraceAsAttributes are applied.
 	/// </remarks>
-	[System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Performance", "CA1813:AvoidUnsealedAttributes"), AttributeUsage(AttributeTargets.Parameter | AttributeTargets.Method, AllowMultiple = false)]
+	[System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Performance", "CA1813:AvoidUnsealedAttributes")]
+	[AttributeUsage(AttributeTargets.Parameter | AttributeTargets.Method)]
 	public class TraceAsAttribute : Attribute
 	{
 		/// <summary>

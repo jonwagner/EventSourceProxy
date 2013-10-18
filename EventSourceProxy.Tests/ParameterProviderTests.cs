@@ -288,21 +288,32 @@ namespace EventSourceProxy.Tests
 			public string From;
 			public string To;
 			public DateTime When;
+
+			public string GetDomain() { return To; }
 		}
 
-		[TraceParameterProvider(typeof(TempTPP))]
-		public interface ILogEmailChanges
+		public interface ILogEmailChangesWithAttributes
+		{
+			void LogChange(
+				[TraceMember("From")]
+				[TraceMember("To")]
+				[TraceMember("When")]
+				EmailChange email);
+		}
+
+		[TraceParameterProvider(typeof(ExpressionTPP))]
+		public interface ILogEmailChangesWithTPP
 		{
 			void LogChange(EmailChange email);
 		}
 
 		[Test]
-		public void ParametersCanBeExploded()
+		public void ParametersCanBeExplodedByAttributes()
 		{
-			EnableLogging<ILogEmailChanges>();
+			EnableLogging<ILogEmailChangesWithAttributes>();
 
 			// do some logging
-			var log = EventSourceImplementer.GetEventSourceAs<ILogEmailChanges>();
+			var log = EventSourceImplementer.GetEventSourceAs<ILogEmailChangesWithAttributes>();
 			var change = new EmailChange() { From = "me", To = "you", When = new DateTime(2010, 1, 1) };
 			log.LogChange(change);
 
@@ -310,35 +321,102 @@ namespace EventSourceProxy.Tests
 			var events = _listener.Events.ToArray();
 			Assert.AreEqual(1, events.Length);
 			Assert.AreEqual(3, events[0].Payload.Count);
+			Assert.Contains(change.From, events[0].Payload);
+			Assert.Contains(change.To, events[0].Payload);
+			Assert.Contains(change.When.ToString(), events[0].Payload);
+		}
+
+		[Test]
+		public void ParametersCanBeExplodedByProvider()
+		{
+			EnableLogging<ILogEmailChangesWithTPP>();
+
+			// do some logging
+			var log = EventSourceImplementer.GetEventSourceAs<ILogEmailChangesWithTPP>();
+			var change = new EmailChange() { From = "me", To = "you", When = new DateTime(2010, 1, 1) };
+			log.LogChange(change);
+
+			// look at the events
+			var events = _listener.Events.ToArray();
+			Assert.AreEqual(1, events.Length);
+			Assert.AreEqual(4, events[0].Payload.Count);
 			Assert.AreEqual(change.From, events[0].Payload[0].ToString());
 			Assert.AreEqual(change.To, events[0].Payload[1].ToString());
 			Assert.AreEqual(change.When.ToString(), events[0].Payload[2].ToString());
+			Assert.AreEqual(change.To, events[0].Payload[3].ToString());
 		}
 
-		class TempTPP : TraceParameterProvider
+		class ExpressionTPP : TraceParameterProvider
 		{
 			public override IReadOnlyCollection<ParameterMapping> ProvideParameterMapping(System.Reflection.MethodInfo methodInfo)
 			{
 				List<ParameterMapping> mapping = new List<ParameterMapping>();
 
+				var email = methodInfo.GetParameters()[0];
+
 				var from = new ParameterMapping("from");
 				mapping.Add(from);
-				from.AddSource(methodInfo.GetParameters()[0], (EmailChange e) => e.From);
+				from.AddSource(email, (EmailChange e) => e.From);
 
 				var to = new ParameterMapping("to");
-				to.AddSource(methodInfo.GetParameters()[0], (EmailChange e) => e.To);
+				to.AddSource(email, (EmailChange e) => e.To);
 				mapping.Add(to);
 
 				var when = new ParameterMapping("when");
-				when.AddSource(methodInfo.GetParameters()[0], (EmailChange e) => e.When);
+				when.AddSource(email, (EmailChange e) => e.When);
 				mapping.Add(when);
+
+				var domain = new ParameterMapping("domain");
+				domain.AddSource(email, (EmailChange e) => e.GetDomain());
+				mapping.Add(domain);
 
 				return mapping.AsReadOnly();
 			}
 		}
 
-		// TODO: test for nice exceptions when the expression input doesn't match the parameter type
+		[TraceParameterProvider(typeof(BadExpressionTPP))]
+		public interface ILogEmailChangesWithBadExpressionTPP
+		{
+			void LogChange(EmailChange email);
+		}
+
+		class BadExpressionTPP : TraceParameterProvider
+		{
+			class OtherClass
+			{
+				public string AMethodNotShared()
+				{
+					return "boo";
+				}
+			}
+
+			public override IReadOnlyCollection<ParameterMapping> ProvideParameterMapping(System.Reflection.MethodInfo methodInfo)
+			{
+				List<ParameterMapping> mapping = new List<ParameterMapping>();
+
+				var email = methodInfo.GetParameters()[0];
+
+				var from = new ParameterMapping("from");
+				mapping.Add(from);
+				from.AddSource(email, (OtherClass o) => o.AMethodNotShared());
+
+				return mapping.AsReadOnly();
+			}
+		}
+
+		[Test, ExpectedException(typeof(MethodAccessException))]
+		public void BadExpressionGeneratesMeaningfulException()
+		{
+			EnableLogging<ILogEmailChangesWithBadExpressionTPP>();
+
+			// do some logging
+			var log = EventSourceImplementer.GetEventSourceAs<ILogEmailChangesWithBadExpressionTPP>();
+			var change = new EmailChange() { From = "me", To = "you", When = new DateTime(2010, 1, 1) };
+			log.LogChange(change);
+		}
+
 		// TODO: find a way to make this code pretty (e.g. attributes, fluent config)
+		// TODO: ability to exclude parameters by attribute
 		#endregion
 	}
 }
