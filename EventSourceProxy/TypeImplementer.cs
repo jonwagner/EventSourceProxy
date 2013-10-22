@@ -85,6 +85,11 @@ namespace EventSourceProxy
 		private FieldBuilder _serializationProviderField;
 
 		/// <summary>
+		/// Provides the trace parameters for event methods.
+		/// </summary>
+		private TraceParameterProvider _traceParameterProvider;
+
+		/// <summary>
 		/// Provides the event attributes for the event methods.
 		/// </summary>
 		private EventAttributeProvider _eventAttributeProvider;
@@ -115,12 +120,14 @@ namespace EventSourceProxy
 		/// Initializes a new instance of the TypeImplementer class.
 		/// </summary>
 		/// <param name="interfaceType">The type to implement.</param>
-		public TypeImplementer(Type interfaceType)
+		/// <param name="parameterProvider">An optional parameter provider to use when building the type. Used for testing.</param>
+		public TypeImplementer(Type interfaceType, TraceParameterProvider parameterProvider = null)
 		{
 			_interfaceType = interfaceType;
 			_contextProvider = ProviderManager.GetProvider<TraceContextProvider>(interfaceType, typeof(TraceContextProviderAttribute), null);
 			_serializationProvider = TraceSerializationProvider.GetSerializationProvider(interfaceType);
 			_eventAttributeProvider = ProviderManager.GetProvider<EventAttributeProvider>(interfaceType, typeof(EventAttributeProviderAttribute), () => new EventAttributeProvider());
+			_traceParameterProvider = parameterProvider ?? TraceParameterProvider.GetParameterProvider(interfaceType);
 
 			// only interfaces support context
 			if (_contextProvider != null && !_interfaceType.IsInterface)
@@ -283,7 +290,7 @@ namespace EventSourceProxy
 		{
 			// get the method we are implementing and the parameter mapping
 			var interfaceMethod = invocationContext.MethodInfo;
-			var parameterMapping = TraceParameterProvider.GetParameterMapping(invocationContext.MethodInfo).Where(p => p.HasSource).ToList();
+			var parameterMapping = _traceParameterProvider.ProvideParameterMapping(invocationContext.MethodInfo).Where(p => p.HasSource).ToList();
 
 			// if we are implementing an interface, then add an string context parameter
 			if (SupportsContext(invocationContext))
@@ -422,7 +429,7 @@ namespace EventSourceProxy
 			if (parameterType != typeof(void))
 			{
 				var mapping = new ParameterMapping(ReturnValue);
-				mapping.AddSource(new ParameterDefinition(0, parameterType, ReturnValue));
+				mapping.AddSource(new ParameterDefinition(ReturnValue, 0, parameterType));
 				parameterMappings.Add(mapping);
 			}
 

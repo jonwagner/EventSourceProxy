@@ -42,6 +42,7 @@
     <CodeAnalysisTreatWarningsAsErrors>True</CodeAnalysisTreatWarningsAsErrors>
     <StyleCopEnabled>True</StyleCopEnabled>
     <StyleCopTreatErrorsAsWarnings>False</StyleCopTreatErrorsAsWarnings>
+    <DocumentationFile>bin\Release\EventSourceProxy.XML</DocumentationFile>
   </PropertyGroup>
   <PropertyGroup>
     <SignAssembly>true</SignAssembly>
@@ -62,23 +63,9 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-<<<<<<< HEAD
-=======
-    <Compile Include="EventDataProvider.cs" />
-    <Compile Include="ExpressionExtensions.cs" />
-    <Compile Include="Fluent\Any.cs" />
-    <Compile Include="Fluent\Anything.cs" />
-    <Compile Include="Fluent\For.cs" />
-    <Compile Include="Fluent\TraceDescription.cs" />
-<<<<<<< HEAD
->>>>>>> 0e3d089... Initial commit of Fluent API
-=======
-    <Compile Include="Fluent\TraceDescriptionForParam.cs" />
-    <Compile Include="Fluent\TraceDescriptionForSource.cs" />
-    <Compile Include="Fluent\TraceDescriptor.cs" />
-    <Compile Include="Fluent\TraceValue.cs" />
-    <Compile Include="Fluent\ValueSerializer.cs" />
->>>>>>> 2d6bd30... Completed first draft of Fluent API
+    <Compile Include="Any.cs" />
+    <Compile Include="ParameterBuilder.cs" />
+    <Compile Include="ParameterBuilderValue.cs" />
     <Compile Include="TraceIgnoreAttribute.cs" />
     <Compile Include="TraceAsDataAttribute.cs" />
     <Compile Include="TraceAsAttribute.cs" />

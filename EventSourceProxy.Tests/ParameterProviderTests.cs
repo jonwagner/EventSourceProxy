@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics.Tracing;
 using System.Linq;
+using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -135,13 +136,6 @@ namespace EventSourceProxy.Tests
 			proxy.TraceSomeParameters("p", "p1", "p2");
 
 			VerifyEvents();
-		}
-
-		private void EnableLogging<TLog>() where TLog : class
-		{
-			// create the logger and make sure it is serializing the parameters properly
-			var logger = EventSourceImplementer.GetEventSource<TLog>();
-			_listener.EnableEvents(logger, EventLevel.LogAlways, (EventKeywords)(-1));
 		}
 
 		private void VerifyEvents()
@@ -405,7 +399,7 @@ namespace EventSourceProxy.Tests
 			}
 		}
 
-		[Test, ExpectedException(typeof(MethodAccessException))]
+		[Test, ExpectedException(typeof(ArgumentException))]
 		public void BadExpressionGeneratesMeaningfulException()
 		{
 			EnableLogging<ILogEmailChangesWithBadExpressionTPP>();
@@ -414,6 +408,55 @@ namespace EventSourceProxy.Tests
 			var log = EventSourceImplementer.GetEventSourceAs<ILogEmailChangesWithBadExpressionTPP>();
 			var change = new EmailChange() { From = "me", To = "you", When = new DateTime(2010, 1, 1) };
 			log.LogChange(change);
+		}
+		#endregion
+
+		#region Context Parameters
+		[TraceParameterProvider(typeof(TPPWithContext))]
+		public interface IHaveNoContext
+		{
+			void DoSomething(string message);
+		}
+
+		public class TPPWithContext : TraceParameterProvider
+		{
+			public override IReadOnlyCollection<ParameterMapping> ProvideParameterMapping(MethodInfo methodInfo)
+			{
+				List<ParameterMapping> mappings = base.ProvideParameterMapping(methodInfo).ToList();
+
+				var mapping = new ParameterMapping("context");
+				mapping.AddContext("context", () => GetContext());
+				mappings.Add(mapping);
+
+				return mappings.AsReadOnly();
+			}
+
+			public static int ContextCalls { get; private set; }
+
+			public static string GetContext()
+			{
+				ContextCalls = ContextCalls + 1;
+				return "testing";
+			}
+		}
+
+		[Test]
+		public void ContextCanBeProvidedByParameterProvider()
+		{
+			EnableLogging<IHaveNoContext>();
+
+			var log = EventSourceImplementer.GetEventSourceAs<IHaveNoContext>();
+			log.DoSomething("message");
+
+			// look at the events
+			var events = _listener.Events.ToArray();
+			Assert.AreEqual(1, events.Length);
+			Assert.AreEqual(2, events[0].Payload.Count);
+			Assert.AreEqual("message", events[0].Payload[0].ToString());
+			Assert.AreEqual("testing", events[0].Payload[1].ToString());
+
+			// make sure there is only one call to the context provider
+			Assert.AreEqual(1, TPPWithContext.ContextCalls);
 		}
 		#endregion
 	}

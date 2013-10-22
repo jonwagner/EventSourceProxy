@@ -84,23 +84,36 @@ namespace EventSourceProxy
 		/// Adds a parameter source to this mapping.
 		/// </summary>
 		/// <param name="pi">The parameter to add.</param>
-		public void AddSource(ParameterInfo pi)
+		/// <param name="alias">The alias to use to log the parameter.</param>
+		/// <param name="converter">A converter that converts the parameter to a desired value.</param>
+		public void AddSource(ParameterInfo pi, string alias = null, LambdaExpression converter = null)
 		{
-			if (pi == null) throw new ArgumentNullException("pi");
+			if (alias == null)
+			{
+				if (pi == null)
+					throw new ArgumentNullException("pi");
+				else
+					alias = pi.Name;
+			}
 
-			AddSource(new ParameterDefinition(pi.Position, pi.ParameterType, pi.Name));
+			_sources.Add(new ParameterDefinition(alias, pi, converter));
 		}
 
 		/// <summary>
 		/// Adds a parameter source to this mapping.
 		/// </summary>
+		/// <typeparam name="TIn">The input type of the converter.</typeparam>
+		/// <typeparam name="TOut">The output type of the converter.</typeparam>
 		/// <param name="pi">The parameter to add.</param>
+		/// <param name="alias">The alias to use to log the parameter.</param>
 		/// <param name="converter">A converter that converts the parameter to a desired value.</param>
-		public void AddSource(ParameterInfo pi, LambdaExpression converter)
+		[System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Design", "CA1006:DoNotNestGenericTypesInMemberSignatures"),
+			System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Design", "CA1011:ConsiderPassingBaseTypesAsParameters", Justification = "This lets the compiler know to generate expressions")]
+		public void AddSource<TIn, TOut>(ParameterInfo pi, string alias, Expression<Func<TIn, TOut>> converter)
 		{
 			if (pi == null) throw new ArgumentNullException("pi");
 
-			_sources.Add(new ParameterDefinition(pi.Position, pi.ParameterType, pi.Name, converter));
+			AddSource(pi, alias, (LambdaExpression)converter);
 		}
 
 		/// <summary>
@@ -114,7 +127,22 @@ namespace EventSourceProxy
 			System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Design", "CA1011:ConsiderPassingBaseTypesAsParameters", Justification = "This lets the compiler know to generate expressions")]
 		public void AddSource<TIn, TOut>(ParameterInfo pi, Expression<Func<TIn, TOut>> converter)
 		{
-			AddSource(pi, (LambdaExpression)converter);
+			if (pi == null) throw new ArgumentNullException("pi");
+
+			AddSource(pi, pi.Name, (LambdaExpression)converter);
+		}
+
+		/// <summary>
+		/// Adds a context method to this mapping.
+		/// </summary>
+		/// <typeparam name="TOut">The output type of the context expression</typeparam>
+		/// <param name="alias">The alias to use to log the context.</param>
+		/// <param name="contextExpression">An expression that can generate context.</param>
+		[System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Design", "CA1006:DoNotNestGenericTypesInMemberSignatures"),
+			System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Design", "CA1011:ConsiderPassingBaseTypesAsParameters", Justification = "This lets the compiler know to generate expressions")]
+		public void AddContext<TOut>(string alias, Expression<Func<TOut>> contextExpression)
+		{
+			AddSource(new ParameterDefinition(alias, null, contextExpression));
 		}
 
 		/// <summary>

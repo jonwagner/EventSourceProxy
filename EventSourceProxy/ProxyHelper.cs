@@ -134,7 +134,7 @@ namespace EventSourceProxy
 				foreach (var parameter in parameterMapping.Sources)
 				{
 					il.Emit(OpCodes.Dup);
-					il.Emit(OpCodes.Ldstr, parameter.Name);
+					il.Emit(OpCodes.Ldstr, parameter.Alias);
 
 					EmitSerializeValue(
 						typeBuilder,
@@ -198,8 +198,9 @@ namespace EventSourceProxy
 		{
 			ILGenerator mIL = methodBuilder.GetILGenerator();
 
-			// load the parameter onto the stack
-			mIL.Emit(OpCodes.Ldarg, i + 1);
+			// if the source is a parameter, then load the parameter onto the stack
+			if (i >= 0)
+				mIL.Emit(OpCodes.Ldarg, i + 1);
 
 			// if a converter is passed in, then define a static method and use it to convert
 			if (converter != null)

@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics.Tracing;
 using System.Linq;
@@ -30,6 +31,11 @@ namespace EventSourceProxy
 		};
 
 		/// <summary>
+		/// Manages a list of the types that have been implemented so far.
+		/// </summary>
+		private static List<Type> _typesImplemented = new List<Type>();
+
+		/// <summary>
 		/// An empty parameter list.
 		/// </summary>
 		private static object[] _emptyParameters = new object[0];
@@ -46,10 +52,24 @@ namespace EventSourceProxy
 			var attribute = type.GetCustomAttribute<EventSourceAttribute>() ?? new EventSourceAttribute();
 			var implementation = type.GetCustomAttribute<EventSourceImplementationAttribute>() ?? new EventSourceImplementationAttribute();
 
+			// by default, we will use a null guid, which will tell EventSource to generate the guid from the name
+			// but if we have already generated this type, we will have to generate a new one
+			string guid = implementation.Guid ?? attribute.Guid ?? null;
+			if (guid == null)
+			{
+				lock (_typesImplemented)
+				{
+					if (_typesImplemented.Contains(type))
+						guid = Guid.NewGuid().ToString();
+					else
+						_typesImplemented.Add(type);
+				}
+			}
+
 			var propertyValues = new object[]
 			{
 				implementation.Name ?? attribute.Name ?? (type.IsGenericType ? type.FullName : type.Name),
-				implementation.Guid ?? attribute.Guid ?? null,
+				guid,
 			};
 
 			CustomAttributeBuilder attributeBuilder = new CustomAttributeBuilder(
