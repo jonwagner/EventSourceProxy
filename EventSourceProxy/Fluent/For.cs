@@ -10,9 +10,9 @@ namespace EventSourceProxy.Fluent
             return new TraceDescriptionForSourceWithParam<TSource, TParam>();
         }
 
-        public static ITraceDescriptionForSourceWithMethod<TSource> Method(Expression<Action<TSource>> methodExpression)
+        public static ITraceDescriptionForSourceWithMethod<TSource> Method(Expression<Action<TSource>> expression)
         {
-            throw new NotImplementedException();
+            return new TraceDescriptionForSourceWithMethod<TSource>(expression);
         }
     }
 }
