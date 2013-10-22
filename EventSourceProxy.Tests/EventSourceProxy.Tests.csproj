@@ -60,6 +60,8 @@
     <Compile Include="EventAttributeProviderTests.cs" />
     <Compile Include="EventActivityScopeTests.cs" />
     <Compile Include="EventDataProviderTests.cs" />
+    <Compile Include="FluentInterfaceTests.cs" />
+    <Compile Include="IEmailer.cs" />
     <Compile Include="ParameterProviderTests.cs" />
     <Compile Include="SerializationTests.cs" />
     <Compile Include="TraceContextProviderTests.cs" />
