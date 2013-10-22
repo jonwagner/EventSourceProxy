@@ -62,6 +62,17 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="EventDataProvider.cs" />
+    <Compile Include="ExpressionExtensions.cs" />
+    <Compile Include="Fluent\Any.cs" />
+    <Compile Include="Fluent\Anything.cs" />
+    <Compile Include="Fluent\For.cs" />
+    <Compile Include="Fluent\TraceDescription.cs" />
+    <Compile Include="Fluent\TraceDescriptionForParam.cs" />
+    <Compile Include="Fluent\TraceDescriptionForSource.cs" />
+    <Compile Include="Fluent\TraceDescriptor.cs" />
+    <Compile Include="Fluent\TraceValue.cs" />
+    <Compile Include="Fluent\ValueSerializer.cs" />
     <Compile Include="TraceIgnoreAttribute.cs" />
     <Compile Include="TraceAsDataAttribute.cs" />
     <Compile Include="TraceAsAttribute.cs" />
