@@ -64,6 +64,53 @@ Here is ESP wrapping an existing interface for tracing:
 	// all calls are automatically logged when the ETW source is enabled
 	int total = proxy.Add(1, 2);
 
+And let's say that your interface doesn't look at all like what you want logged. You can add rules to clean all that up:
+
+Say you have the following interface:
+
+	interface IEmailer
+	{
+		void Send(Email email, DateTime when);
+		void Receive(Email email);
+		void Cancel(string from, string to, DateTime earliest, DateTime latest);
+	}
+
+	class Email
+	{
+		public string From;
+		public string To;
+		public string Subject;
+		public string Body;
+		public IEnumerable<byte[]> Attachments; 
+	}
+
+Set up rules on how ESP should trace the data to ETW:
+
+	TraceParameterProvider.Default
+		.For<IEmailer>()
+			.With<Email>()
+				.Trace(e => e.From).As("Sender") 
+				.Trace(e => e.To).As("Recipient")
+				.Trace(e => e.Subject).As("s")
+ 					.And(e => e.Body).As("b")
+					.TogetherAs("message")
+				.Trace(e => String.Join("/", e.Attachments.Select(Convert.ToBase64String).ToArray()))
+					.As("attachments")
+		.For<IEmailer>(m => m.Send(Any<Email>.Value, Any<DateTime>.Value)
+			.Ignore("when");
+		.ForAnything()
+			.AddContext("user", () => SomeMethodThatChecksIdentity());
+
+And now the Send method will log:
+
+	* Sender : From
+	* Recipient : To
+	* Message : { "s":subject, "b":body }
+	* Attachments : [ base64, base64 ]
+	* User : current user
+
+So, this is great for adding logging to any interface in your application.
+
 # Features #
 
 * Automatically implement logging for any interface, class derived from EventSource.
@@ -71,11 +118,16 @@ Here is ESP wrapping an existing interface for tracing:
 * Supports EventSource and Event attributes for controlling the generated events.
 * Supports reusing Keyword, Opcode, and Task enums in multiple log sources.
 * Automatically proxy any interface and create a logging source.
+* Add rules to transform parameters and objects from your interface to your log.
 * Proxies also implement _Completed and _Faulted events.
 * Automatically convert complex types to JSON strings for logging.
 * Optionally override the object serializer.
 * Optionally provide a logging context across an entire logging interface.
 * Easily manage Activity IDs with EventActivityScope.
+
+# New in v2.0 - Logging Transforms #
+
+* Use attributes and configuration rules to transform your interface calls to entirely different logging calls. See [[Controlling Logged Data]] and [[Adding Additional Logging Context]].
 
 # Documentation #
 
