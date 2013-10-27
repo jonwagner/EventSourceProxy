@@ -11,6 +11,7 @@ properties {
 
     $version = git describe --abbrev=0 --tags
     $changeset = (git log -1 $version --pretty=format:%H)
+	$assemblyversion = $version.Split('-', 2)[0]
 
     $outputDir = "$baseDir\Build\Output"
 
@@ -29,7 +30,7 @@ function Replace-Version {
     )
 
     (Get-Content $Path) |
-		% { $_ -replace "\[assembly: AssemblyFileVersion\(`"(\d+\.?)*`"\)\]","[assembly: AssemblyFileVersion(`"$version`")]" } |
+		% { $_ -replace "\[assembly: AssemblyFileVersion\(`"(\d+\.?)*`"\)\]","[assembly: AssemblyFileVersion(`"$assemblyversion`")]" } |
 		Set-Content $Path
 }
 
