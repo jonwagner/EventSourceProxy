@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using EventSourceProxy;
 using NUnit.Framework;
+using System.Diagnostics.Tracing;
 
 namespace EventSourceProxy.Tests
 {
@@ -579,6 +580,64 @@ namespace EventSourceProxy.Tests
 			var traceValues = traceBuilder.Values.ToArray();
 			Assert.That(traceValues.Length, Is.EqualTo(1));
 			ValidateValue(traceValues[0], "context", null, true);
+		}
+		#endregion
+
+		#region EventSource Implementation
+		public abstract class EventSourceWithRules : EventSource
+		{
+			public abstract void TraceException(Exception e);
+		}
+
+		[Test]
+		public void CanAddRulesToEventSource()
+		{
+			var tpp = new TraceParameterProvider();
+			tpp.ForAnything().With<Exception>()
+				.Trace(e => e.Message)
+				.Trace(e => e.StackTrace);
+
+			var proxy = (EventSourceWithRules)new TypeImplementer(typeof(EventSourceWithRules), tpp).EventSource;
+			EnableLogging(proxy);
+			proxy.TraceException(new Exception("oops, world"));
+
+			// look at the events
+			var events = _listener.Events.ToArray();
+			Assert.AreEqual(1, events.Length);
+			Assert.AreEqual(2, events[0].Payload.Count);
+			Assert.That(events[0].Payload.Contains("oops, world"));
+		}
+
+		public abstract class MyTestEventSource : EventSource
+		{
+			static MyTestEventSource()
+			{
+				TraceParameterProvider.Default.ForAnything()
+					.With<Exception>()
+						.Trace(e => e.Message).As("ExceptionMessage")
+						.Trace(e => e.StackTrace);
+
+				Log = EventSourceImplementer.GetEventSourceAs<MyTestEventSource>();
+			}
+
+			public static MyTestEventSource Log;
+
+			[Event(1, Level = EventLevel.Error, Message = "Some error: {0}")]
+			public abstract void LogError(Exception ex);
+		}
+
+		[Test]
+		public void CanAddRulesToEventSourceWithStaticInitialization()
+		{
+			EnableLogging<MyTestEventSource>();
+
+			MyTestEventSource.Log.LogError(new Exception("oops, world"));
+
+			// look at the events
+			var events = _listener.Events.ToArray();
+			Assert.AreEqual(1, events.Length);
+			Assert.AreEqual(2, events[0].Payload.Count);
+			Assert.That(events[0].Payload.Contains("oops, world"));
 		}
 		#endregion
 
