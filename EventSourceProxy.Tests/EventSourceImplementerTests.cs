@@ -508,5 +508,63 @@ namespace EventSourceProxy.Tests
 			Assert.AreEqual(6, events.Length);
 		}
 		#endregion
+
+		#region Interface Keywords
+		public interface InterfaceWith45Methods
+		{
+			void Method01();
+			void Method02();
+			void Method03();
+			void Method04();
+			void Method05();
+			void Method06();
+			void Method07();
+			void Method08();
+			void Method09();
+			void Method10();
+			void Method11();
+			void Method12();
+			void Method13();
+			void Method14();
+			void Method15();
+			void Method16();
+			void Method17();
+			void Method18();
+			void Method19();
+			void Method20();
+			void Method21();
+			void Method22();
+			void Method23();
+			void Method24();
+			void Method25();
+			void Method26();
+			void Method27();
+			void Method28();
+			void Method29();
+			void Method30();
+			void Method31();
+			void Method32();
+			void Method33();
+			void Method34();
+			void Method35();
+			void Method36();
+			void Method37();
+			void Method38();
+			void Method39();
+			void Method40();
+			void Method41();
+			void Method42();
+			void Method43();
+			void Method44();
+			void Method45();
+		}
+
+		[Test]
+		public void InterfaceWithManyMethodsDoesNotBreakKeywords()
+		{
+			// max keyword value in windows 8.1 is 0x0000100000000000 (44 bits)
+			Assert.DoesNotThrow(() => EventSourceManifest.GenerateManifest(typeof(InterfaceWith45Methods)));
+		}
+		#endregion
 	}
 }
