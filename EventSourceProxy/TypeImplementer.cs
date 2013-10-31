@@ -7,6 +7,7 @@ using System.Linq;
 using System.Reflection;
 using System.Reflection.Emit;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
 namespace EventSourceProxy
@@ -57,7 +58,7 @@ namespace EventSourceProxy
 		/// <summary>
 		/// The maximum user-defined Keywords value since Windows 8.1.
 		/// </summary>
-		private const ulong MaxKeywordValue = 0x0000100000000000;
+		private const ulong ReservedKeywordValue = 0x0000100000000000;
 
 		/// <summary>
 		/// The WriteEvent method for EventSource.
@@ -230,7 +231,7 @@ namespace EventSourceProxy
 
 			// if there isn't a keyword class, then auto-generate the keywords
 			bool hasKeywords = (implementationAttribute.Keywords != null) || (FindNestedType(_interfaceType, "Keywords") != null);
-			ulong autoKeyword = hasKeywords ? (ulong)0 : 1;
+			ulong nextAutoKeyword = hasKeywords ? (ulong)0 : 1;
 
 			// for each method on the interface, try to implement it with a call to eventsource
 			Dictionary<string, ulong> autoKeywords = new Dictionary<string, ulong>();
@@ -238,18 +239,27 @@ namespace EventSourceProxy
 			{
 				var invocationContext = new InvocationContext(interfaceMethod, InvocationContextTypes.MethodCall);
 
-				var beginMethod = EmitMethodImpl(invocationContext, ref eventId, (EventKeywords)autoKeyword);
-				var faultedMethod = EmitMethodFaultedImpl(invocationContext, beginMethod, ref eventId, (EventKeywords)autoKeyword);
-				EmitMethodCompletedImpl(invocationContext, beginMethod, ref eventId, (EventKeywords)autoKeyword, faultedMethod);
+				// determine the keyword to use for the method
+				string keywordName = FoldMethodName(interfaceMethod);
+				if (!autoKeywords.ContainsKey(keywordName))
+				{
+					autoKeywords.Add(keywordName, nextAutoKeyword);
 
-				// shift to the next keyword
-				autoKeywords.Add(beginMethod.Name, autoKeyword);
-				autoKeyword <<= 1;
+					// shift to the next keyword
+					nextAutoKeyword <<= 1;
 
-				// System.ArgumentException: Keywords values larger than 0x0000100000000000 are reserved for system use
-				// so we have to stop generating autokeywords
-				if (autoKeyword >= MaxKeywordValue)
-					autoKeyword = 0;
+					// System.ArgumentException: Keywords values larger than 0x0000100000000000 are reserved for system use
+					// so we have to stop generating autokeywords
+					if (nextAutoKeyword >= ReservedKeywordValue)
+						nextAutoKeyword = 0;
+				}
+
+				ulong keywordForMethod = autoKeywords[keywordName];
+
+				// emit the methods
+				var beginMethod = EmitMethodImpl(invocationContext, ref eventId, (EventKeywords)keywordForMethod);
+				var faultedMethod = EmitMethodFaultedImpl(invocationContext, beginMethod, ref eventId, (EventKeywords)keywordForMethod);
+				EmitMethodCompletedImpl(invocationContext, beginMethod, ref eventId, (EventKeywords)keywordForMethod, faultedMethod);
 			}
 
 			// create the type
@@ -274,6 +284,21 @@ namespace EventSourceProxy
 			// fill in the event source for all of the invocation contexts
 			foreach (var context in _invocationContexts)
 				context.EventSource = EventSource;
+		}
+
+		/// <summary>
+		/// Folds common method names together if the base method name also exists on the interface.
+		/// </summary>
+		/// <param name="methodInfo">The method to fold.</param>
+		/// <returns>The name to use for keyword logging.</returns>
+		private static string FoldMethodName(MethodInfo methodInfo)
+		{
+			string trimmed = Regex.Replace(methodInfo.Name, "(^(begin|end))|(async$)", String.Empty, RegexOptions.IgnoreCase);
+
+			if (methodInfo.DeclaringType.GetMethods().Any(m => String.Compare(m.Name, trimmed, StringComparison.OrdinalIgnoreCase) == 0))
+				return trimmed;
+
+			return methodInfo.Name;
 		}
 
 		/// <summary>

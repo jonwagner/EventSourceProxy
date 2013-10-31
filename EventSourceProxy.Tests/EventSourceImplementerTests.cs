@@ -565,6 +565,23 @@ namespace EventSourceProxy.Tests
 			// max keyword value in windows 8.1 is 0x0000100000000000 (44 bits)
 			Assert.DoesNotThrow(() => EventSourceManifest.GenerateManifest(typeof(InterfaceWith45Methods)));
 		}
+
+		public interface InterfaceThatFolds
+		{
+			void BeginFoo();
+			void EndFoo();
+			void Foo();
+			void FooAsync();
+		}
+
+		[Test]
+		public void InterfaceWithSimilarMethodsFolds()
+		{
+			var manifest = EventSourceManifest.GenerateManifest(typeof(InterfaceThatFolds));
+
+			// make sure there is only one keyword
+			Assert.That(manifest.Contains("<keywords>\r\n  <keyword name=\"Foo\"  message=\"$(string.keyword_Foo)\" mask=\"0x1\"/>\r\n </keywords>"));
+		}
 		#endregion
 	}
 }
