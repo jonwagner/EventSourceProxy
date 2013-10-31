@@ -55,6 +55,11 @@ namespace EventSourceProxy
 		private const string ReturnValue = "ReturnValue";
 
 		/// <summary>
+		/// The maximum user-defined Keywords value since Windows 8.1.
+		/// </summary>
+		private const ulong MaxKeywordValue = 0x0000100000000000;
+
+		/// <summary>
 		/// The WriteEvent method for EventSource.
 		/// </summary>
 		private static MethodInfo _writeEvent = typeof(EventSource).GetMethod("WriteEvent", BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.InvokeMethod, null, new[] { typeof(int), typeof(object[]) }, null);
@@ -240,6 +245,11 @@ namespace EventSourceProxy
 				// shift to the next keyword
 				autoKeywords.Add(beginMethod.Name, autoKeyword);
 				autoKeyword <<= 1;
+
+				// System.ArgumentException: Keywords values larger than 0x0000100000000000 are reserved for system use
+				// so we have to stop generating autokeywords
+				if (autoKeyword >= MaxKeywordValue)
+					autoKeyword = 0;
 			}
 
 			// create the type
