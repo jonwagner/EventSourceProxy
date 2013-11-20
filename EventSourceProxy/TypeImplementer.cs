@@ -256,10 +256,15 @@ namespace EventSourceProxy
 
 				ulong keywordForMethod = autoKeywords[keywordName];
 
-				// emit the methods
+				// emit the method
 				var beginMethod = EmitMethodImpl(invocationContext, ref eventId, (EventKeywords)keywordForMethod);
-				var faultedMethod = EmitMethodFaultedImpl(invocationContext, beginMethod, ref eventId, (EventKeywords)keywordForMethod);
-				EmitMethodCompletedImpl(invocationContext, beginMethod, ref eventId, (EventKeywords)keywordForMethod, faultedMethod);
+
+				// if we are generating an interface, add the complement methods
+				if (!_interfaceType.IsSubclassOf(typeof(EventSource)))
+				{
+					var faultedMethod = EmitMethodFaultedImpl(invocationContext, beginMethod, ref eventId, (EventKeywords)keywordForMethod);
+					EmitMethodCompletedImpl(invocationContext, beginMethod, ref eventId, (EventKeywords)keywordForMethod, faultedMethod);
+				}
 			}
 
 			// create the type
