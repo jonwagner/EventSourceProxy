@@ -416,7 +416,7 @@ namespace EventSourceProxy
 		/// <returns>The MethodBuilder for the method.</returns>
 		private MethodBuilder EmitMethodCompletedImpl(InvocationContext invocationContext, MethodInfo beginMethod, ref int eventId, EventKeywords autoKeyword, MethodBuilder faultedMethod)
 		{
-			return EmitMethodComplementImpl(invocationContext.SpecifyType(InvocationContextTypes.MethodCompletion), CompletedSuffix, invocationContext.MethodInfo.ReturnType, beginMethod, ref eventId, autoKeyword, faultedMethod);
+			return EmitMethodComplementImpl(invocationContext.SpecifyType(InvocationContextTypes.MethodCompletion), CompletedSuffix, invocationContext.MethodInfo.ReturnType, ReturnValue, beginMethod, ref eventId, autoKeyword, faultedMethod);
 		}
 
 		/// <summary>
@@ -430,7 +430,7 @@ namespace EventSourceProxy
 		/// <returns>The MethodBuilder for the method.</returns>
 		private MethodBuilder EmitMethodFaultedImpl(InvocationContext invocationContext, MethodInfo beginMethod, ref int eventId, EventKeywords autoKeyword)
 		{
-			return EmitMethodComplementImpl(invocationContext.SpecifyType(InvocationContextTypes.MethodFaulted), FaultedSuffix, typeof(Exception), beginMethod, ref eventId, autoKeyword, null);
+			return EmitMethodComplementImpl(invocationContext.SpecifyType(InvocationContextTypes.MethodFaulted), FaultedSuffix, typeof(Exception), "exception", beginMethod, ref eventId, autoKeyword, null);
 		}
 
 		/// <summary>
@@ -440,12 +440,13 @@ namespace EventSourceProxy
 		/// <param name="invocationContext">The InvocationContext for this call.</param>
 		/// <param name="suffix">The suffix to use on the method.</param>
 		/// <param name="parameterType">The type of the parameter of the method.</param>
+		/// <param name="parameterName">The name of the parameter of the method.</param>
 		/// <param name="beginMethod">The begin method for this interface call.</param>
 		/// <param name="eventId">The next available event ID.</param>
 		/// <param name="autoKeyword">The auto-keyword to use if enabled.</param>
 		/// <param name="faultedMethod">A faulted method to call or null if no other faulted method is available.</param>
 		/// <returns>The MethodBuilder for the method.</returns>
-		private MethodBuilder EmitMethodComplementImpl(InvocationContext invocationContext, string suffix, Type parameterType, MethodInfo beginMethod, ref int eventId, EventKeywords autoKeyword, MethodBuilder faultedMethod)
+		private MethodBuilder EmitMethodComplementImpl(InvocationContext invocationContext, string suffix, Type parameterType, string parameterName, MethodInfo beginMethod, ref int eventId, EventKeywords autoKeyword, MethodBuilder faultedMethod)
 		{
 			var interfaceMethod = invocationContext.MethodInfo;
 
@@ -468,8 +469,8 @@ namespace EventSourceProxy
 			var parameterMappings = new List<ParameterMapping>();
 			if (parameterType != typeof(void))
 			{
-				var mapping = new ParameterMapping(ReturnValue);
-				mapping.AddSource(new ParameterDefinition(ReturnValue, 0, parameterType));
+				var mapping = new ParameterMapping(parameterName);
+				mapping.AddSource(new ParameterDefinition(parameterName, 0, parameterType));
 				parameterMappings.Add(mapping);
 			}
 
@@ -486,6 +487,8 @@ namespace EventSourceProxy
 
 			// define the internal method
 			MethodBuilder m = _typeBuilder.DefineMethod(methodName, MethodAttributes.Public, typeof(void), parameterMappings.Select(p => p.CleanTargetType).ToArray());
+			if (parameterMappings.Any())
+				m.DefineParameter(1, ParameterAttributes.None, parameterMappings[0].Name);
 			m.SetCustomAttribute(EventAttributeHelper.ConvertEventAttributeToAttributeBuilder(eventAttribute));
 
 			// if we have a return type, then we need to implement two methods
