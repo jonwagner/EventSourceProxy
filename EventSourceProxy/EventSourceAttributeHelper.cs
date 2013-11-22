@@ -28,6 +28,7 @@ namespace EventSourceProxy
 		{
 			typeof(EventSourceAttribute).GetProperty("Name"),
 			typeof(EventSourceAttribute).GetProperty("Guid"),
+			typeof(EventSourceAttribute).GetProperty("LocalizationResources"),
 		};
 
 		/// <summary>
@@ -70,6 +71,7 @@ namespace EventSourceProxy
 			{
 				implementation.Name ?? attribute.Name ?? (type.IsGenericType ? type.FullName : type.Name),
 				guid,
+				implementation.LocalizationResources ?? attribute.LocalizationResources ?? null
 			};
 
 			CustomAttributeBuilder attributeBuilder = new CustomAttributeBuilder(
