@@ -195,6 +195,7 @@ namespace EventSourceProxy
 		/// <summary>
 		/// Implement the type.
 		/// </summary>
+		[System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Maintainability", "CA1506:AvoidExcessiveClassCoupling")]
 		private void ImplementType()
 		{
 			// create a new assembly
@@ -260,7 +261,7 @@ namespace EventSourceProxy
 				var beginMethod = EmitMethodImpl(invocationContext, ref eventId, (EventKeywords)keywordForMethod);
 
 				// if we are generating an interface, add the complement methods
-				if (!_interfaceType.IsSubclassOf(typeof(EventSource)))
+				if (implementationAttribute.ImplementComplementMethods ?? !_interfaceType.IsSubclassOf(typeof(EventSource)))
 				{
 					var faultedMethod = EmitMethodFaultedImpl(invocationContext, beginMethod, ref eventId, (EventKeywords)keywordForMethod);
 					EmitMethodCompletedImpl(invocationContext, beginMethod, ref eventId, (EventKeywords)keywordForMethod, faultedMethod);

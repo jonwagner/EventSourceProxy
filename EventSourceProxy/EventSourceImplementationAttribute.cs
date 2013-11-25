@@ -47,5 +47,12 @@ namespace EventSourceProxy
 		/// Gets or sets the default event level for the EventSource.
 		/// </summary>
 		public EventLevel? Level { get; set; }
+
+		/// <summary>
+		/// Gets or sets a boolean value indicating whether the _Completed and _Faulted methods should be implemented
+		/// on the EventSource. The default (null) indicates that complement methods are implemented on all classes
+		/// that do not derive from EventSource.
+		/// </summary>
+		public bool? ImplementComplementMethods { get; set; }
 	}
 }
