@@ -583,5 +583,12 @@ namespace EventSourceProxy.Tests
 			Assert.That(manifest.Contains("<keywords>\r\n  <keyword name=\"Foo\"  message=\"$(string.keyword_Foo)\" mask=\"0x1\"/>\r\n </keywords>"));
 		}
 		#endregion
+
+		#region Complement Methods
+		[EventSourceImplementation(ImplementComplementMethods=false)]
+		class Foo
+		{
+		}
+		#endregion
 	}
 }

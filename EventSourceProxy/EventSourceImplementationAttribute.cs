@@ -53,6 +53,11 @@ namespace EventSourceProxy
 		/// on the EventSource. The default (null) indicates that complement methods are implemented on all classes
 		/// that do not derive from EventSource.
 		/// </summary>
-		public bool? ImplementComplementMethods { get; set; }
+		public bool ImplementComplementMethods
+		{
+			get { return _implementComplementMethods; }
+			set { _implementComplementMethods = value; }
+		}
+		private bool _implementComplementMethods = true;
 	}
 }
