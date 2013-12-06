@@ -87,12 +87,12 @@ namespace EventSourceProxy.Tests
 			var payload = events[0].Payload.Select(o => o.ToString()).ToArray();
 
 			Assert.AreEqual(6, payload.Length);
-			Assert.That(payload.Contains("from"));
-			Assert.That(payload.Contains("to"));
-			Assert.That(payload.Contains("{\"s\":\"subject\",\"b\":\"body\"}"));
-			Assert.That(payload.Contains("AQ=="));
-			Assert.That(payload.Contains("1/1/2000 12:00:00 AM"));
-			Assert.That(payload.Contains("testing"));
+			Assert.That(payload[0] == ("from"));
+			Assert.That(payload[1] == ("to"));
+			Assert.That(payload[2] == ("{\"s\":\"subject\",\"b\":\"body\"}"));
+			Assert.That(payload[3] == ("AQ=="));
+			Assert.That(payload[4] == ("1/1/2000 12:00:00 AM"));
+			Assert.That(payload[5] == ("testing"));
 		}
 		#endregion
 
@@ -638,6 +638,36 @@ namespace EventSourceProxy.Tests
 			Assert.AreEqual(1, events.Length);
 			Assert.AreEqual(2, events[0].Payload.Count);
 			Assert.That(events[0].Payload.Contains("oops, world"));
+		}
+		#endregion
+
+		#region Order Of Payload Tests
+		public interface IPayloadOrder
+		{
+			[Event(1, Message = "For loop iteration {0}")]
+			void ForLoopIteration(int index);
+		}
+
+		[Test]
+		public void ContextShouldBeLast()
+		{
+			var tpp = new TraceParameterProvider();
+			tpp.ForAnything().AddContext("arg2", () => "extra");
+
+			var proxy = (IPayloadOrder)new TypeImplementer(typeof(IPayloadOrder), tpp).EventSource;
+			EnableLogging(proxy);
+
+			proxy.ForLoopIteration(0);
+
+			// look at the events
+			var events = _listener.Events.ToArray();
+			Assert.AreEqual(1, events.Length);
+
+			var payload = events[0].Payload.Select(o => o.ToString()).ToArray();
+
+			Assert.AreEqual(2, payload.Length);
+			Assert.That(payload[0] == ("0"));
+			Assert.That(payload[1] == ("extra"));
 		}
 		#endregion
 

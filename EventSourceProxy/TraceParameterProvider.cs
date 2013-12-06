@@ -124,18 +124,45 @@ namespace EventSourceProxy
 		}
 
 		/// <summary>
-		/// Evaluates the attributes on the interface to define the logging rules.
+		/// Uses the TraceBuilder rules on the provider to generate the parameter bindings.
 		/// </summary>
-		/// <param name="mappings">The list of mappings to add to.</param>
 		/// <param name="methodInfo">The method to analyze.</param>
-		/// <param name="parameters">The list of parameters to add to the mapping.</param>
-		private static void EvaluateAttributes(List<ParameterMapping> mappings, MethodInfo methodInfo, IEnumerable<ParameterInfo> parameters)
+		/// <returns>A list of ParameterMapping representing the desired bundling of parameters.</returns>
+		private IReadOnlyCollection<ParameterMapping> EvaluateBuilders(MethodInfo methodInfo)
 		{
+			var mappings = new List<ParameterMapping>();
+			var parameters = methodInfo.GetParameters().ToList();
+
+			// give a context rule the opportunity to bind
+			parameters.Add(null);
+
 			// get the default name to use for tracing (null if none specified)
 			var traceAsDefault = methodInfo.GetCustomAttribute<TraceAsAttribute>();
 
 			foreach (var parameter in parameters)
 			{
+				bool hasRule = false;
+
+				// go through the rules
+				foreach (var builder in _builders.Where(b => b.Matches(methodInfo)))
+				{
+					foreach (var value in builder.Values.Where(v => v.Matches(parameter)))
+					{
+						hasRule = true;
+
+						// if the value is an ignore rule, skip it
+						if (value.Ignore)
+							continue;
+
+						// add the parameter value
+						AddMapping(mappings, parameter, builder.Alias ?? "data", value.Alias ?? builder.Alias ?? "data", value.Converter);
+					}
+				}
+
+				// if a rule has been applied, then don't add the base value
+				if (hasRule)
+					continue;
+
 				if (parameter == null)
 					continue;
 
@@ -168,34 +195,6 @@ namespace EventSourceProxy
 					AddMapping(mappings, parameter, traceName, parameter.Name, expression);
 				}
 			}
-		}
-
-		/// <summary>
-		/// Uses the TraceBuilder rules on the provider to generate the parameter bindings.
-		/// </summary>
-		/// <param name="methodInfo">The method to analyze.</param>
-		/// <returns>A list of ParameterMapping representing the desired bundling of parameters.</returns>
-		private IReadOnlyCollection<ParameterMapping> EvaluateBuilders(MethodInfo methodInfo)
-		{
-			var mappings = new List<ParameterMapping>();
-			var parameters = methodInfo.GetParameters().ToList();
-
-			// give a context rule the opportunity to bind
-			parameters.Add(null);
-
-			// find all of the trace descriptors that apply to this method
-			foreach (var builder in _builders.Where(b => b.Matches(methodInfo)))
-			{
-				// that aren't being ignored
-				foreach (var value in builder.Values.Where(v => !v.Ignore))
-				{
-					foreach (var match in value.Matches(parameters))
-						AddMapping(mappings, match, builder.Alias ?? "data", value.Alias ?? builder.Alias ?? "data", value.Converter);
-				}
-			}
-
-			// we default to traceall - so find any parameter that has not matched a builder and add use the attributes
-			EvaluateAttributes(mappings, methodInfo, parameters.Where(p => !_builders.Any(b => b.Values.Any(v => v.Matches(p)))));
 
 			return mappings;
 		}

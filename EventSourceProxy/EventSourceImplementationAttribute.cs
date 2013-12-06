@@ -14,6 +14,11 @@ namespace EventSourceProxy
 	public sealed class EventSourceImplementationAttribute : Attribute
 	{
 		/// <summary>
+		/// Specifies whether complement methods should be emitted.
+		/// </summary>
+		private bool _implementComplementMethods = true;
+
+		/// <summary>
 		/// Gets or sets the name of the EventSource. This overrides any EventSource attribute.
 		/// </summary>
 		public string Name { get; set; }
@@ -49,7 +54,7 @@ namespace EventSourceProxy
 		public EventLevel? Level { get; set; }
 
 		/// <summary>
-		/// Gets or sets a boolean value indicating whether the _Completed and _Faulted methods should be implemented
+		/// Gets or sets a value indicating whether the _Completed and _Faulted methods should be implemented
 		/// on the EventSource. The default (null) indicates that complement methods are implemented on all classes
 		/// that do not derive from EventSource.
 		/// </summary>
@@ -58,6 +63,5 @@ namespace EventSourceProxy
 			get { return _implementComplementMethods; }
 			set { _implementComplementMethods = value; }
 		}
-		private bool _implementComplementMethods = true;
 	}
 }
