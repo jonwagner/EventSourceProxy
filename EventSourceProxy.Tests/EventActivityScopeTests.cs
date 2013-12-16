@@ -52,5 +52,35 @@ namespace EventSourceProxy.Tests
 				}
 			}
 		}
+
+		#region Async Tests
+		public interface ILogForAsync
+		{
+			void Log();
+		}
+
+		public async Task TestActivityIDAsync()
+		{
+			var log = EventSourceImplementer.GetEventSourceAs<ILogForAsync>();
+
+			using (var scope = new EventSourceProxy.EventActivityScope())
+			{
+				var before = EventActivityScope.CurrentActivityId;
+
+				log.Log();
+
+				await Task.Factory.StartNew(() => {});
+
+				Assert.AreEqual(before, EventActivityScope.CurrentActivityId);
+				Assert.AreEqual(before, scope.ActivityId);
+			}
+		}
+
+		[Test]
+		public void ActivityIDShouldRestoreAfterAwait()
+		{
+			TestActivityIDAsync().Wait();
+		}
+		#endregion
 	}
 }
