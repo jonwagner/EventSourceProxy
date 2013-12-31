@@ -19,6 +19,11 @@ namespace EventSourceProxy
 	{
 		#region Private Members
 		/// <summary>
+		/// The name of the call context slot we use for the activity ID.
+		/// </summary>
+		private static string _slot = "EventSourceProxy.EventActivityScope";
+
+		/// <summary>
 		/// The Activity ID outside of this scope. It is restored on the disposal of the scope.
 		/// </summary>
 		private Guid _previousActivityId;
@@ -102,7 +107,12 @@ namespace EventSourceProxy
 		[SecurityCritical]
 		public static void PrepareForWriteEvent()
 		{
-			UnsafeNativeMethods.SetActivityId(Trace.CorrelationManager.ActivityId);
+			// use our activity ID if we have one, but if not, then use the system ID.
+			Guid guid = GetActivityId();
+			if (guid == Guid.Empty)
+				guid = Trace.CorrelationManager.ActivityId;
+
+			UnsafeNativeMethods.SetActivityId(guid);
 		}
 
 		/// <summary>
@@ -172,7 +182,7 @@ namespace EventSourceProxy
 			if (data != null)
 				return (Guid)data;
 
-			return Trace.CorrelationManager.ActivityId;
+			return Guid.Empty;
 		}
 
 		/// <summary>
@@ -183,18 +193,18 @@ namespace EventSourceProxy
 		[SecurityCritical]
 		private static void SetActivityId(Guid activityId)
 		{
-			// never store the empty guid, just convert it to null
-			object data;
+			// never store the empty guid, just convert it to null and revert to the system activity ID
 			if (activityId == Guid.Empty)
-				data = null;
+			{
+				CallContext.LogicalSetData(_slot, null);
+				UnsafeNativeMethods.SetActivityId(Trace.CorrelationManager.ActivityId);
+			}
 			else
-				data = activityId;
-
-			CallContext.LogicalSetData(_slot, data);
-			UnsafeNativeMethods.SetActivityId(activityId);
+			{
+				CallContext.LogicalSetData(_slot, activityId);
+				UnsafeNativeMethods.SetActivityId(activityId);
+			}
 		}
-
-		private static string _slot = "EventSourceProxy.EventActivityScope";
 		#endregion
 	}
 }
