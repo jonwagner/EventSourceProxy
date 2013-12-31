@@ -5,6 +5,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Linq;
 using System.Runtime.InteropServices;
+using System.Runtime.Remoting.Messaging;
 using System.Security;
 using System.Text;
 using System.Threading.Tasks;
@@ -166,6 +167,11 @@ namespace EventSourceProxy
 		[SecurityCritical]
 		private static Guid GetActivityId()
 		{
+			// if we have stored a guid, then return that
+			var data = CallContext.LogicalGetData(_slot);
+			if (data != null)
+				return (Guid)data;
+
 			return Trace.CorrelationManager.ActivityId;
 		}
 
@@ -177,9 +183,18 @@ namespace EventSourceProxy
 		[SecurityCritical]
 		private static void SetActivityId(Guid activityId)
 		{
-			Trace.CorrelationManager.ActivityId = activityId;
+			// never store the empty guid, just convert it to null
+			object data;
+			if (activityId == Guid.Empty)
+				data = null;
+			else
+				data = activityId;
+
+			CallContext.LogicalSetData(_slot, data);
 			UnsafeNativeMethods.SetActivityId(activityId);
 		}
+
+		private static string _slot = "EventSourceProxy.EventActivityScope";
 		#endregion
 	}
 }
