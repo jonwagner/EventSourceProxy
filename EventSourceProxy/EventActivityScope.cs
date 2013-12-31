@@ -131,6 +131,7 @@ namespace EventSourceProxy
 		{
 			SetActivityId(_previousActivityId);
 			_activityId = _previousActivityId;
+			GC.SuppressFinalize(this);
 		}
 
 		#region Helper Methods
