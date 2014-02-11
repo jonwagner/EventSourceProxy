@@ -66,6 +66,19 @@ namespace EventSourceProxy
 			else
 				_activityId = _previousActivityId;
 		}
+
+		/// <summary>
+		/// Initializes a new instance of the EventActivityScope class with a given Activity ID.
+		/// </summary>
+		/// <param name="externalActivityId">
+		/// The existing Activity ID to use.
+		/// </param>
+		public EventActivityScope(Guid externalActivityId)
+		{
+			_previousActivityId = GetActivityId();
+			_activityId = externalActivityId;
+			SetActivityId(_activityId);
+		}
 		#endregion
 
 		#region Properties
