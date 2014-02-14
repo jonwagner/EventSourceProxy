@@ -1,12 +1,20 @@
 ﻿using System;
 using System.Collections.Generic;
+#if NUGET
+using Microsoft.Diagnostics.Tracing;
+#else
 using System.Diagnostics.Tracing;
+#endif
 using System.Linq;
 using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
 
+#if NUGET
+namespace EventSourceProxy.NuGet
+#else
 namespace EventSourceProxy
+#endif
 {
 	/// <summary>
 	/// Defines a provider that serializes objects to the ETW log when the log cannot handle the type natively.

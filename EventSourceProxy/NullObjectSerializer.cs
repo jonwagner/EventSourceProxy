@@ -1,13 +1,21 @@
 ﻿using System;
 using System.Collections.Generic;
+#if NUGET
+using Microsoft.Diagnostics.Tracing;
+#else
 using System.Diagnostics.Tracing;
+#endif
 using System.Linq;
 using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
 using Newtonsoft.Json;
 
+#if NUGET
+namespace EventSourceProxy.NuGet
+#else
 namespace EventSourceProxy
+#endif
 {
 	/// <summary>
 	/// Serializes an object by returning null. This is effectively a NoOp.

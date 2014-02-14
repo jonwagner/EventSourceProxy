@@ -6,7 +6,11 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
+#if NUGET
+namespace EventSourceProxy.NuGet
+#else
 namespace EventSourceProxy
+#endif
 {
 	/// <summary>
 	/// Manages the providers for the Event Sources.

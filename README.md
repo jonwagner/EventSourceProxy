@@ -4,6 +4,11 @@
 
 **Now in NuGet!**
 
+There are now two versions of ESP:
+
+* EventSourceProxy - works with the .NET Framework - System.Diagnostics.Tracing
+* EventSourceProxy.NuGet - works with the EventSource library in NuGet - Microsoft.Diagnostics.Tracing
+
 [Get EventSourceProxy (ESP) from NuGet](http://nuget.org/packages/EventSourceProxy)
 
 

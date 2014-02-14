@@ -1,6 +1,8 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 2012
+# Visual Studio 2013
+VisualStudioVersion = 12.0.21005.1
+MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EventSourceProxy", "EventSourceProxy\EventSourceProxy.csproj", "{40DABAAD-795A-4420-982F-08BE1978FE02}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EventSourceProxy.Tests", "EventSourceProxy.Tests\EventSourceProxy.Tests.csproj", "{33A95AA5-4F87-47CF-B37A-2023CE9E0400}"
@@ -23,10 +25,17 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 		Build.ps1 = Build.ps1
 		Build.psake.ps1 = Build.psake.ps1
 		Building.txt = Building.txt
+		EventSourceProxy.NuGet.nuspec = EventSourceProxy.NuGet.nuspec
 		EventSourceProxy.nuspec = EventSourceProxy.nuspec
 		EventSourceProxy.snk = EventSourceProxy.snk
 		README.md = README.md
 	EndProjectSection
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EventSourceProxy.Tests.NuGet", "EventSourceProxy.Tests.NuGet\EventSourceProxy.Tests.NuGet.csproj", "{B151A261-B9A0-4EE1-A61C-C04FFE94C373}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EventSourceProxy.NuGet", "EventSourceProxy.NuGet\EventSourceProxy.NuGet.csproj", "{FDB8844B-BB34-45E6-BDE1-BA657663A868}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GenerateProxyManifest.NuGet", "GenerateProxyManifest.NuGet\GenerateProxyManifest.NuGet.csproj", "{0BF86E34-2AFC-4620-A5C6-E084448347A2}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -50,6 +59,18 @@ Global
 		{A01CE647-4B33-43E0-8DD4-F45F732D4C77}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{A01CE647-4B33-43E0-8DD4-F45F732D4C77}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{A01CE647-4B33-43E0-8DD4-F45F732D4C77}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B151A261-B9A0-4EE1-A61C-C04FFE94C373}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B151A261-B9A0-4EE1-A61C-C04FFE94C373}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B151A261-B9A0-4EE1-A61C-C04FFE94C373}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B151A261-B9A0-4EE1-A61C-C04FFE94C373}.Release|Any CPU.Build.0 = Release|Any CPU
+		{FDB8844B-BB34-45E6-BDE1-BA657663A868}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{FDB8844B-BB34-45E6-BDE1-BA657663A868}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{FDB8844B-BB34-45E6-BDE1-BA657663A868}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{FDB8844B-BB34-45E6-BDE1-BA657663A868}.Release|Any CPU.Build.0 = Release|Any CPU
+		{0BF86E34-2AFC-4620-A5C6-E084448347A2}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{0BF86E34-2AFC-4620-A5C6-E084448347A2}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{0BF86E34-2AFC-4620-A5C6-E084448347A2}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{0BF86E34-2AFC-4620-A5C6-E084448347A2}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

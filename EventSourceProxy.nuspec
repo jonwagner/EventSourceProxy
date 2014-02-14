@@ -9,6 +9,7 @@
 	Automatically implements the tedious part of the .NET 4.5 EventSource class.
 	Also automatically converts any interface to an ETW trace point.
 	Wrap your interfaces and get free ETW tracing.
+	** Compatible with System.Diagnostics.Tracing (the one in the .NET Framework) **
     </description>
     <language>en-US</language>
     <projectUrl>http://github.com/jonwagner/EventSourceProxy</projectUrl>

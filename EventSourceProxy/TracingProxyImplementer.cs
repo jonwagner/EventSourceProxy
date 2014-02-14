@@ -1,6 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
+#if NUGET
+using Microsoft.Diagnostics.Tracing;
+#else
 using System.Diagnostics.Tracing;
+#endif
 using System.Globalization;
 using System.Linq;
 using System.Reflection;
@@ -9,7 +13,11 @@ using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
+#if NUGET
+namespace EventSourceProxy.NuGet
+#else
 namespace EventSourceProxy
+#endif
 {
 	/// <summary>
 	/// Generates a class that implements a TracingProxy.
@@ -263,7 +271,7 @@ namespace EventSourceProxy
 			{
 				scope = mIL.DeclareLocal(typeof(EventActivityScope));
 				mIL.Emit(OpCodes.Ldc_I4_1);
-				mIL.Emit(OpCodes.Newobj, typeof(EventSourceProxy.EventActivityScope).GetConstructor(new Type[] { typeof(bool) }));
+				mIL.Emit(OpCodes.Newobj, typeof(EventActivityScope).GetConstructor(new Type[] { typeof(bool) }));
 				mIL.Emit(OpCodes.Stloc, scope);
 			}
 

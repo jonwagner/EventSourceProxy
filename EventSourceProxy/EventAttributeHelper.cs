@@ -1,13 +1,21 @@
 ﻿using System;
 using System.Collections.Generic;
+#if NUGET
+using Microsoft.Diagnostics.Tracing;
+#else
 using System.Diagnostics.Tracing;
+#endif
 using System.Linq;
 using System.Reflection;
 using System.Reflection.Emit;
 using System.Text;
 using System.Threading.Tasks;
 
+#if NUGET
+namespace EventSourceProxy.NuGet
+#else
 namespace EventSourceProxy
+#endif
 {
 	/// <summary>
 	/// Helps emit attribute data to IL.
@@ -31,6 +39,9 @@ namespace EventSourceProxy
 			typeof(EventAttribute).GetProperty("Opcode"),
 			typeof(EventAttribute).GetProperty("Task"),
 			typeof(EventAttribute).GetProperty("Version"),
+#if NUGET
+			typeof(EventAttribute).GetProperty("Channel"),
+#endif	
 		};
 
 		/// <summary>
@@ -53,7 +64,10 @@ namespace EventSourceProxy
 				attribute.Message,
 				attribute.Opcode,
 				attribute.Task,
-				attribute.Version
+				attribute.Version,
+#if NUGET
+				attribute.Channel
+#endif
 			};
 
 			CustomAttributeBuilder attributeBuilder = new CustomAttributeBuilder(

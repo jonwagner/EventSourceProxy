@@ -70,6 +70,7 @@ Task Build {
 Task Test -depends Build { 
     Exec {
         Invoke-Expression "$nunit $baseDir\EventSourceProxy.Tests\bin\$configuration\EventSourceProxy.Tests.dll"
+        Invoke-Expression "$nunit $baseDir\EventSourceProxy.Tests.NuGet\bin\$configuration\EventSourceProxy.Tests.NuGet.dll"
     }
 }
 
@@ -79,5 +80,9 @@ Task Package -depends Test {
     # package nuget
     Exec {
         Invoke-Expression "$nuget pack $baseDir\EventSourceProxy.nuspec -OutputDirectory $outputDir -Version $version -NoPackageAnalysis"
+    }
+    # package nuget
+    Exec {
+        Invoke-Expression "$nuget pack $baseDir\EventSourceProxy.NuGet.nuspec -OutputDirectory $outputDir -Version $version -NoPackageAnalysis"
     }
 }

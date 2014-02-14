@@ -7,7 +7,11 @@ using System.Security;
 using System.Text;
 using System.Threading.Tasks;
 
+#if NUGET
+namespace EventSourceProxy.NuGet
+#else
 namespace EventSourceProxy
+#endif
 {
 	/// <summary>
 	/// Internal unsafe methods.
