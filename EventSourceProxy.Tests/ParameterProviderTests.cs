@@ -459,5 +459,35 @@ namespace EventSourceProxy.Tests
 			Assert.AreEqual(1, TPPWithContext.ContextCalls);
 		}
 		#endregion
+
+		public class BaseClass
+		{
+			public string Message { get; set; }
+		}
+
+		public class SubClass : BaseClass
+		{
+		}
+
+		public interface ISubClassEventSource
+		{
+			void TestMessage(SubClass sc);
+		}
+
+		[Test]
+		public void ParameterProviderAddsMappingForSubClassWhenBaseClassIsMapped()
+		{
+			var tpp = new TraceParameterProvider();
+			tpp.ForAnything()
+				.With<BaseClass>()
+				.Trace(c => c.Message);
+
+			var proxy2 = new TypeImplementer(typeof(ISubClassEventSource), tpp).EventSource;                
+
+			Assert.DoesNotThrow(delegate
+			{
+				var proxy = new TypeImplementer(typeof(ISubClassEventSource), tpp).EventSource;                
+			});
+		}
 	}
 }

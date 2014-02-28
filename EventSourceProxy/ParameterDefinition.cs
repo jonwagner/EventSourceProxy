@@ -56,7 +56,7 @@ namespace EventSourceProxy
 				{
 					if (converter.Parameters.Count != 1)
 						throw new ArgumentException("The conversion expression must take one parameter.", "converter");
-					if (SourceType != converter.Parameters[0].Type)
+					if (SourceType != converter.Parameters[0].Type && !SourceType.IsSubclassOf(converter.Parameters[0].Type))
 						throw new ArgumentException("The conversion expression must match the type of the parameter.", "converter");
 				}
 			}
