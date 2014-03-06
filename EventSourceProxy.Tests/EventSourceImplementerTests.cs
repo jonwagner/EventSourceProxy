@@ -288,7 +288,7 @@ namespace EventSourceProxy.Tests
 		public void PlainInterfaceCanBeImplemented()
 		{
 			var testLog = EventSourceImplementer.GetEventSourceAs<IJustAnInterface>();
-			_listener.EnableEvents((EventSource)testLog, EventLevel.LogAlways, (EventKeywords)(-1));
+			_listener.EnableEvents((EventSource)testLog, EventLevel.LogAlways);
 
 			// do some logging
 			testLog.AddNumbers(2, 3);
@@ -308,7 +308,6 @@ namespace EventSourceProxy.Tests
 			Assert.AreEqual(1, events[0].EventId);
 			Assert.AreEqual("{0} {1}", events[0].Message);
 			Assert.AreEqual(EventLevel.Informational, events[0].Level);
-			Assert.IsTrue(events[0].Keywords.HasFlag((EventKeywords)1));
 			Assert.AreEqual(2, events[0].Payload.Count);
 			Assert.AreEqual(2, events[0].Payload[0]);
 			Assert.AreEqual(3, events[0].Payload[1]);
@@ -317,7 +316,6 @@ namespace EventSourceProxy.Tests
 			Assert.AreEqual(4, events[1].EventId);
 			Assert.AreEqual("{0} {1}", events[1].Message);
 			Assert.AreEqual(EventLevel.Informational, events[1].Level);
-			Assert.IsTrue(events[1].Keywords.HasFlag((EventKeywords)2));
 			Assert.AreEqual(2, events[1].Payload.Count);
 			Assert.AreEqual(4, events[1].Payload[0]);
 			Assert.AreEqual(5, events[1].Payload[1]);
@@ -334,7 +332,7 @@ namespace EventSourceProxy.Tests
 		public void DerivedInterfaceCanBeImplemented()
 		{
 			var testLog = EventSourceImplementer.GetEventSourceAs<IJustAnInterfaceDerived>();
-			_listener.EnableEvents((EventSource)testLog, EventLevel.LogAlways, (EventKeywords)(-1));
+			_listener.EnableEvents((EventSource)testLog, EventLevel.LogAlways);
 
 			// do some logging
 			testLog.AddNumbers(2, 3);
@@ -354,7 +352,6 @@ namespace EventSourceProxy.Tests
 			Assert.AreEqual(1, events[0].EventId);
 			Assert.AreEqual("{0} {1}", events[0].Message);
 			Assert.AreEqual(EventLevel.Informational, events[0].Level);
-			Assert.IsTrue(events[0].Keywords.HasFlag((EventKeywords)1));
 			Assert.AreEqual(2, events[0].Payload.Count);
 			Assert.AreEqual(2, events[0].Payload[0]);
 			Assert.AreEqual(3, events[0].Payload[1]);
@@ -363,7 +360,6 @@ namespace EventSourceProxy.Tests
 			Assert.AreEqual(4, events[1].EventId);
 			Assert.AreEqual("{0} {1}", events[1].Message);
 			Assert.AreEqual(EventLevel.Informational, events[1].Level);
-			Assert.IsTrue(events[1].Keywords.HasFlag((EventKeywords)2));
 			Assert.AreEqual(2, events[1].Payload.Count);
 			Assert.AreEqual(4, events[1].Payload[0]);
 			Assert.AreEqual(5, events[1].Payload[1]);
@@ -384,7 +380,7 @@ namespace EventSourceProxy.Tests
 		public void InterfaceWithSomeEventIdsCanBeImplemented()
 		{
 			var testLog = EventSourceImplementer.GetEventSourceAs<ITestLogWithIds>();
-			_listener.EnableEvents((EventSource)testLog, EventLevel.LogAlways, (EventKeywords)(-1));
+			_listener.EnableEvents((EventSource)testLog, EventLevel.LogAlways);
 
 			// do some logging
 			testLog.FirstWithNoId("first");
@@ -412,7 +408,7 @@ namespace EventSourceProxy.Tests
 		{
 			var listener = new TestEventListener();
 			var testLog = EventSourceImplementer.GetEventSourceAs<INonEvent>();
-			listener.EnableEvents((EventSource)testLog, EventLevel.LogAlways, (EventKeywords)(-1));
+			listener.EnableEvents((EventSource)testLog, EventLevel.LogAlways);
 
 			// do some logging
 			testLog.NonEvent();
@@ -454,7 +450,7 @@ namespace EventSourceProxy.Tests
 			// this was causing issues with the completed method
 			EventSourceImplementer.RegisterProvider<ITaskService>(new JsonObjectSerializer());
 			var log = EventSourceImplementer.GetEventSourceAs<ITaskService>();
-			_listener.EnableEvents((EventSource)log, EventLevel.LogAlways, (EventKeywords)(-1));
+			_listener.EnableEvents((EventSource)log, EventLevel.LogAlways);
 
 			// check the service
 			var service = new TaskService();
@@ -493,7 +489,7 @@ namespace EventSourceProxy.Tests
 		{
 			// this was causing issues with the completed method
 			var log = EventSourceImplementer.GetEventSourceAs<IHaveDuplicateNames>();
-			_listener.EnableEvents((EventSource)log, EventLevel.LogAlways, (EventKeywords)(-1));
+			_listener.EnableEvents((EventSource)log, EventLevel.LogAlways);
 
 			log.Get(1);
 			log.Get("s");
@@ -566,6 +562,7 @@ namespace EventSourceProxy.Tests
 			Assert.DoesNotThrow(() => EventSourceManifest.GenerateManifest(typeof(InterfaceWith45Methods)));
 		}
 
+		[EventSourceImplementation(AutoKeywords = true)]
 		public interface InterfaceThatFolds
 		{
 			void BeginFoo();
@@ -588,6 +585,22 @@ namespace EventSourceProxy.Tests
 		[EventSourceImplementation(ImplementComplementMethods=false)]
 		class Foo
 		{
+		}
+		#endregion
+
+		#region Keyword Methods
+		[EventSourceImplementation(AutoKeywords = true)]
+		public interface IFoo
+		{
+			void Foo();
+			void Bar();
+		}
+
+		[Test]
+		public void Test()
+		{
+			Assert.AreEqual((EventKeywords)1, EventSourceImplementer.GetKeywordValue<IFoo>("Foo"));
+			Assert.AreEqual((EventKeywords)2, EventSourceImplementer.GetKeywordValue<IFoo>("Bar"));
 		}
 		#endregion
 	}

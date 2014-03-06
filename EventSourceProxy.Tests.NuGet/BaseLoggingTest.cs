@@ -24,13 +24,13 @@ namespace EventSourceProxy.NuGet.Tests
 		{
 			// create the logger and make sure it is serializing the parameters properly
 			var logger = EventSourceImplementer.GetEventSource<TLog>();
-			_listener.EnableEvents(logger, EventLevel.LogAlways, (EventKeywords)(-1));
+			_listener.EnableEvents(logger, EventLevel.LogAlways);
 		}
 
 		protected void EnableLogging(object proxy)
 		{
 			// create the logger and make sure it is serializing the parameters properly
-			_listener.EnableEvents((EventSource)proxy, EventLevel.LogAlways, (EventKeywords)(-1));
+			_listener.EnableEvents((EventSource)proxy, EventLevel.LogAlways);
 		}
 	}
 }

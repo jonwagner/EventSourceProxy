@@ -34,6 +34,12 @@ namespace EventSourceProxy
 
 		#region Public Members
 		/// <summary>
+		/// Gets or sets a value indicating whether EventSources should always have auto-keywords.
+		/// Set this to true if you were using ESP before v3.0 and need auto-keywords to be on.
+		/// </summary>
+		public static bool ForceAutoKeywords { get; set; }
+
+		/// <summary>
 		/// Implements an EventSource that matches the virtual or abstract methods of a type.
 		/// If the type is an interface, this creates a type derived from EventSource that implements the interface.
 		/// If the type is a class derived from EventSource, this derives from the type and implements any abstract methods.
@@ -202,6 +208,29 @@ namespace EventSourceProxy
 		public static void RegisterDefaultProvider(TraceParameterProvider provider)
 		{
 			RegisterProvider(null, provider);
+		}
+
+		/// <summary>
+		/// Gets the keyword value for a method on a type.
+		/// </summary>
+		/// <typeparam name="T">The type of the EventSource.</typeparam>
+		/// <param name="methodName">The name of the method.</param>
+		/// <returns>The keyword value.</returns>
+		public static EventKeywords GetKeywordValue<T>(string methodName) where T : class
+		{
+			if (methodName == null) throw new ArgumentNullException("methodName");
+
+			var logType = GetEventSourceAs<T>().GetType();
+
+			var keywordType = logType.GetNestedType("Keywords");
+			if (keywordType == null)
+				throw new InvalidOperationException(String.Format(CultureInfo.InvariantCulture, "Keywords have not been defined for {0}", typeof(T)));
+
+			var keyword = keywordType.GetField(methodName);
+			if (keyword == null)
+				throw new InvalidOperationException(String.Format(CultureInfo.InvariantCulture, "Keyword has not been defined for {1} on {0}", typeof(T), methodName));
+			
+			return (EventKeywords)keyword.GetValue(null);
 		}
 		#endregion
 

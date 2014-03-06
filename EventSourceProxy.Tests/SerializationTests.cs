@@ -70,7 +70,7 @@ namespace EventSourceProxy.Tests
 		{
 			EventSourceImplementer.RegisterProvider<ILogInterfaceWithClassData>(new JsonObjectSerializer());
 			var logger = EventSourceImplementer.GetEventSourceAs<ILogInterfaceWithClassData>();
-			_listener.EnableEvents((EventSource)logger, EventLevel.LogAlways, (EventKeywords)(-1));
+			_listener.EnableEvents((EventSource)logger, EventLevel.LogAlways);
 
 			logger.SendData(ClassData.Test);
 
@@ -86,7 +86,7 @@ namespace EventSourceProxy.Tests
 		{
 			EventSourceImplementer.RegisterProvider<ILogInterfaceWithStructData>(new JsonObjectSerializer());
 			var logger = EventSourceImplementer.GetEventSourceAs<ILogInterfaceWithStructData>();
-			_listener.EnableEvents((EventSource)logger, EventLevel.LogAlways, (EventKeywords)(-1));
+			_listener.EnableEvents((EventSource)logger, EventLevel.LogAlways);
 
 			logger.SendData(StructData.Test);
 
@@ -102,7 +102,7 @@ namespace EventSourceProxy.Tests
 		{
 			EventSourceImplementer.RegisterProvider<LogClassWithClassData>(new JsonObjectSerializer());
 			var logger = EventSourceImplementer.GetEventSourceAs<LogClassWithClassData>();
-			_listener.EnableEvents((EventSource)logger, EventLevel.LogAlways, (EventKeywords)(-1));
+			_listener.EnableEvents((EventSource)logger, EventLevel.LogAlways);
 
 			logger.SendData(ClassData.Test);
 
@@ -118,7 +118,7 @@ namespace EventSourceProxy.Tests
 		{
 			EventSourceImplementer.RegisterProvider<LogClassWithStructData>(new JsonObjectSerializer());
 			var logger = EventSourceImplementer.GetEventSourceAs<LogClassWithStructData>();
-			_listener.EnableEvents((EventSource)logger, EventLevel.LogAlways, (EventKeywords)(-1));
+			_listener.EnableEvents((EventSource)logger, EventLevel.LogAlways);
 
 			logger.SendData(StructData.Test);
 
@@ -134,7 +134,7 @@ namespace EventSourceProxy.Tests
 		{
 			EventSourceImplementer.RegisterProvider<ILogInterfaceWithClassData2>(new JsonObjectSerializer());
 			var logger = EventSourceImplementer.GetEventSourceAs<ILogInterfaceWithClassData2>();
-			_listener.EnableEvents((EventSource)logger, EventLevel.LogAlways, (EventKeywords)(-1));
+			_listener.EnableEvents((EventSource)logger, EventLevel.LogAlways);
 
 			var proxy = TracingProxy.Create<ILogInterfaceWithClassData2>(new ILogClassWithClassData());
 
@@ -161,7 +161,7 @@ namespace EventSourceProxy.Tests
 			EventSourceImplementer.RegisterProvider<ILogInterfaceWithClassDataToString>(new ToStringObjectSerializer());
 
 			var logger = EventSourceImplementer.GetEventSourceAs<ILogInterfaceWithClassDataToString>();
-			_listener.EnableEvents((EventSource)logger, EventLevel.LogAlways, (EventKeywords)(-1));
+			_listener.EnableEvents((EventSource)logger, EventLevel.LogAlways);
 
 			logger.SendData(ClassData.Test);
 
@@ -186,7 +186,7 @@ namespace EventSourceProxy.Tests
 			EventSourceImplementer.RegisterProvider<ILogInterfaceWithClassDataToNull>(new NullObjectSerializer());
 
 			var logger = EventSourceImplementer.GetEventSourceAs<ILogInterfaceWithClassDataToNull>();
-			_listener.EnableEvents((EventSource)logger, EventLevel.LogAlways, (EventKeywords)(-1));
+			_listener.EnableEvents((EventSource)logger, EventLevel.LogAlways);
 
 			logger.SendData(ClassData.Test);
 
@@ -229,7 +229,7 @@ namespace EventSourceProxy.Tests
 			EventSourceImplementer.RegisterProvider<ILogInterfaceWithClassDataToCustom>(new CustomSerializer());
 
 			var logger = EventSourceImplementer.GetEventSourceAs<ILogInterfaceWithClassDataToCustom>();
-			_listener.EnableEvents((EventSource)logger, EventLevel.LogAlways, (EventKeywords)(-1));
+			_listener.EnableEvents((EventSource)logger, EventLevel.LogAlways);
 
 			logger.SendData(ClassData.Test);
 
@@ -266,7 +266,7 @@ namespace EventSourceProxy.Tests
 		public void AttributeShouldDetermineSerializer()
 		{
 			var logger = EventSourceImplementer.GetEventSourceAs<ILogInterfaceWithSerializationAttribute>();
-			_listener.EnableEvents((EventSource)logger, EventLevel.LogAlways, (EventKeywords)(-1));
+			_listener.EnableEvents((EventSource)logger, EventLevel.LogAlways);
 
 			logger.SendData(ClassData.Test);
 
@@ -283,7 +283,7 @@ namespace EventSourceProxy.Tests
 			EventSourceImplementer.RegisterProvider<ILogInterfaceWithAttribute2>(new JsonObjectSerializer(EventLevel.Verbose));
 			var logger = EventSourceImplementer.GetEventSourceAs<ILogInterfaceWithAttribute2>();
 
-			_listener.EnableEvents((EventSource)logger, EventLevel.Informational, (EventKeywords)(-1));
+			_listener.EnableEvents((EventSource)logger, EventLevel.Informational);
 			logger.SendData(ClassData.Test);
 
 			// look at the events
@@ -293,7 +293,7 @@ namespace EventSourceProxy.Tests
 			Assert.AreEqual(null, events[0].Payload[0]);
 
 			_listener.Reset();
-			_listener.EnableEvents((EventSource)logger, EventLevel.Verbose, (EventKeywords)(-1));
+			_listener.EnableEvents((EventSource)logger, EventLevel.Verbose);
 			logger.SendData(ClassData.Test);
 
 			// look at the events
@@ -341,7 +341,7 @@ namespace EventSourceProxy.Tests
 		public void ShouldNormallyBeDisabledAtInfoAndEnabledAtVerbose()
 		{
 			var logger = EventSourceImplementer.GetEventSourceAs<ISerializeNormally>();
-			_listener.EnableEvents((EventSource)logger, EventLevel.Informational, (EventKeywords)(-1));
+			_listener.EnableEvents((EventSource)logger, EventLevel.Informational);
 
 			logger.SendData(ClassData.Test);
 
@@ -352,7 +352,7 @@ namespace EventSourceProxy.Tests
 			Assert.IsNull(events[0].Payload[0]);
 
 			_listener.Reset();
-			_listener.EnableEvents((EventSource)logger, EventLevel.Verbose, (EventKeywords)(-1));
+			_listener.EnableEvents((EventSource)logger, EventLevel.Verbose);
 			logger.SendData(ClassData.Test);
 			events = _listener.Events.ToArray();
 			Assert.AreEqual(1, events.Length);
@@ -364,7 +364,7 @@ namespace EventSourceProxy.Tests
 		public void AttributeCanChangeLevelAtClassLevel()
 		{
 			var logger = EventSourceImplementer.GetEventSourceAs<ISerializeVerbosely>();
-			_listener.EnableEvents((EventSource)logger, EventLevel.Informational, (EventKeywords)(-1));
+			_listener.EnableEvents((EventSource)logger, EventLevel.Informational);
 
 			logger.SendData(ClassData.Test);
 
@@ -379,7 +379,7 @@ namespace EventSourceProxy.Tests
 		public void AttributeCanChangeLevelAtMethodLevel()
 		{
 			var logger = EventSourceImplementer.GetEventSourceAs<ISerializeVerboselyByMethod>();
-			_listener.EnableEvents((EventSource)logger, EventLevel.Informational, (EventKeywords)(-1));
+			_listener.EnableEvents((EventSource)logger, EventLevel.Informational);
 
 			logger.SendData(ClassData.Test);
 
@@ -394,7 +394,7 @@ namespace EventSourceProxy.Tests
 		public void AttributeCanChangeLevelAtParameterLevel()
 		{
 			var logger = EventSourceImplementer.GetEventSourceAs<ISerializeVerboselyByParameter>();
-			_listener.EnableEvents((EventSource)logger, EventLevel.Informational, (EventKeywords)(-1));
+			_listener.EnableEvents((EventSource)logger, EventLevel.Informational);
 
 			logger.SendData(ClassData.Test);
 
@@ -409,7 +409,7 @@ namespace EventSourceProxy.Tests
 		public void AttributeCanChangeLevelAtParameterTypeLevel()
 		{
 			var logger = EventSourceImplementer.GetEventSourceAs<ISerializeVerboselyByParameterClass>();
-			_listener.EnableEvents((EventSource)logger, EventLevel.Informational, (EventKeywords)(-1));
+			_listener.EnableEvents((EventSource)logger, EventLevel.Informational);
 
 			logger.SendData(new ClassData2() { Name = "Fred", Age = 38 });
 

@@ -46,7 +46,7 @@ namespace EventSourceProxy.Tests
 			EventSourceImplementer.RegisterProvider<ILog>(contextProvider);
 
 			var testLog = EventSourceImplementer.GetEventSourceAs<ILog>();
-			_listener.EnableEvents((EventSource)testLog, EventLevel.LogAlways, (EventKeywords)(-1));
+			_listener.EnableEvents((EventSource)testLog, EventLevel.LogAlways);
 
 			testLog.DoSomething();
 
@@ -120,7 +120,7 @@ namespace EventSourceProxy.Tests
 		public void ProviderCanBeSpecifiedByAttribute()
 		{
 			var testLog = EventSourceImplementer.GetEventSourceAs<ILogWithProviderAttribute>();
-			_listener.EnableEvents((EventSource)testLog, EventLevel.LogAlways, (EventKeywords)(-1));
+			_listener.EnableEvents((EventSource)testLog, EventLevel.LogAlways);
 
 			testLog.DoSomething();
 
@@ -134,7 +134,7 @@ namespace EventSourceProxy.Tests
 		public void ContextCanBeControlledByClassAttribute()
 		{
 			var testLog = EventSourceImplementer.GetEventSourceAs<ILogWithAttributeDisabled>();
-			_listener.EnableEvents((EventSource)testLog, EventLevel.LogAlways, (EventKeywords)(-1));
+			_listener.EnableEvents((EventSource)testLog, EventLevel.LogAlways);
 
 			testLog.DoSomething();
 
@@ -148,7 +148,7 @@ namespace EventSourceProxy.Tests
 		public void ContextCanBeControlledByMethodAttribute()
 		{
 			var testLog = EventSourceImplementer.GetEventSourceAs<ILogWithAttributeDisabledAndMethodEnabled>();
-			_listener.EnableEvents((EventSource)testLog, EventLevel.LogAlways, (EventKeywords)(-1));
+			_listener.EnableEvents((EventSource)testLog, EventLevel.LogAlways);
 
 			testLog.DoSomething();
 

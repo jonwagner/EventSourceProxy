@@ -34,7 +34,7 @@ namespace EventSourceProxy.Tests
 		public void AttributeShouldDetermineProvider()
 		{
 			var logger = EventSourceImplementer.GetEventSourceAs<ILogInterfaceWithAttribute>();
-			_listener.EnableEvents((EventSource)logger, EventLevel.LogAlways, (EventKeywords)(-1));
+			_listener.EnableEvents((EventSource)logger, EventLevel.LogAlways);
 
 			logger.DoSomething();
 
@@ -83,7 +83,7 @@ namespace EventSourceProxy.Tests
 			Assert.AreEqual(EventLevel.Error, new EventAttributeProvider().ExceptionEventLevel);
 
 			var logger = EventSourceImplementer.GetEventSourceAs<ILogInterfaceWithExceptionAttribute>();
-			_listener.EnableEvents((EventSource)logger, EventLevel.LogAlways, (EventKeywords)(-1));
+			_listener.EnableEvents((EventSource)logger, EventLevel.LogAlways);
 
 			logger.DoSomething();
 
@@ -108,7 +108,7 @@ namespace EventSourceProxy.Tests
 			Assert.AreEqual(EventLevel.Error, new EventAttributeProvider().ExceptionEventLevel);
 
 			var logger = EventSourceImplementer.GetEventSourceAs<ILogInterfaceWithExceptionMethodAttribute>();
-			_listener.EnableEvents((EventSource)logger, EventLevel.LogAlways, (EventKeywords)(-1));
+			_listener.EnableEvents((EventSource)logger, EventLevel.LogAlways);
 
 			logger.DoSomething();
 

@@ -39,7 +39,7 @@ namespace EventSourceProxy.Example
 
 			// create a listener
 			var listener = new TestListener();
-			listener.EnableEvents(es, EventLevel.LogAlways, (EventKeywords)(-1));
+			listener.EnableEvents(es, EventLevel.LogAlways);
 
 			using (new EventActivityScope())
 			{

@@ -42,6 +42,11 @@ namespace EventSourceProxy
 		public string LocalizationResources { get; set; }
 
 		/// <summary>
+		/// Gets or sets a value indicating whether the EventSource should auto-generate keywords.
+		/// </summary>
+		public bool AutoKeywords { get; set; }
+
+		/// <summary>
 		/// Gets or sets the type that contains the Keywords enumeration for the EventSource.
 		/// </summary>
 		public Type Keywords { get; set; }

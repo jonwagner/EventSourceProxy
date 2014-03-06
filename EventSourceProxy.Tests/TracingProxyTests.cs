@@ -69,7 +69,7 @@ namespace EventSourceProxy.Tests
 		{
 			// create a logger for the interface and listen on it
 			var logger = EventSourceImplementer.GetEventSource<ICalculator>();
-			_listener.EnableEvents(logger, EventLevel.LogAlways, (EventKeywords)(-1));
+			_listener.EnableEvents(logger, EventLevel.LogAlways);
 
 			// create a calculator and a proxy
 			var proxy = TracingProxy.Create<ICalculator>(new Calculator());
@@ -87,7 +87,7 @@ namespace EventSourceProxy.Tests
 		{
 			// create a logger for the interface and listen on it
 			var logger = EventSourceImplementer.GetEventSource<ICalculator>();
-			_listener.EnableEvents(logger, EventLevel.LogAlways, (EventKeywords)(-1));
+			_listener.EnableEvents(logger, EventLevel.LogAlways);
 
 			// create a calculator and a proxy
 			var proxy = TracingProxy.Create<ICalculator>(new VirtualCalculator());
@@ -104,7 +104,7 @@ namespace EventSourceProxy.Tests
 		public void TestLoggingProxyFromVirtualClassToVirtualClass()
 		{
 			var logger = EventSourceImplementer.GetEventSource<VirtualCalculatorWithoutInterface>();
-			_listener.EnableEvents(logger, EventLevel.LogAlways, (EventKeywords)(-1));
+			_listener.EnableEvents(logger, EventLevel.LogAlways);
 
 			// create a calculator and a proxy
 			var proxy = TracingProxy.Create<VirtualCalculatorWithoutInterface>(new VirtualCalculatorWithoutInterface());
@@ -121,7 +121,7 @@ namespace EventSourceProxy.Tests
 		{
 			// create a logger for the interface and listen on it
 			var logger = EventSourceImplementer.GetEventSource<ICalculator>();
-			_listener.EnableEvents(logger, EventLevel.LogAlways, (EventKeywords)(-1));
+			_listener.EnableEvents(logger, EventLevel.LogAlways);
 
 			// create a calculator and a proxy
 			var proxy = TracingProxy.Create<VirtualCalculatorWithoutInterface, ICalculator>(new VirtualCalculatorWithoutInterface());
@@ -139,7 +139,7 @@ namespace EventSourceProxy.Tests
 		{
 			// create a logger for the interface and listen on it
 			var logger = EventSourceImplementer.GetEventSource<ICalculatorWithCompleted>();
-			_listener.EnableEvents(logger, EventLevel.LogAlways, (EventKeywords)(-1));
+			_listener.EnableEvents(logger, EventLevel.LogAlways);
 
 			// create a calculator and a proxy
 			var proxy = TracingProxy.Create<VirtualCalculator, ICalculatorWithCompleted>(new VirtualCalculator());
@@ -160,19 +160,16 @@ namespace EventSourceProxy.Tests
 			Assert.AreEqual(1, events[0].EventId);
 			Assert.AreEqual("", events[0].Message);
 			Assert.AreEqual(EventLevel.Informational, events[0].Level);
-			Assert.IsTrue(events[0].Keywords.HasFlag((EventKeywords)1));
 			Assert.AreEqual(0, events[0].Payload.Count);
 
 			Assert.AreEqual(logger, events[1].EventSource);
 			Assert.AreEqual("", events[1].Message);
 			Assert.AreEqual(EventLevel.Informational, events[1].Level);
-			Assert.IsTrue(events[1].Keywords.HasFlag((EventKeywords)2));
 			Assert.AreEqual(0, events[0].Payload.Count);
 
 			Assert.AreEqual(logger, events[2].EventSource);
 			Assert.AreEqual("{0} {1}", events[2].Message);
 			Assert.AreEqual(EventLevel.Informational, events[2].Level);
-			Assert.IsTrue(events[2].Keywords.HasFlag((EventKeywords)4));
 			Assert.AreEqual(2, events[2].Payload.Count);
 			Assert.AreEqual(1, events[2].Payload[0]);
 			Assert.AreEqual(2, events[2].Payload[1]);
@@ -181,7 +178,6 @@ namespace EventSourceProxy.Tests
 			Assert.AreEqual(logger, events[3].EventSource);
 			Assert.AreEqual("{0}", events[3].Message);
 			Assert.AreEqual(EventLevel.Informational, events[3].Level);
-			Assert.IsTrue(events[3].Keywords.HasFlag((EventKeywords)8));
 			Assert.AreEqual(1, events[3].Payload.Count);
 			Assert.AreEqual(3, events[3].Payload[0]);
 		}
@@ -197,7 +193,6 @@ namespace EventSourceProxy.Tests
 			Assert.AreEqual(logger, events[0].EventSource);
 			Assert.AreEqual("", events[0].Message);
 			Assert.AreEqual(EventLevel.Informational, events[0].Level);
-			Assert.IsTrue(events[0].Keywords.HasFlag((EventKeywords)1));
 			Assert.AreEqual(0, events[0].Payload.Count);
 
 			Assert.AreEqual(logger, events[1].EventSource);
@@ -370,7 +365,7 @@ namespace EventSourceProxy.Tests
 			// turn on logging
 			EventSourceImplementer.RegisterProvider<ITestServiceWithReferenceParameters>(new JsonObjectSerializer());
 			var log = EventSourceImplementer.GetEventSourceAs<ITestServiceWithReferenceParameters>();
-			_listener.EnableEvents((EventSource)log, EventLevel.LogAlways, (EventKeywords)(-1));
+			_listener.EnableEvents((EventSource)log, EventLevel.LogAlways);
 
 			// log a built-in type reference
 			value = 1;
@@ -428,7 +423,7 @@ namespace EventSourceProxy.Tests
 		{
 			// turn on logging
 			var log = EventSourceImplementer.GetEventSourceAs<ITestServiceWithGenericMethods>();
-			_listener.EnableEvents((EventSource)log, EventLevel.LogAlways, (EventKeywords)(-1));
+			_listener.EnableEvents((EventSource)log, EventLevel.LogAlways);
 
 			log.GetItem((int)1);
 			log.GetItem((string)"s");
@@ -488,7 +483,7 @@ namespace EventSourceProxy.Tests
 		{
 			// turn on logging
 			var log = EventSourceImplementer.GetEventSourceAs<ITestServiceWithGenericTaskMethods>();
-			_listener.EnableEvents((EventSource)log, EventLevel.LogAlways, (EventKeywords)(-1));
+			_listener.EnableEvents((EventSource)log, EventLevel.LogAlways);
 
 			Assert.AreEqual(null, log.GetNothing());
 			Assert.AreEqual(null, log.GetItem((int)1));
@@ -525,7 +520,7 @@ namespace EventSourceProxy.Tests
 		public void DerivedInterfaceCanBeImplemented()
 		{
 			var testLog = EventSourceImplementer.GetEventSourceAs<IDerivedCalculator>();
-			_listener.EnableEvents((EventSource)testLog, EventLevel.LogAlways, (EventKeywords)(-1));
+			_listener.EnableEvents((EventSource)testLog, EventLevel.LogAlways);
 
 			var proxy = TracingProxy.Create<IDerivedCalculator>(new Calculator());
 
@@ -560,7 +555,7 @@ namespace EventSourceProxy.Tests
 		{
 			EventSourceImplementer.RegisterProvider<IThrowExceptions>(new JsonObjectSerializer());
 			var logger = EventSourceImplementer.GetEventSourceAs<IThrowExceptions>();
-			_listener.EnableEvents((EventSource)logger, EventLevel.LogAlways, (EventKeywords)(-1));
+			_listener.EnableEvents((EventSource)logger, EventLevel.LogAlways);
 
 			var proxy = TracingProxy.Create<IThrowExceptions>(new ThrowExceptions());
 
@@ -575,14 +570,12 @@ namespace EventSourceProxy.Tests
 			Assert.AreEqual(logger, events[0].EventSource);
 			Assert.AreEqual("", events[0].Message);
 			Assert.AreEqual(EventLevel.Informational, events[0].Level);
-			Assert.IsTrue(events[0].Keywords.HasFlag((EventKeywords)1));
 			Assert.AreEqual(0, events[0].Payload.Count);
 
 			// the exception is logged
 			Assert.AreEqual(logger, events[1].EventSource);
 			Assert.AreEqual("{0}", events[1].Message);
 			Assert.AreEqual(EventLevel.Error, events[1].Level);
-			Assert.IsTrue(events[1].Keywords.HasFlag((EventKeywords)1));
 			Assert.AreEqual(1, events[1].Payload.Count);
 			Assert.IsTrue(events[1].Payload[0].ToString().Contains("Whoops!"));
 		}
@@ -592,7 +585,7 @@ namespace EventSourceProxy.Tests
 		{
 			EventSourceImplementer.RegisterProvider<IThrowExceptionsAsync>(new JsonObjectSerializer());
 			var logger = EventSourceImplementer.GetEventSourceAs<IThrowExceptionsAsync>();
-			_listener.EnableEvents((EventSource)logger, EventLevel.LogAlways, (EventKeywords)(-1));
+			_listener.EnableEvents((EventSource)logger, EventLevel.LogAlways);
 
 			var proxy = TracingProxy.Create<IThrowExceptionsAsync>(new ThrowExceptionsAsync());
 
@@ -607,14 +600,12 @@ namespace EventSourceProxy.Tests
 			Assert.AreEqual(logger, events[0].EventSource);
 			Assert.AreEqual("", events[0].Message);
 			Assert.AreEqual(EventLevel.Informational, events[0].Level);
-			Assert.IsTrue(events[0].Keywords.HasFlag((EventKeywords)1));
 			Assert.AreEqual(0, events[0].Payload.Count);
 
 			// the exception is logged
 			Assert.AreEqual(logger, events[1].EventSource);
 			Assert.AreEqual("{0}", events[1].Message);
 			Assert.AreEqual(EventLevel.Error, events[1].Level);
-			Assert.IsTrue(events[1].Keywords.HasFlag((EventKeywords)1));
 			Assert.AreEqual(1, events[1].Payload.Count);
 			Assert.IsTrue(events[1].Payload[0].ToString().Contains("WhoopsAsync!"));
 		}

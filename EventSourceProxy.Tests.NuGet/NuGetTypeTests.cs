@@ -13,7 +13,7 @@ namespace EventSourceProxy.NuGet.Tests
     {
 		public interface ITestLogWithExternalEnums
 		{
-			[Event(19, Message = "Event: {0}", Level = EventLevel.Informational, Channel = EventChannel.Admin)]
+			[Event(19, Message = "Event: {0}", Level = EventLevel.Informational)]
 			void Event(string message);
 		}
 
@@ -21,7 +21,7 @@ namespace EventSourceProxy.NuGet.Tests
 		public void AbstractClassWithExternalEnumsCanBeImplemented()
 		{
 			var testLog = EventSourceImplementer.GetEventSourceAs<ITestLogWithExternalEnums>();
-			_listener.EnableEvents((EventSource)testLog, EventLevel.LogAlways, (EventKeywords)(-1));
+			_listener.EnableEvents((EventSource)testLog, EventLevel.LogAlways);
 
 			// do some logging
 			testLog.Event("hello, world!");

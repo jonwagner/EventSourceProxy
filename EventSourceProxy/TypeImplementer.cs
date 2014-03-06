@@ -239,6 +239,7 @@ namespace EventSourceProxy
 				.Max() + 1;
 
 			// if there isn't a keyword class, then auto-generate the keywords
+			bool hasAutoKeywords = implementationAttribute.AutoKeywords || EventSourceImplementer.ForceAutoKeywords;
 			bool hasKeywords = (implementationAttribute.Keywords != null) || (FindNestedType(_interfaceType, "Keywords") != null);
 			ulong nextAutoKeyword = hasKeywords ? (ulong)0 : 1;
 
@@ -263,7 +264,7 @@ namespace EventSourceProxy
 						nextAutoKeyword = 0;
 				}
 
-				ulong keywordForMethod = autoKeywords[keywordName];
+				ulong keywordForMethod = hasAutoKeywords ? autoKeywords[keywordName] : 0;
 
 				// emit the method
 				var beginMethod = EmitMethodImpl(invocationContext, ref eventId, (EventKeywords)keywordForMethod);
@@ -282,7 +283,7 @@ namespace EventSourceProxy
 			// define the internal enum classes if they are defined
 			if (hasKeywords)
 				EmitEnumImplementation(implementationAttribute.Keywords, Keywords, typeof(EventKeywords));
-			else
+			else if (hasAutoKeywords)
 				EmitKeywordImpl(autoKeywords);
 			EmitEnumImplementation(implementationAttribute.OpCodes, Opcodes, typeof(EventOpcode));
 			EmitEnumImplementation(implementationAttribute.Tasks, Tasks, typeof(EventTask));

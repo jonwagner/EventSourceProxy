@@ -30,7 +30,7 @@ namespace EventSourceProxy.Tests
 				using (var testLog = (EventSource)EventSourceImplementer.GetEventSourceAs<ITypeLog<T>>())
 				using (var listener = new TestEventListener())
 				{
-					listener.EnableEvents(testLog, EventLevel.LogAlways, (EventKeywords)(-1));
+					listener.EnableEvents(testLog, EventLevel.LogAlways);
 
 					ITypeLog<T> tLog = (ITypeLog<T>)testLog;
 					tLog.Log(t);
@@ -132,7 +132,7 @@ namespace EventSourceProxy.Tests
 		{
 			var listener = new TestEventListener();
 			var testLog = EventSourceImplementer.GetEventSourceAs<TypeLogWithSerializedTypesInAbstractMethod>();
-			listener.EnableEvents(testLog, EventLevel.LogAlways, (EventKeywords)(-1));
+			listener.EnableEvents(testLog, EventLevel.LogAlways);
 
 			testLog.LogIntPtr(new IntPtr(1234)); Assert.AreEqual("1234", listener.Events.Last().Payload[0].ToString());
 			testLog.LogChar('c'); Assert.AreEqual("c", listener.Events.Last().Payload[0].ToString());
@@ -153,7 +153,7 @@ namespace EventSourceProxy.Tests
 		{
 			var listener = new TestEventListener();
 			var testLog = EventSourceImplementer.GetEventSourceAs<TypeLogWithSerializedTypesInDirectMethod>();
-			listener.EnableEvents(testLog, EventLevel.LogAlways, (EventKeywords)(-1));
+			listener.EnableEvents(testLog, EventLevel.LogAlways);
 
 			testLog.LogIntPtr(new IntPtr(1234)); Assert.AreEqual("1234", listener.Events.Last().Payload[0].ToString());
 			testLog.LogChar('c'); Assert.AreEqual("c", listener.Events.Last().Payload[0].ToString());
