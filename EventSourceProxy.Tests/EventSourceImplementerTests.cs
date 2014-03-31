@@ -326,6 +326,7 @@ namespace EventSourceProxy.Tests
 		// this is any old interface with no decoration
  		public interface IJustAnInterfaceDerived : IJustAnInterface
 		{
+			void DerivedMethod();
 		}
 
 		[Test]
@@ -346,6 +347,49 @@ namespace EventSourceProxy.Tests
 			// make sure that the EventSource attribute makes it to the event source
 			var eventSource = events[0].EventSource;
 			Assert.AreEqual("IJustAnInterfaceDerived", eventSource.Name);
+
+			// check the individual events
+			Assert.AreEqual(testLog, events[0].EventSource);
+			Assert.AreEqual(1, events[0].EventId);
+			Assert.AreEqual("{0} {1}", events[0].Message);
+			Assert.AreEqual(EventLevel.Informational, events[0].Level);
+			Assert.AreEqual(2, events[0].Payload.Count);
+			Assert.AreEqual(2, events[0].Payload[0]);
+			Assert.AreEqual(3, events[0].Payload[1]);
+
+			Assert.AreEqual(testLog, events[1].EventSource);
+			Assert.AreEqual(4, events[1].EventId);
+			Assert.AreEqual("{0} {1}", events[1].Message);
+			Assert.AreEqual(EventLevel.Informational, events[1].Level);
+			Assert.AreEqual(2, events[1].Payload.Count);
+			Assert.AreEqual(4, events[1].Payload[0]);
+			Assert.AreEqual(5, events[1].Payload[1]);
+		}
+
+		// this is any old interface with no decoration
+		public interface IJustAnInterfaceDerivedAgain : IJustAnInterfaceDerived
+		{
+			void DerivedAgainMethod();
+		}
+
+		[Test]
+		public void DerivedAgainInterfaceCanBeImplemented()
+		{
+			var testLog = EventSourceImplementer.GetEventSourceAs<IJustAnInterfaceDerivedAgain>();
+			_listener.EnableEvents((EventSource)testLog, EventLevel.LogAlways);
+
+			// do some logging
+			testLog.AddNumbers(2, 3);
+			testLog.SubtractNumbers(4, 5);
+
+			// look at the events
+			var events = _listener.Events.ToArray();
+			Assert.AreEqual(2, events.Length);
+
+			// check the event source
+			// make sure that the EventSource attribute makes it to the event source
+			var eventSource = events[0].EventSource;
+			Assert.AreEqual("IJustAnInterfaceDerivedAgain", eventSource.Name);
 
 			// check the individual events
 			Assert.AreEqual(testLog, events[0].EventSource);

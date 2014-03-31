@@ -340,17 +340,16 @@ namespace EventSourceProxy
 			List<MethodInfo> methods = new List<MethodInfo>();
 
 			// for interfaces, we need to look at all of the methods that are in the base interfaces
-			if (type.IsInterface)
-				foreach (Type baseInterface in type.GetInterfaces())
+			foreach (Type baseInterface in type.GetInterfaces())
+				if (baseInterface != typeof(IDisposable))
 					methods.AddRange(DiscoverMethods(baseInterface));
 
+			// add in all of the methods on the type
 			BindingFlags bindingFlags = BindingFlags.Public | BindingFlags.Instance | BindingFlags.InvokeMethod | BindingFlags.DeclaredOnly;
-
-			// add in the base types
 			for (; type != null && type != typeof(object) && type != typeof(EventSource); type = type.BaseType)
 				methods.AddRange(type.GetMethods(bindingFlags));
 
-			return methods;
+			return methods.Distinct().ToList();
 		}
 
 		/// <summary>
