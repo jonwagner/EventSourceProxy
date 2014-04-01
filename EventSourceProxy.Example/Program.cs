@@ -23,7 +23,7 @@ namespace EventSourceProxy.Example
 	{
 		protected override void OnEventWritten(EventWrittenEventArgs eventData)
 		{
-			Console.Write("Activity: {0} ", Trace.CorrelationManager.ActivityId);
+			Console.Write("Activity: {0} ", EventActivityScope.CurrentActivityId);
 			Console.WriteLine(eventData.Message, eventData.Payload.ToArray());
 		}
 	}

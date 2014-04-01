@@ -660,9 +660,10 @@ namespace EventSourceProxy
 			}
 
 			// call IsEnabled with the given event level and keywords to check whether we should log
+			// NOTE: if there are no keywords, then we test to see if ANY keyword is enabled
 			mIL.Emit(OpCodes.Ldarg_0);
 			mIL.Emit(OpCodes.Ldc_I4, (int)eventAttribute.Level);
-			mIL.Emit(OpCodes.Ldc_I8, (long)eventAttribute.Keywords);
+			mIL.Emit(OpCodes.Ldc_I8, (eventAttribute.Keywords == EventKeywords.None) ? (long)0xffffffff : (long)eventAttribute.Keywords);
 			mIL.Emit(OpCodes.Call, _isEnabled);
 			Label enabledLabel = mIL.DefineLabel();
 			mIL.Emit(OpCodes.Brtrue, enabledLabel);
