@@ -1,18 +1,11 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 2013
-VisualStudioVersion = 12.0.21005.1
+VisualStudioVersion = 12.0.30110.0
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EventSourceProxy", "EventSourceProxy\EventSourceProxy.csproj", "{40DABAAD-795A-4420-982F-08BE1978FE02}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EventSourceProxy.Tests", "EventSourceProxy.Tests\EventSourceProxy.Tests.csproj", "{33A95AA5-4F87-47CF-B37A-2023CE9E0400}"
-EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = ".nuget", ".nuget", "{E0DEA224-276F-489A-B384-295E17710E20}"
-	ProjectSection(SolutionItems) = preProject
-		.nuget\NuGet.Config = .nuget\NuGet.Config
-		.nuget\NuGet.exe = .nuget\NuGet.exe
-		.nuget\NuGet.targets = .nuget\NuGet.targets
-	EndProjectSection
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EventSourceProxy.Example", "EventSourceProxy.Example\EventSourceProxy.Example.csproj", "{581BDCB4-6413-4272-B85F-4D39F6C131B8}"
 EndProject
@@ -35,6 +28,11 @@ EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EventSourceProxy.NuGet", "EventSourceProxy.NuGet\EventSourceProxy.NuGet.csproj", "{FDB8844B-BB34-45E6-BDE1-BA657663A868}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GenerateProxyManifest.NuGet", "GenerateProxyManifest.NuGet\GenerateProxyManifest.NuGet.csproj", "{0BF86E34-2AFC-4620-A5C6-E084448347A2}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = ".nuget", ".nuget", "{8B12C354-4911-40CA-A1F2-EA69182942F9}"
+	ProjectSection(SolutionItems) = preProject
+		.nuget\packages.config = .nuget\packages.config
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
