@@ -15,6 +15,9 @@
     <projectUrl>http://github.com/jonwagner/EventSourceProxy</projectUrl>
     <licenseUrl>http://opensource.org/licenses/ms-pl.html</licenseUrl>
     <tags>EventSource log semantic structured strongly-typed logging ETW tracing event listener block lab LOB slab</tags>
+	<dependencies>
+		<dependency id="Newtonsoft.Json"></dependency>
+	</dependencies>
   </metadata>
   <files>
     <file src="EventSourceProxy\bin\Release\EventSourceProxy.dll" target="lib" />
