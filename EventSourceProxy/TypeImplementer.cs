@@ -74,6 +74,11 @@ namespace EventSourceProxy
 		private static MethodInfo _writeEvent = typeof(EventSource).GetMethod("WriteEvent", BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.InvokeMethod, null, new[] { typeof(int), typeof(object[]) }, null);
 
 		/// <summary>
+		/// The WriteEvent method for EventSource.
+		/// </summary>
+		private static MethodInfo _writeEventNoParams = typeof(EventSource).GetMethod("WriteEvent", BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.InvokeMethod, null, new[] { typeof(int) }, null);
+
+		/// <summary>
 		/// The IsEnabled method for EventSource.
 		/// </summary>
 		private static MethodInfo _isEnabled = typeof(EventSource).GetMethod("IsEnabled", BindingFlags.Public | BindingFlags.Instance | BindingFlags.InvokeMethod, null, new[] { typeof(EventLevel), typeof(EventKeywords) }, null);
@@ -697,8 +702,12 @@ namespace EventSourceProxy
 			mIL.Emit(OpCodes.Ldc_I4, eventAttribute.EventId);
 
 			// create a new array of the proper length to pass the values in
-			mIL.Emit(OpCodes.Ldc_I4, parameterMapping.Count);
-			mIL.Emit(OpCodes.Newarr, typeof(object));
+			if (parameterMapping.Count > 0)
+			{
+				mIL.Emit(OpCodes.Ldc_I4, parameterMapping.Count);
+				mIL.Emit(OpCodes.Newarr, typeof(object));
+			}
+
 			for (int i = 0; i < parameterMapping.Count; i++)
 			{
 				mIL.Emit(OpCodes.Dup);
@@ -744,7 +753,7 @@ namespace EventSourceProxy
 			mIL.Emit(OpCodes.Call, typeof(EventActivityScope).GetMethod("PrepareForWriteEvent"));
 
 			// call writeevent
-			mIL.Emit(OpCodes.Call, _writeEvent);
+			mIL.Emit(OpCodes.Call, parameterMapping.Count == 0 ? _writeEventNoParams : _writeEvent);
 			mIL.Emit(OpCodes.Ret);
 		}
 
