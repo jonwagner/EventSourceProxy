@@ -216,6 +216,7 @@ namespace EventSourceProxy
 		/// <typeparam name="T">The type of the EventSource.</typeparam>
 		/// <param name="methodName">The name of the method.</param>
 		/// <returns>The keyword value.</returns>
+		[System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Design", "CA1004:GenericMethodsShouldProvideTypeParameter")]
 		public static EventKeywords GetKeywordValue<T>(string methodName) where T : class
 		{
 			if (methodName == null) throw new ArgumentNullException("methodName");
