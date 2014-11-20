@@ -60,6 +60,11 @@
     <Compile Include="EventActivityScopeTests.cs" />
     <Compile Include="FluentInterfaceTests.cs" />
     <Compile Include="ParameterProviderTests.cs" />
+    <Compile Include="Properties\Resources.Designer.cs">
+      <AutoGen>True</AutoGen>
+      <DesignTime>True</DesignTime>
+      <DependentUpon>Resources.resx</DependentUpon>
+    </Compile>
     <Compile Include="SerializationTests.cs" />
     <Compile Include="TraceContextProviderTests.cs" />
     <Compile Include="TracingProxyTests.cs" />
@@ -79,6 +84,12 @@
       <Project>{40dabaad-795a-4420-982f-08be1978fe02}</Project>
       <Name>EventSourceProxy</Name>
     </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="Properties\Resources.resx">
+      <Generator>ResXFileCodeGenerator</Generator>
+      <LastGenOutput>Resources.Designer.cs</LastGenOutput>
+    </EmbeddedResource>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>

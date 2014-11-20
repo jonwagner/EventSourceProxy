@@ -29,6 +29,7 @@
     <CodeAnalysisTreatWarningsAsErrors>True</CodeAnalysisTreatWarningsAsErrors>
     <StyleCopEnabled>False</StyleCopEnabled>
     <RunCodeAnalysisRestore>False</RunCodeAnalysisRestore>
+    <UseVSHostingProcess>true</UseVSHostingProcess>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <DebugType>pdbonly</DebugType>

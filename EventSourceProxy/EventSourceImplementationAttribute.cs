@@ -1,13 +1,11 @@
 ﻿using System;
-using System.Collections.Generic;
+
 #if NUGET
 using Microsoft.Diagnostics.Tracing;
 #else
 using System.Diagnostics.Tracing;
 #endif
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+
 
 #if NUGET
 namespace EventSourceProxy.NuGet
@@ -30,6 +28,11 @@ namespace EventSourceProxy
 		/// Gets or sets the name of the EventSource. This overrides any EventSource attribute.
 		/// </summary>
 		public string Name { get; set; }
+
+		/// <summary>
+		/// Used when constructing the EventSource.  This specifies whether to throw an exception when an error occurs in the underlying Windows code.  Default is false.
+		/// </summary>
+		public bool ThrowOnEventWriteErrors { get; set; }
 
 		/// <summary>
 		/// Gets or sets the guid of the EventSource. This overrides any EventSource attribute.
