@@ -10,7 +10,6 @@ using System.Globalization;
 using System.Linq;
 using System.Reflection;
 using System.Reflection.Emit;
-using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
@@ -225,6 +224,21 @@ namespace EventSourceProxy
 			else
 				_typeBuilder = mb.DefineType(_interfaceType.FullName + "_Implemented", TypeAttributes.Class | TypeAttributes.Public, typeof(EventSource));
 
+
+			var implementationAttribute = _interfaceType.GetCustomAttribute<EventSourceImplementationAttribute>() ?? new EventSourceImplementationAttribute();
+
+
+			// add the constructor that calls the base with throwOnEventWriteErrors:
+			var baseCtor = typeof(EventSource).GetConstructor(BindingFlags.NonPublic | BindingFlags.Instance, null, new[] { typeof(bool) }, null);
+			
+			var emitter = _typeBuilder.DefineConstructor(MethodAttributes.Public, CallingConventions.Standard | CallingConventions.HasThis, new Type[0]).GetILGenerator();
+			emitter.Emit(OpCodes.Ldarg_0);
+			emitter.Emit(implementationAttribute.ThrowOnEventWriteErrors ? OpCodes.Ldc_I4_1 : OpCodes.Ldc_I4_0);
+			emitter.Emit(OpCodes.Call, baseCtor);
+			emitter.Emit(OpCodes.Nop);
+			emitter.Emit(OpCodes.Nop);
+		    emitter.Emit(OpCodes.Ret);
+
 			// assign an EventSource attribute to the type so it gets the original name and guid
 			_typeBuilder.SetCustomAttribute(EventSourceAttributeHelper.GetEventSourceAttributeBuilder(_interfaceType));
 
@@ -233,8 +247,7 @@ namespace EventSourceProxy
 
 			// find all of the methods that need to be implemented
 			var interfaceMethods = ProxyHelper.DiscoverMethods(_interfaceType);
-			var implementationAttribute = _interfaceType.GetCustomAttribute<EventSourceImplementationAttribute>() ?? new EventSourceImplementationAttribute();
-
+			
 			// find the first free event id, in case we need to assign some ourselves
 			int eventId = interfaceMethods
 				.Select(m => m.GetCustomAttribute<EventAttribute>())

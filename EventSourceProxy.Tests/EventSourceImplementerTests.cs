@@ -1,11 +1,12 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Collections.ObjectModel;
-using System.Diagnostics.Tracing;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using EventSourceProxy.Tests.Properties;
 using NUnit.Framework;
+using System;
+using System.Diagnostics;
+using System.Diagnostics.Tracing;
+using System.IO;
+using System.Linq;
+using System.Reflection;
+using System.Threading.Tasks;
 
 namespace EventSourceProxy.Tests
 {
@@ -647,5 +648,130 @@ namespace EventSourceProxy.Tests
 			Assert.AreEqual((EventKeywords)2, EventSourceImplementer.GetKeywordValue<IFoo>("Bar"));
 		}
 		#endregion
+
+		[EventSourceImplementation( Name = "ThrowsLog", ThrowOnEventWriteErrors = true )]
+        public interface IThrowsLog
+        {
+            void Throw( string message );
+        }
+
+        [Test]
+        public void EventSourceThrowsNotConfigured()
+        {
+            var subject = EventSourceImplementer.GetEventSourceAs<IFoo>();
+            var fieldInfo = typeof(EventSource).GetField( "m_throwOnEventWriteErrors", BindingFlags.Instance | BindingFlags.NonPublic );
+            var actual = (bool)fieldInfo.GetValue( subject );
+            Assert.IsFalse( actual );
+        }
+
+        [Test]
+        public void EventSourceThrowsConfigured()
+        {
+            var subject = EventSourceImplementer.GetEventSourceAs<IThrowsLog>();
+            var fieldInfo = typeof(EventSource).GetField( "m_throwOnEventWriteErrors", BindingFlags.Instance | BindingFlags.NonPublic );
+            var actual = (bool)fieldInfo.GetValue( subject );
+            Assert.IsTrue( actual );
+        }
+
+        class ExternalTracerContext<T> : ExternalTracerContext
+        {
+            public ExternalTracerContext() : base( typeof(T) )
+            {}
+        }
+
+        class ExternalTracerContext : IDisposable 
+        {
+            readonly Type sourceType;
+
+            protected ExternalTracerContext( Type sourceType )
+            {
+                this.sourceType = sourceType;
+                Initialize();
+            }
+
+            void Initialize()
+            {
+                Clear( false );
+                Create();
+                Start();
+            }
+
+            void Create()
+            {
+                var name = sourceType.Name;
+                var path = Path.Combine( TestContext.CurrentContext.WorkDirectory, string.Format( "{0}.etl", name ) );
+                if ( File.Exists( path ) )
+                {
+                    File.Delete( path );
+                }
+                var arguments = string.Format( @"create trace {0} -p {{{1}}} -o ""{2}"" -a", name, EventSourceManifest.GetGuid( sourceType ), path );
+                Command( arguments );
+            }
+
+            void Start()
+            {
+                Command( string.Format( @"start {0}", sourceType.Name ) );
+            }
+
+            void Stop( bool throwOnException )
+            {
+                Command( string.Format( @"stop {0}", sourceType.Name ), throwOnException );
+            }
+
+            void Delete( bool throwOnException )
+            {
+                Command( string.Format( @"delete {0}", sourceType.Name ), throwOnException );
+            }
+
+            static void Command( string arguments, bool throwOnException = true )
+            {
+                var process = new Process
+                {
+                    StartInfo =
+                    {
+                        UseShellExecute = false, 
+                        RedirectStandardOutput = true, 
+                        FileName = "logman", 
+                        Arguments = arguments
+                    }
+                };
+                process.Start();
+                process.WaitForExit();
+
+                if ( throwOnException && process.ExitCode != 0 )
+                {
+                    var output = process.StandardOutput.ReadToEnd();
+                    throw new InvalidOperationException( output );
+                }
+
+            }
+
+            public void Dispose()
+            {
+                Clear();
+            }
+
+            void Clear( bool throwOnException = true )
+            {
+                Stop( throwOnException );
+                Delete( throwOnException );
+            }
+        }
+
+        [Test, Ignore]
+        public void EventSourceThrows()
+        {
+            var subject = EventSourceImplementer.GetEventSourceAs<IThrowsLog>();
+            EnableLogging( subject );
+
+            using ( new ExternalTracerContext<IThrowsLog>() )
+            {
+                subject.Throw( "Basic text" );
+
+                Assert.Throws<EventSourceException>( () => subject.Throw( Resources.TooBig ) );
+
+                Assert.AreEqual( 2, _listener.Events.Count );
+            }
+        }
 	}
 }
