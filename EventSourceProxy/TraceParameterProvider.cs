@@ -181,22 +181,30 @@ namespace EventSourceProxy
 
 				foreach (var attribute in attributes)
 				{
-					var traceName = attribute.Name;
+					var traceName = attribute.Name ?? parameter.Name;
+
+					var input = Expression.Parameter(parameter.ParameterType);
+					Expression expression = input;
 
 					// if the attribute is a TraceMember, then create an expression to get the member
-					LambdaExpression expression = null;
 					var traceMember = attribute as TraceMemberAttribute;
 					if (traceMember != null)
+						expression = Expression.MakeMemberAccess(expression, parameter.ParameterType.GetMember(traceMember.Member).First());
+
+					// if a string format was specified, wrap the expression in a method call
+					if (!String.IsNullOrWhiteSpace(attribute.Format))
 					{
-						var input = Expression.Parameter(parameter.ParameterType);
-						expression = Expression.Lambda(
-							Expression.MakeMemberAccess(
-								input,
-								parameter.ParameterType.GetMember(traceMember.Member).First()),
-							input);
+						var format = Expression.Constant(attribute.Format);
+						var castAsObject = Expression.Convert(input, typeof(object));
+						expression = Expression.Call(typeof(String).GetMethod("Format", new Type[] { typeof(string), typeof(object) }), format, castAsObject);
 					}
 
-					AddMapping(mappings, parameter, traceName, parameter.Name, expression);
+					// if we did any conversion on the value, then create a lambda function for the conversion
+					LambdaExpression lambda = null;
+					if (expression != input)
+						lambda = Expression.Lambda(expression, input);
+
+					AddMapping(mappings, parameter, traceName, parameter.Name, lambda);
 				}
 			}
 

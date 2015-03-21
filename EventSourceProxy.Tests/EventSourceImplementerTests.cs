@@ -789,6 +789,27 @@ namespace EventSourceProxy.Tests
 			// this is issue #39 - parameters don't match message format
 			var i = EventSourceImplementer.GetEventSourceAs<IHaveInvalidMessage>();
 		}
+
+		public interface IHaveMessageFormatting
+		{
+			[Event(1, Message = "Job '{0}'",
+			Level = EventLevel.Informational, Opcode = EventOpcode.Start)]
+			void StartJobManually([TraceAs(Format="{0:u}")]DateTime startTime);
+		}
+
+		[Test]
+		public void TestMessageFormatting()
+		{
+			var testLog = EventSourceImplementer.GetEventSourceAs<IHaveMessageFormatting>();
+			_listener.EnableEvents((EventSource)testLog, EventLevel.LogAlways, (EventKeywords)(-1));
+
+			testLog.StartJobManually(new DateTime(2015, 4, 1));
+
+			// look at the events
+			var events = _listener.Events.ToArray();
+			Assert.AreEqual(1, events.Length);
+			Assert.AreEqual("2015-04-01 00:00:00Z", events[0].Payload[0]);
+		}
 		#endregion
 	}
 }

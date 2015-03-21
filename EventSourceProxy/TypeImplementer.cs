@@ -780,7 +780,7 @@ namespace EventSourceProxy
 		private void EmitDirectProxy(InvocationContext invocationContext, MethodBuilder methodBuilder, MethodInfo baseMethod, List<ParameterMapping> parameterMapping)
 		{
 			/*
-			 * This method assume that a default return value has been pushed on the stack.
+			 * This method assumes that a default return value has been pushed on the stack.
 			 *
 			 *		base(params);
 			 *		return (top of stack);

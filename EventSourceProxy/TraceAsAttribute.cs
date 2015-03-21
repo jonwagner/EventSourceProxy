@@ -26,6 +26,13 @@ namespace EventSourceProxy
 		/// <summary>
 		/// Initializes a new instance of the TraceAsAttribute class, providing a name for the given parameter.
 		/// </summary>
+		public TraceAsAttribute()
+		{
+		}
+
+		/// <summary>
+		/// Initializes a new instance of the TraceAsAttribute class, providing a name for the given parameter.
+		/// </summary>
 		/// <param name="name">The name to trace the parameter as.</param>
 		public TraceAsAttribute(string name)
 		{
@@ -36,5 +43,10 @@ namespace EventSourceProxy
 		/// Gets the name to use when tracing the parameter.
 		/// </summary>
 		public string Name { get; private set; }
+
+		/// <summary>
+		/// Gets or sets the String.Format to use when tracing the parameter.
+		/// </summary>
+		public string Format { get; set; }
 	}
 }
