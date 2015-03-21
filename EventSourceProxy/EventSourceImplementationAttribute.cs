@@ -6,7 +6,6 @@ using Microsoft.Diagnostics.Tracing;
 using System.Diagnostics.Tracing;
 #endif
 
-
 #if NUGET
 namespace EventSourceProxy.NuGet
 #else
@@ -30,12 +29,12 @@ namespace EventSourceProxy
 		public string Name { get; set; }
 
 		/// <summary>
-		/// Used when constructing the EventSource.  This specifies whether to throw an exception when an error occurs in the underlying Windows code.  Default is false.
+		/// Gets or sets a value indicating whether event write errors should throw. Used when constructing the EventSource.  This specifies whether to throw an exception when an error occurs in the underlying Windows code.  Default is false.
 		/// </summary>
 		public bool ThrowOnEventWriteErrors { get; set; }
 
 		/// <summary>
-		/// Gets or sets the guid of the EventSource. This overrides any EventSource attribute.
+		/// Gets or sets a value indicating whether the guid of the EventSource. This overrides any EventSource attribute.
 		/// </summary>
 		public string Guid { get; set; }
 

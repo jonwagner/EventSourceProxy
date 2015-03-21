@@ -56,8 +56,9 @@ namespace EventSourceProxy
 		/// </summary>
 		/// <param name="context">The context of the call.</param>
 		/// <param name="nextEventId">The next event ID to use if not specified by some other mechanism.</param>
+		/// <param name="parameterMapping">The parameter mapping for the method, or null if not a method call.</param>
 		/// <returns>The EventAttribute for the call context.</returns>
-		public virtual EventAttribute GetEventAttribute(InvocationContext context, int nextEventId)
+		public virtual EventAttribute GetEventAttribute(InvocationContext context, int nextEventId, IReadOnlyCollection<ParameterMapping> parameterMapping)
 		{
 			if (context == null) throw new ArgumentNullException("context");
 
@@ -68,7 +69,7 @@ namespace EventSourceProxy
 			return new EventAttribute(nextEventId)
 			{
 				Level = GetEventLevelForContext(context, null),
-				Message = GetEventMessage(context)
+				Message = GetEventMessage(context, parameterMapping)
 			};
 		}
 
@@ -88,7 +89,7 @@ namespace EventSourceProxy
 			{
 				Keywords = baseAttribute.Keywords,
 				Level = GetEventLevelForContext(context, baseAttribute),
-				Message = GetEventMessage(context),
+				Message = GetEventMessage(context, null),
 				Opcode = baseAttribute.Opcode,
 				Task = baseAttribute.Task,
 				Version = baseAttribute.Version
@@ -134,15 +135,17 @@ namespace EventSourceProxy
 		/// Gets the message for an event.
 		/// </summary>
 		/// <param name="context">The context of the call.</param>
+		/// <param name="parameterMapping">The parameter mapping for the method, or null if not a method call.</param>
 		/// <returns>The message for the event.</returns>
-		protected virtual string GetEventMessage(InvocationContext context)
+		protected virtual string GetEventMessage(InvocationContext context, IReadOnlyCollection<ParameterMapping> parameterMapping)
 		{
 			if (context == null) throw new ArgumentNullException("context");
 
 			switch (context.ContextType)
 			{
 				case InvocationContextTypes.MethodCall:
-					return String.Join(" ", Enumerable.Range(0, context.MethodInfo.GetParameters().Length).Select(i => String.Format(CultureInfo.InvariantCulture, "{{{0}}}", i)));
+					if (parameterMapping == null) throw new ArgumentNullException("parameterMapping");
+					return String.Join(" ", Enumerable.Range(0, parameterMapping.Count).Select(i => String.Format(CultureInfo.InvariantCulture, "{{{0}}}", i)));
 
 				case InvocationContextTypes.MethodFaulted:
 					return "{0}";

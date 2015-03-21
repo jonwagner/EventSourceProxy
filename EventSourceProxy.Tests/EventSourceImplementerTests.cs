@@ -649,6 +649,7 @@ namespace EventSourceProxy.Tests
 		}
 		#endregion
 
+		#region Throws Logging
 		[EventSourceImplementation( Name = "ThrowsLog", ThrowOnEventWriteErrors = true )]
         public interface IThrowsLog
         {
@@ -772,6 +773,22 @@ namespace EventSourceProxy.Tests
 
                 Assert.AreEqual( 2, _listener.Events.Count );
             }
-        }
+		}
+		#endregion
+
+		#region Format Testing
+		public interface IHaveInvalidMessage
+		{
+			[Event(0x01, Message = "Invalid: {0}, {1}, {2}")]
+			void Sample(string a, string b);
+		}
+
+		[Test, ExpectedException(typeof(InvalidOperationException))]
+		public void InvalidMessageThrows()
+		{
+			// this is issue #39 - parameters don't match message format
+			var i = EventSourceImplementer.GetEventSourceAs<IHaveInvalidMessage>();
+		}
+		#endregion
 	}
 }

@@ -224,9 +224,7 @@ namespace EventSourceProxy
 			else
 				_typeBuilder = mb.DefineType(_interfaceType.FullName + "_Implemented", TypeAttributes.Class | TypeAttributes.Public, typeof(EventSource));
 
-
 			var implementationAttribute = _interfaceType.GetCustomAttribute<EventSourceImplementationAttribute>() ?? new EventSourceImplementationAttribute();
-
 
 			// add the constructor that calls the base with throwOnEventWriteErrors:
 			var baseCtor = typeof(EventSource).GetConstructor(BindingFlags.NonPublic | BindingFlags.Instance, null, new[] { typeof(bool) }, null);
@@ -376,13 +374,15 @@ namespace EventSourceProxy
 			EventAttribute eventAttribute = null;
 			if (interfaceMethod.GetCustomAttribute<NonEventAttribute>() == null)
 			{
-				eventAttribute = _eventAttributeProvider.GetEventAttribute(invocationContext, eventId);
+				eventAttribute = _eventAttributeProvider.GetEventAttribute(invocationContext, eventId, parameterMapping);
 				eventId = Math.Max(eventId, eventAttribute.EventId + 1);
 			}
 
 			// if auto-keywords are enabled, use them
 			if (eventAttribute != null && eventAttribute.Keywords == EventKeywords.None)
 				eventAttribute.Keywords = autoKeyword;
+
+			ValidateEventMessage(eventAttribute, interfaceMethod, parameterMapping);
 
 			// create the internal method that calls WriteEvent
 			// this cannot be virtual or static, or the manifest builder will skip it
@@ -901,6 +901,50 @@ namespace EventSourceProxy
 		private bool SupportsContext(InvocationContext invocationContext)
 		{
 			return _contextProvider != null && _contextProvider.ShouldProvideContext(invocationContext);
+		}
+
+		/// <summary>
+		/// Validates that the message text for an event has the correct number of parameters.
+		/// </summary>
+		/// <param name="eventAttribute">The attribute to check.</param>
+		/// <param name="method">The method being invoked.</param>
+		/// <param name="parameters">The parameter mapping for the method.</param>
+		[System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Usage", "CA1806:DoNotIgnoreMethodResults", MessageId = "System.String.Format(System.IFormatProvider,System.String,System.Object[])")]
+		private static void ValidateEventMessage(EventAttribute eventAttribute, MethodInfo method, List<ParameterMapping> parameters)
+		{
+			if (eventAttribute == null)
+				return;
+
+			var message = eventAttribute.Message;
+			if (message == null)
+				return;
+
+			object[] defaultValues = parameters.Select(p => GetDefaultStringFormatValue(p.TargetType)).ToArray();
+
+			try
+			{
+				string.Format(CultureInfo.InvariantCulture, message, defaultValues);
+			}
+			catch (FormatException e)
+			{
+				throw new InvalidOperationException(String.Format(CultureInfo.InvariantCulture, "Invalid string format in Log Method {0}", method.Name), e);
+			}
+		}
+
+		/// <summary>
+		/// Get the default String.Format value for a type.
+		/// </summary>
+		/// <param name="type">The type being passed to String.Format.</param>
+		/// <returns>A value.</returns>
+		private static object GetDefaultStringFormatValue(Type type)
+		{
+			if (type == typeof(string))
+				return string.Empty;
+
+			if (type.IsByRef || type.ContainsGenericParameters || type.IsInterface)
+				return null;
+
+			return Activator.CreateInstance(type);
 		}
 		#endregion
 	}
