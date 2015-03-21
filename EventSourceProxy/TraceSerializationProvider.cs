@@ -68,6 +68,10 @@ namespace EventSourceProxy
 			switch (context.ContextType)
 			{
 				case InvocationContextTypes.MethodCall:
+					// added context data is added by default
+					if (context.ParameterIndex < 0)
+						return _defaultEventLevel;
+
 					parameterInfo = context.MethodInfo.GetParameters()[context.ParameterIndex];
 					break;
 				case InvocationContextTypes.MethodCompletion:

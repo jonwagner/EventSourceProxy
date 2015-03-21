@@ -131,6 +131,16 @@ namespace EventSourceProxy
 		/// <param name="contextExpression">The expression to generate the context.</param>
 		/// <returns>A continuation of the configuration.</returns>
 		IParameterBuilder AddContext<T>(string alias, Expression<Func<T>> contextExpression);
+
+		/// <summary>
+		/// Adds a context parameter to the logged method. The data is retrieved from TraceContext.GetValue.
+		/// </summary>
+		/// <typeparam name="T">The type returned by the context expression.</typeparam>
+		/// <param name="alias">The alias to use to log the data.</param>
+		/// <param name="key">The key to use to retrieve the data from TraceContext.GetValue.</param>
+		/// <returns>A continuation of the configuration.</returns>
+		[System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Design", "CA1026:DefaultParametersShouldNotBeUsed"), System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Design", "CA1004:GenericMethodsShouldProvideTypeParameter"), System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Naming", "CA1716:IdentifiersShouldNotMatchKeywords", MessageId = "Alias")]
+		IParameterBuilder AddContextData<T>(string alias, string key = null);
 	}
 
 	/// <summary>
@@ -505,6 +515,22 @@ namespace EventSourceProxy
 			Provider.Add(builder);
 
 			return builder;
+		}
+
+		/// <inheritdoc/>
+		public IParameterBuilder AddContextData<TValue>(string alias, string key = null)
+		{
+			if (alias == null) throw new ArgumentNullException("alias");
+			if (key == null)
+				key = alias;
+
+			// need to bind the alias into an expression to be evaluated at runtime
+			var constant = Expression.Constant(key);
+			var call = Expression.Call(typeof(TraceContext).GetMethod("GetValue"), constant);
+			var castAsObject = Expression.Convert(call, typeof(TValue));
+			var lambda = Expression.Lambda<Func<TValue>>(castAsObject);
+
+			return AddContext<TValue>(alias, lambda);
 		}
 		#endregion
 

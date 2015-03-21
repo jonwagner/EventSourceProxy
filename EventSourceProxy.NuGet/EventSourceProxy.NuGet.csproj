@@ -126,6 +126,9 @@
     <Compile Include="..\EventSourceProxy\TraceAsDataAttribute.cs">
       <Link>TraceAsDataAttribute.cs</Link>
     </Compile>
+    <Compile Include="..\EventSourceProxy\TraceContext.cs">
+      <Link>TraceContext.cs</Link>
+    </Compile>
     <Compile Include="..\EventSourceProxy\TraceContextAttribute.cs">
       <Link>TraceContextAttribute.cs</Link>
     </Compile>

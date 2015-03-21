@@ -158,5 +158,46 @@ namespace EventSourceProxy.Tests
 			Assert.AreEqual(1, events[0].Payload.Count);
 		}
 		#endregion
+
+		#region Rich Context Tests
+		public interface IHaveRichContext
+		{
+			void Log(string message);
+		}
+
+		[Test]
+		public void TestAddingContextToEachMethod()
+		{
+			TraceParameterProvider.Default.For<IHaveRichContext>()
+				.AddContextData<string>("Site.Id")
+				.AddContextData<string>("Site.Name")
+				.AddContextData<int>("PID");
+
+			var proxy = EventSourceImplementer.GetEventSourceAs<IHaveRichContext>();
+			EnableLogging(proxy);
+
+			using (var context = TraceContext.Begin())
+			{
+				context["PID"] = 1234;
+
+				using (var context2 = TraceContext.Begin())
+				{
+					context2["Site.Id"] = "Ts1";
+					context2["Site.Name"] = "TestSite1";
+
+					proxy.Log("message");
+				}
+			}
+
+			// look at the events
+			var events = _listener.Events.ToArray();
+			Assert.AreEqual(1, events.Length);
+			Assert.AreEqual(4, events[0].Payload.Count);
+			Assert.AreEqual("message", events[0].Payload[0]);
+			Assert.AreEqual("Ts1", events[0].Payload[1]);
+			Assert.AreEqual("TestSite1", events[0].Payload[2]);
+			Assert.AreEqual(1234, events[0].Payload[3]);
+		}
+		#endregion
 	}
 }
