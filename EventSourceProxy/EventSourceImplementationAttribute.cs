@@ -1,10 +1,13 @@
 ﻿using System;
 
+using System.Collections.Concurrent;
+using System.Collections.Generic;
 #if NUGET
 using Microsoft.Diagnostics.Tracing;
 #else
 using System.Diagnostics.Tracing;
 #endif
+using System.Reflection;
 
 #if NUGET
 namespace EventSourceProxy.NuGet
@@ -18,6 +21,13 @@ namespace EventSourceProxy
 	[AttributeUsage(AttributeTargets.Class | AttributeTargets.Interface)]
 	public sealed class EventSourceImplementationAttribute : Attribute
 	{
+		#region Static Fields
+		/// <summary>
+		/// The overridden attributes
+		/// </summary>
+		private static ConcurrentDictionary<Type, EventSourceImplementationAttribute> _attributes = new ConcurrentDictionary<Type, EventSourceImplementationAttribute>();
+		#endregion
+
 		/// <summary>
 		/// Specifies whether complement methods should be emitted.
 		/// </summary>
@@ -77,6 +87,33 @@ namespace EventSourceProxy
 		{
 			get { return _implementComplementMethods; }
 			set { _implementComplementMethods = value; }
+		}
+
+		/// <summary>
+		/// Overrides the EventSourceImplementationAttribute for a type. Allows you to define logging for other people's interfaces.
+		/// </summary>
+		/// <typeparam name="T">The type of interface we are overriding.</typeparam>
+		/// <param name="attribute">The new EventSourceImplementationAttribute for the type.</param>
+		[System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Design", "CA1004:GenericMethodsShouldProvideTypeParameter")]
+		public static void For<T>(EventSourceImplementationAttribute attribute)
+		{
+			if (attribute == null) throw new ArgumentNullException("attribute");
+
+			_attributes.AddOrUpdate(typeof(T), attribute, (t, a) => a);
+		}
+
+		/// <summary>
+		/// Get the EventSourceImplementationAttribute for a type.
+		/// </summary>
+		/// <param name="type">The type.</param>
+		/// <returns>The attribute.</returns>
+		internal static EventSourceImplementationAttribute GetAttributeFor(Type type)
+		{
+			EventSourceImplementationAttribute attribute;
+			if (_attributes.TryGetValue(type, out attribute))
+				return attribute;
+
+			return type.GetCustomAttribute<EventSourceImplementationAttribute>() ?? new EventSourceImplementationAttribute();
 		}
 	}
 }

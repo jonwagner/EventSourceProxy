@@ -59,7 +59,7 @@ namespace EventSourceProxy
 		internal static CustomAttributeBuilder GetEventSourceAttributeBuilder(Type type)
 		{
 			var attribute = type.GetCustomAttribute<EventSourceAttribute>() ?? new EventSourceAttribute();
-			var implementation = type.GetCustomAttribute<EventSourceImplementationAttribute>() ?? new EventSourceImplementationAttribute();
+			var implementation = EventSourceImplementationAttribute.GetAttributeFor(type);
 
 			// by default, we will use a null guid, which will tell EventSource to generate the guid from the name
 			// but if we have already generated this type, we will have to generate a new one

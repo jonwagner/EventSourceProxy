@@ -622,5 +622,26 @@ namespace EventSourceProxy.Tests
 			Assert.Throws<ArgumentException>(() => TracingProxy.Create<ITestServiceWithGenericMethods>(new DoesNotImplement()));
 		}
 		#endregion
+
+		#region RenameInterface Tests
+		public interface IHateThisName
+		{
+			void Log(string why);
+		}
+
+		public class HateThisName : IHateThisName
+		{
+			public void Log(string why) { }
+		}
+
+		[Test]
+		public void TestRenamingInterface()
+		{
+			EventSourceImplementationAttribute.For<IHateThisName>(new EventSourceImplementationAttribute() { Name = "A Better Name" });
+			var logger = EventSourceImplementer.GetEventSourceAs<IHateThisName>();
+
+			Assert.AreEqual("A Better Name", ((EventSource)logger).Name);
+		}
+		#endregion
 	}
 }

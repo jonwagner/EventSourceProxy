@@ -224,8 +224,8 @@ namespace EventSourceProxy
 			else
 				_typeBuilder = mb.DefineType(_interfaceType.FullName + "_Implemented", TypeAttributes.Class | TypeAttributes.Public, typeof(EventSource));
 
-			var implementationAttribute = _interfaceType.GetCustomAttribute<EventSourceImplementationAttribute>() ?? new EventSourceImplementationAttribute();
-
+			var implementationAttribute = EventSourceImplementationAttribute.GetAttributeFor(_interfaceType);
+				
 			// add the constructor that calls the base with throwOnEventWriteErrors:
 			var baseCtor = typeof(EventSource).GetConstructor(BindingFlags.NonPublic | BindingFlags.Instance, null, new[] { typeof(bool) }, null);
 			
