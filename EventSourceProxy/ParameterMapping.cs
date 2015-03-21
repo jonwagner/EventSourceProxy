@@ -51,7 +51,11 @@ namespace EventSourceProxy
 				if (_sources.Count == 1)
 				{
 					// if there is one source, then we use the type of the individual source
-					return _sources[0].SourceType;
+					var source = _sources[0];
+					if (source.Converter != null)
+						return source.Converter.ReturnType;
+
+					return source.SourceType;
 				}
 
 				// otherwise we have multiple sources, or a context, so we target a string

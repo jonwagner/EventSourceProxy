@@ -460,6 +460,7 @@ namespace EventSourceProxy.Tests
 		}
 		#endregion
 
+		#region SubClass Tests
 		public class BaseClass
 		{
 			public string Message { get; set; }
@@ -489,5 +490,40 @@ namespace EventSourceProxy.Tests
 				var proxy = new TypeImplementer(typeof(ISubClassEventSource), tpp).EventSource;                
 			});
 		}
+		#endregion
+
+		#region Issue33 Tests
+		public enum RagStatus
+		{
+			Up,
+			Down
+		}
+
+		public interface ITest33
+		{
+			[Event(1, Level = EventLevel.Informational)]
+			void LogItServiceStatusEvent(string itService, RagStatus status);
+		}
+
+		[Test]
+		public void Test33()
+		{
+			var tpp = new TraceParameterProvider();
+			tpp.ForAnything().Trace((RagStatus r) => r.ToString());
+
+			var proxy = (ITest33)new TypeImplementer(typeof(ITest33), tpp).EventSource;
+			EnableLogging(proxy);
+
+			// do some logging
+			proxy.LogItServiceStatusEvent("it", RagStatus.Up);
+
+			// look at the events
+			var events = _listener.Events.ToArray();
+			Assert.AreEqual(1, events.Length);
+			Assert.AreEqual(2, events[0].Payload.Count);
+			Assert.AreEqual("it", events[0].Payload[0]);
+			Assert.AreEqual("Up", events[0].Payload[1]);
+		}
+		#endregion
 	}
 }
