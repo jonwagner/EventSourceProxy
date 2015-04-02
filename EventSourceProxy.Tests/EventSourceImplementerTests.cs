@@ -810,6 +810,41 @@ namespace EventSourceProxy.Tests
 			Assert.AreEqual(1, events.Length);
 			Assert.AreEqual("2015-04-01 00:00:00Z", events[0].Payload[0]);
 		}
+
+		public interface IMessageNoDefaultConstructor
+		{
+			[Event(0x01, Message = "Invalid: {0}, {1}")]
+			void Sample(ClassNoDefaultConstructor a, StructNoDefaultConstructor b);
+		}
+
+		public class ClassNoDefaultConstructor
+		{
+			private int _i;
+
+			public ClassNoDefaultConstructor(int i)
+			{
+				_i = i;
+			}
+		}
+
+		public struct StructNoDefaultConstructor
+		{
+			private int _i;
+
+			public StructNoDefaultConstructor(int i)
+			{
+				_i = i;
+			}
+		}
+
+		[Test]
+		public void TestLoggingObjectsWithNoDefaultConstructor()
+		{
+			var testLog = EventSourceImplementer.GetEventSourceAs<IMessageNoDefaultConstructor>();
+			_listener.EnableEvents((EventSource)testLog, EventLevel.LogAlways, (EventKeywords)(-1));
+
+			testLog.Sample(new ClassNoDefaultConstructor(1), new StructNoDefaultConstructor(1));
+		}
 		#endregion
 	}
 }

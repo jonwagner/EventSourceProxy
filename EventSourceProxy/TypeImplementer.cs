@@ -944,6 +944,9 @@ namespace EventSourceProxy
 			if (type.IsByRef || type.ContainsGenericParameters || type.IsInterface)
 				return null;
 
+			if (type.IsClass)
+				return null;
+
 			return Activator.CreateInstance(type);
 		}
 		#endregion
