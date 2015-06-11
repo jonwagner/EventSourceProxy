@@ -191,6 +191,40 @@ namespace EventSourceProxy
 					if (traceMember != null)
 						expression = Expression.MakeMemberAccess(expression, parameter.ParameterType.GetMember(traceMember.Member).First());
 
+					// if the attribute is a TraceTransform then validate the usage and use the provided method
+					// to build an expression to apply to the trace value
+					var traceTransform = attribute as TraceTransformAttribute;
+					if (traceTransform != null)
+					{
+						var method = traceTransform.GetTransformMethod(input.Type);
+						if (method == null)
+						{
+							var message = String.Format("{0}.GetTransformMethod() returned null.", attribute.GetType().Name);
+							throw new ArgumentNullException("Method", message);
+						}				
+
+						var methodParams = method.GetParameters();
+						if (methodParams.Length != 1 || method.ReturnType == typeof(void) || !method.IsStatic)
+						{
+							var message = String.Format("{0}.GetTransformMethod() should return MethodInfo for a static method with one input parameter and a non-void response type.", attribute.GetType().Name);
+							throw new ArgumentException(message);
+						}
+
+						if (methodParams[0].ParameterType != input.Type)
+						{
+							var message = String.Format(
+								"{0}.GetTransformMethod() returned MethodInfo for a static method which expects an input type of '{1}' but was applied to a trace parameter of type '{2}'. (trace method name: {3}, parameter name: {4})",
+								attribute.GetType().Name,
+								methodParams[0].ParameterType, 
+								input.Type,								
+								methodInfo.Name,
+								traceName);
+							throw new ArgumentException(message);
+						}
+						
+						expression = Expression.Call(method, input);
+					}
+
 					// if a string format was specified, wrap the expression in a method call
 					if (!String.IsNullOrWhiteSpace(attribute.Format))
 					{
