@@ -276,6 +276,124 @@ namespace EventSourceProxy.Tests
 		}
 		#endregion
 
+
+		#region Trace Method Parameters
+		public class TraceMaskCreditCardsAttribute : TraceMethodAttribute
+		{		
+			public override MethodInfo GetMethod(Type inputType)
+			{
+				return GetType().GetMethod("MaskAccount");
+			}
+
+			public static string MaskAccount(string input)
+			{
+				return input.Substring(0, 4) + new string('x', input.Length - 4);
+			}
+		}
+
+
+		public interface ILogMaskingWithAttributes
+		{
+			void LogPayment(
+				string MerchantName,
+				[TraceMaskCreditCardsAttribute]
+				string CreditCard,
+				decimal Amount
+				);
+		}
+
+		public interface ILogMaskingWithAttributes_InvalidApplication
+		{
+			void LogPayment(
+				string MerchantName,
+				string CreditCard,
+				[TraceMaskCreditCardsAttribute]
+				decimal Amount
+				);
+		}
+
+		public class TraceMethodNullAttribute : TraceMethodAttribute
+		{
+			public override MethodInfo GetMethod(Type inputType)
+			{
+				return null;
+			}
+		}
+
+		public interface ILogWithNullAttribute
+		{
+			void Log([TraceMethodNullAttribute] string message);
+		}
+
+		public class TraceMethodNoInputAttribute : TraceMethodAttribute
+		{
+			public override MethodInfo GetMethod(Type inputType)
+			{
+				return GetType().GetMethod("TestMethod");
+			}
+
+			public static string TestMethod()
+			{
+				return String.Empty;
+			}
+		}
+
+		public interface ILogWithNoInputAttribute
+		{
+			void Log([TraceMethodNoInputAttribute] string message);
+		}
+
+		public class TraceMethodNoResponseAttribute : TraceMethodAttribute
+		{
+			public override MethodInfo GetMethod(Type inputType)
+			{
+				return GetType().GetMethod("TestMethod");
+			}
+
+			public static void TestMethod(string input)
+			{
+				return;
+			}
+		}
+
+		public interface ILogWithNoResponseAttribute
+		{
+			void Log([TraceMethodNoResponseAttribute] string message);
+		}
+
+		[Test]
+		public void ValuesCanBeModifiedViaAttributes()
+		{
+			EnableLogging<ILogMaskingWithAttributes>();
+
+			// do some logging
+			var log = EventSourceImplementer.GetEventSourceAs<ILogMaskingWithAttributes>();
+			log.LogPayment(MerchantName: "A Merchant", CreditCard: "1234123412341234", Amount: 10);
+
+			// look at the events
+			var events = _listener.Events.ToArray();
+			Assert.AreEqual(1, events.Length);
+			Assert.AreEqual(3, events[0].Payload.Count);
+			Assert.Contains("A Merchant", events[0].Payload);
+			Assert.Contains("1234xxxxxxxxxxxx", events[0].Payload);
+			Assert.Contains("10", events[0].Payload);
+		}
+
+		[Test]
+		public void ValuesCanBeModifiedViaAttributes_InvalidApplication()
+		{
+			Assert.Throws<ArgumentException>(EnableLogging<ILogMaskingWithAttributes_InvalidApplication>);
+		}
+
+		[Test]
+		public void ValuesCanBeModifiedViaAttributes_BadAttributes()
+		{
+			Assert.Throws<ArgumentNullException>(EnableLogging<ILogWithNullAttribute>);
+			Assert.Throws<ArgumentException>(EnableLogging<ILogWithNoInputAttribute>);
+			Assert.Throws<ArgumentException>(EnableLogging<ILogWithNoResponseAttribute>);
+		}
+		#endregion
+
 		#region Exploding Parameters
 		public class EmailChange
 		{

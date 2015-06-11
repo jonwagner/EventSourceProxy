@@ -69,6 +69,7 @@
     <Compile Include="Any.cs" />
     <Compile Include="ParameterBuilder.cs" />
     <Compile Include="ParameterBuilderValue.cs" />
+    <Compile Include="TraceMethodAttribute.cs" />
     <Compile Include="TraceContext.cs" />
     <Compile Include="TraceIgnoreAttribute.cs" />
     <Compile Include="TraceAsDataAttribute.cs" />
