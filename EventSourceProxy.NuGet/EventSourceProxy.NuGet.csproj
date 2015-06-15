@@ -144,9 +144,6 @@
     <Compile Include="..\EventSourceProxy\TraceMemberAttribute.cs">
       <Link>TraceMemberAttribute.cs</Link>
     </Compile>
-    <Compile Include="..\EventSourceProxy\TraceMethodAttribute.cs">
-      <Link>TraceMethodAttribute.cs</Link>
-    </Compile>
     <Compile Include="..\EventSourceProxy\TraceParameterProvider.cs">
       <Link>TraceParameterProvider.cs</Link>
     </Compile>
@@ -167,6 +164,9 @@
     </Compile>
     <Compile Include="..\EventSourceProxy\TraceSerializationProviderAttribute.cs">
       <Link>TraceSerializationProviderAttribute.cs</Link>
+    </Compile>
+    <Compile Include="..\EventSourceProxy\TraceTransformAttribute.cs">
+      <Link>TraceTransformAttribute.cs</Link>
     </Compile>
     <Compile Include="..\EventSourceProxy\TracingProxy.cs">
       <Link>TracingProxy.cs</Link>

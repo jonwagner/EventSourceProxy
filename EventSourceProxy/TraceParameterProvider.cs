@@ -191,28 +191,28 @@ namespace EventSourceProxy
 					if (traceMember != null)
 						expression = Expression.MakeMemberAccess(expression, parameter.ParameterType.GetMember(traceMember.Member).First());
 
-					// if the attribute is a TraceMethod then validate the usage and use the attributes GetMethod
+					// if the attribute is a TraceTransform then validate the usage and use the provided method
 					// to build an expression to apply to the trace value
-					var traceMethod = attribute as TraceMethodAttribute;
-					if (traceMethod != null)
+					var traceTransform = attribute as TraceTransformAttribute;
+					if (traceTransform != null)
 					{
-						var method = traceMethod.GetMethod(input.Type);
+						var method = traceTransform.GetTransformMethod(input.Type);
 						if (method == null)
 						{
-							var message = String.Format("{0}.GetMethod() returned null.", attribute.GetType().Name);
+							var message = String.Format("{0}.GetTransformMethod() returned null.", attribute.GetType().Name);
 							throw new ArgumentNullException("Method", message);
 						}				
 
 						var methodParams = method.GetParameters();
 						if (methodParams.Length != 1 || method.ReturnType == typeof(void) || !method.IsStatic)
 						{
-							var message = String.Format("{0}.GetMethod() should return MethodInfo for a static method with one input parameter and a non-void response type.", attribute.GetType().Name);
+							var message = String.Format("{0}.GetTransformMethod() should return MethodInfo for a static method with one input parameter and a non-void response type.", attribute.GetType().Name);
 							throw new ArgumentException(message);
 						}
 
 						if (methodParams[0].ParameterType != input.Type)
 						{
-							var message = String.Format("{0}.GetMethod() returned MethodInfo for a static method which expects an input type of '{1}' but was applied to a trace parameter of type '{2}'. (trace method name: {3}, parameter name: {4})",
+							var message = String.Format("{0}.GetTransformMethod() returned MethodInfo for a static method which expects an input type of '{1}' but was applied to a trace parameter of type '{2}'. (trace method name: {3}, parameter name: {4})",
 								attribute.GetType().Name,
 								methodParams[0].ParameterType, 
 								input.Type,								

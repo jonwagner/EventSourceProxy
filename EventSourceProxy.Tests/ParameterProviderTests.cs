@@ -277,10 +277,10 @@ namespace EventSourceProxy.Tests
 		#endregion
 
 
-		#region Trace Method Parameters
-		public class TraceMaskCreditCardsAttribute : TraceMethodAttribute
+		#region Trace Transformations
+		public class TraceMaskCreditCardsAttribute : TraceTransformAttribute
 		{		
-			public override MethodInfo GetMethod(Type inputType)
+			public override MethodInfo GetTransformMethod(Type inputType)
 			{
 				return GetType().GetMethod("MaskAccount");
 			}
@@ -312,9 +312,9 @@ namespace EventSourceProxy.Tests
 				);
 		}
 
-		public class TraceMethodNullAttribute : TraceMethodAttribute
+		public class TraceTransformNullAttribute : TraceTransformAttribute
 		{
-			public override MethodInfo GetMethod(Type inputType)
+			public override MethodInfo GetTransformMethod(Type inputType)
 			{
 				return null;
 			}
@@ -322,12 +322,12 @@ namespace EventSourceProxy.Tests
 
 		public interface ILogWithNullAttribute
 		{
-			void Log([TraceMethodNullAttribute] string message);
+			void Log([TraceTransformNull] string message);
 		}
 
-		public class TraceMethodNoInputAttribute : TraceMethodAttribute
+		public class TraceTransformNoInputAttribute : TraceTransformAttribute
 		{
-			public override MethodInfo GetMethod(Type inputType)
+			public override MethodInfo GetTransformMethod(Type inputType)
 			{
 				return GetType().GetMethod("TestMethod");
 			}
@@ -340,12 +340,12 @@ namespace EventSourceProxy.Tests
 
 		public interface ILogWithNoInputAttribute
 		{
-			void Log([TraceMethodNoInputAttribute] string message);
+			void Log([TraceTransformNoInput] string message);
 		}
 
-		public class TraceMethodNoResponseAttribute : TraceMethodAttribute
+		public class TraceTransformNoResponseAttribute : TraceTransformAttribute
 		{
-			public override MethodInfo GetMethod(Type inputType)
+			public override MethodInfo GetTransformMethod(Type inputType)
 			{
 				return GetType().GetMethod("TestMethod");
 			}
@@ -358,7 +358,7 @@ namespace EventSourceProxy.Tests
 
 		public interface ILogWithNoResponseAttribute
 		{
-			void Log([TraceMethodNoResponseAttribute] string message);
+			void Log([TraceTransformNoResponse] string message);
 		}
 
 		[Test]
