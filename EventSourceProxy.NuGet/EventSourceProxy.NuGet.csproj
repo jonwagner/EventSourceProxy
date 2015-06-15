@@ -165,6 +165,9 @@
     <Compile Include="..\EventSourceProxy\TraceSerializationProviderAttribute.cs">
       <Link>TraceSerializationProviderAttribute.cs</Link>
     </Compile>
+    <Compile Include="..\EventSourceProxy\TraceTransformAttribute.cs">
+      <Link>TraceTransformAttribute.cs</Link>
+    </Compile>
     <Compile Include="..\EventSourceProxy\TracingProxy.cs">
       <Link>TracingProxy.cs</Link>
     </Compile>
