@@ -132,7 +132,7 @@ So, this is great for adding logging to any interface in your application.
 
 # New in v2.0 - Logging Transforms #
 
-* Use attributes and configuration rules to transform your interface calls to entirely different logging calls. See [[Controlling Logged Data]] and [[Adding Additional Logging Context]].
+* Use attributes and configuration rules to transform your interface calls to entirely different logging calls. See [Controlling Logged Data](https://github.com/jonwagner/EventSourceProxy/wiki/Controlling-Logged-Data) and [Adding Additional Logging Context](https://github.com/jonwagner/EventSourceProxy/wiki/Adding-Additional-Logging-Context).
 
 # Documentation #
 
