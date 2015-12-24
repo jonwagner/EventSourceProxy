@@ -30,6 +30,8 @@ namespace EventSourceProxy
 		/// The cache of constructors.
 		/// </summary>
 		private static ConcurrentDictionary<Type, object> _eventSources = new ConcurrentDictionary<Type, object>();
+
+	    private static PropertyInfo _isDisposedProperty = typeof (EventSource).GetProperty("IsDisposed", BindingFlags.Instance | BindingFlags.NonPublic);
 		#endregion
 
 		#region Public Members
@@ -86,7 +88,22 @@ namespace EventSourceProxy
 		{
 			lock (_eventSources)
 			{
-				return (EventSource)_eventSources.GetOrAdd(type, t => new TypeImplementer(t).EventSource);
+				var source = (EventSource)_eventSources.GetOrAdd(type, t => new TypeImplementer(t).EventSource);
+
+                if (_isDisposedProperty != null)
+			    {
+                    //HACK: using reflection on the private IsDisposed field to determine if the cached event source is disposed
+			        var isDisposed = (bool)_isDisposedProperty.GetValue(source);
+			        if (isDisposed)
+			        {
+                        // we don't want to return a disposed event source. Remove it from the cache and create a new source
+			            object removed;
+			            _eventSources.TryRemove(type, out removed);
+                        source = (EventSource)_eventSources.GetOrAdd(type, t => new TypeImplementer(t).EventSource);
+                    }
+			    }
+
+			    return source;
 			}
 		}
 
