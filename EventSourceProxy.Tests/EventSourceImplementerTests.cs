@@ -621,8 +621,8 @@ namespace EventSourceProxy.Tests
 		{
 			var manifest = EventSourceManifest.GenerateManifest(typeof(InterfaceThatFolds));
 
-			// make sure there is only one keyword
-			Assert.That(manifest.Contains("<keywords>\r\n  <keyword name=\"Foo\"  message=\"$(string.keyword_Foo)\" mask=\"0x1\"/>\r\n </keywords>"));
+			// newer EventSource versions generate additional keywords Session0-Session3. So there should be only the keywords for and Session0-3.
+			Assert.That(manifest.Contains("<keywords>\r\n  <keyword name=\"Foo\" message=\"$(string.keyword_Foo)\" mask=\"0x1\"/>\r\n  <keyword name=\"Session3\" message=\"$(string.keyword_Session3)\" mask=\"0x100000000000\"/>\r\n  <keyword name=\"Session2\" message=\"$(string.keyword_Session2)\" mask=\"0x200000000000\"/>\r\n  <keyword name=\"Session1\" message=\"$(string.keyword_Session1)\" mask=\"0x400000000000\"/>\r\n  <keyword name=\"Session0\" message=\"$(string.keyword_Session0)\" mask=\"0x800000000000\"/>\r\n </keywords>"));
 		}
 		#endregion
 
@@ -660,7 +660,7 @@ namespace EventSourceProxy.Tests
         public void EventSourceThrowsNotConfigured()
         {
             var subject = EventSourceImplementer.GetEventSourceAs<IFoo>();
-            var fieldInfo = typeof(EventSource).GetField( "m_throwOnEventWriteErrors", BindingFlags.Instance | BindingFlags.NonPublic );
+            var fieldInfo = typeof(EventSource).GetProperty("ThrowOnEventWriteErrors", BindingFlags.Instance | BindingFlags.NonPublic );
             var actual = (bool)fieldInfo.GetValue( subject );
             Assert.IsFalse( actual );
         }
@@ -669,7 +669,7 @@ namespace EventSourceProxy.Tests
         public void EventSourceThrowsConfigured()
         {
             var subject = EventSourceImplementer.GetEventSourceAs<IThrowsLog>();
-            var fieldInfo = typeof(EventSource).GetField( "m_throwOnEventWriteErrors", BindingFlags.Instance | BindingFlags.NonPublic );
+            var fieldInfo = typeof(EventSource).GetProperty("ThrowOnEventWriteErrors", BindingFlags.Instance | BindingFlags.NonPublic );
             var actual = (bool)fieldInfo.GetValue( subject );
             Assert.IsTrue( actual );
         }

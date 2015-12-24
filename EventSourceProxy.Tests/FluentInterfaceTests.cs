@@ -4,12 +4,21 @@ using System.Linq;
 using EventSourceProxy;
 using NUnit.Framework;
 using System.Diagnostics.Tracing;
+using System.Globalization;
+using System.Threading;
 
 namespace EventSourceProxy.Tests
 {
     [TestFixture]
     public class FluentInterfaceTests : BaseLoggingTest
 	{
+        public FluentInterfaceTests()
+        {
+            // Some of the tests expect the test in US date/time format. To ensure that these tests pass on 
+            // systems with non en-US culture settings, set the culture that should be used for all tests:
+            Thread.CurrentThread.CurrentCulture = CultureInfo.GetCultureInfo("en-US");
+        }
+
 		#region Test Interface
 		public interface IEmailer
 		{

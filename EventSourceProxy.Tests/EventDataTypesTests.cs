@@ -1,8 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics.Tracing;
+using System.Globalization;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using NUnit.Framework;
 
@@ -11,8 +13,15 @@ namespace EventSourceProxy.Tests
 	[TestFixture]
 	public class EventDataTypesTests
 	{
-		#region Tests for Built-in Types
-		public enum FooEnum
+        public EventDataTypesTests()
+        {
+            // Some of the tests expect the test in US date/time/number format. To ensure that these tests pass on 
+            // systems with non en-US culture settings, set the culture that should be used for all tests:
+            Thread.CurrentThread.CurrentCulture = CultureInfo.GetCultureInfo("en-US");
+        }
+
+        #region Tests for Built-in Types
+        public enum FooEnum
 		{
 			Foo,
 			Bar
