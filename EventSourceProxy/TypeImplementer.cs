@@ -739,10 +739,7 @@ namespace EventSourceProxy
 					// and references have been dereferenced
 					if (parameter.CleanTargetType.IsValueType)
 					{
-						var sourceType = parameter.SourceType;
-						if (sourceType.IsByRef)
-							sourceType = sourceType.GetElementType();
-						mIL.Emit(OpCodes.Box, sourceType);
+						mIL.Emit(OpCodes.Box, parameter.CleanTargetType);
 					}
 				}
 				else
