@@ -54,10 +54,23 @@ namespace EventSourceProxy.Tests
 		public class OtherClass
 		{
 		}
-		#endregion
 
-		#region Everything Bagel Tests
-		[Test]
+        public interface IDifferentTypes
+        {
+            void E(DifferentTypes d);
+        }
+
+        public class DifferentTypes
+        {
+            public string S { get; set; }
+            public long L { get; set; }
+            public Guid G { get; set; }
+        }
+
+        #endregion
+
+        #region Everything Bagel Tests
+        [Test]
 		public void TestEverythingTogether()
 		{
 			var tpp = new TraceParameterProvider();
@@ -94,10 +107,37 @@ namespace EventSourceProxy.Tests
 			Assert.That(payload[4] == ("1/1/2000 12:00:00 AM"));
 			Assert.That(payload[5] == ("testing"));
 		}
-		#endregion
 
-		#region For Method Filter Tests
-		[Test]
+        [Test]
+        public void TestEverythingTogetherWithValueTypes()
+        {
+            var tpp = new TraceParameterProvider();
+            tpp
+                .For<IDifferentTypes>()
+                    .With<DifferentTypes>()
+                        .Trace(e => e.S).As("a")
+                        .Trace(e => e.G).As("b")
+                        .Trace(e => e.L).As("c")
+                    .EndWith()
+                    ;
+
+            var proxy = (IDifferentTypes)new TypeImplementer(typeof(IDifferentTypes), tpp).EventSource;
+            EnableLogging(proxy);
+            proxy.E(new DifferentTypes { S = "Blah" });
+
+            // look at the events again
+            var events = _listener.Events.ToArray();
+            Assert.AreEqual(1, events.Length);
+
+            var payload = events[0].Payload.Select(o => o.ToString()).ToArray();
+
+            Assert.AreEqual(3, payload.Length);
+        }
+
+        #endregion
+
+        #region For Method Filter Tests
+        [Test]
 		public void ForAny()
 		{
 			var traceDescription = new TraceParameterProvider().ForAnything();
