@@ -846,5 +846,34 @@ namespace EventSourceProxy.Tests
 			testLog.Sample(new ClassNoDefaultConstructor(1), new StructNoDefaultConstructor(1));
 		}
 		#endregion
+
+		#region String Conversion Tests
+		[EventSourceImplementation(ThrowOnEventWriteErrors = true)]
+		public interface IStringEvent
+		{
+			[Event(99)]
+			void Event(string firstParam, string secondParam);
+		}
+
+		[Test]
+		public void StringEventsShouldNotBeLoggedAsNull()
+		{
+			// Unfortunately the Excpetion happens only if there is an out of process listener.
+			var listener = new TestEventListener();
+			var testLog = EventSourceImplementer.GetEventSourceAs<IStringEvent>();
+			listener.EnableEvents((EventSource)testLog, EventLevel.LogAlways);
+
+			// do some logging
+			testLog.Event(null, null);
+
+			// look at the events
+			var events = listener.Events.ToArray();
+			Assert.AreEqual(1, events.Length);
+			Assert.AreEqual(2, events[0].Payload.Count);
+			Assert.IsNotNull(events[0].Payload[0]);
+			Assert.IsNotNull(events[0].Payload[1]);
+		}
+		#endregion
+
 	}
 }

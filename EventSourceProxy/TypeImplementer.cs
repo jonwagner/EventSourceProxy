@@ -744,6 +744,16 @@ namespace EventSourceProxy
 							sourceType = sourceType.GetElementType();
 						mIL.Emit(OpCodes.Box, sourceType);
 					}
+					else if (parameter.CleanTargetType == typeof(string))
+					{
+						// Convert to empty String if the String is null.
+						mIL.Emit(OpCodes.Dup);
+						Label endIf = mIL.DefineLabel();
+						mIL.Emit(OpCodes.Brtrue_S, endIf);
+						mIL.Emit(OpCodes.Pop);
+						mIL.Emit(OpCodes.Ldstr, "");
+						mIL.MarkLabel(endIf);
+					}
 				}
 				else
 				{
