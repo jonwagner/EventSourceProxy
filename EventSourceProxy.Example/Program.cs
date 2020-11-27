@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.Diagnostics.Eventing;
 using System.Diagnostics.Tracing;
 using System.Linq;
 using System.Reflection;

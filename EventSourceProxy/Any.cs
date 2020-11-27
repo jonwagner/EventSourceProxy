@@ -1,8 +1,4 @@
-﻿#if NUGET
-namespace EventSourceProxy.NuGet
-#else
-namespace EventSourceProxy
-#endif
+﻿namespace EventSourceProxy
 {
 	/// <summary>
 	/// Encapsulates a placeholder value that can be passed to a method.

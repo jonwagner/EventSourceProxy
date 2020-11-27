@@ -1,10 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
-#if NUGET
-using Microsoft.Diagnostics.Tracing;
-#else
 using System.Diagnostics.Tracing;
-#endif
 using System.Globalization;
 using System.Linq;
 using System.Linq.Expressions;
@@ -13,11 +9,7 @@ using System.Reflection.Emit;
 using System.Text;
 using System.Threading.Tasks;
 
-#if NUGET
-namespace EventSourceProxy.NuGet
-#else
 namespace EventSourceProxy
-#endif
 {
 	/// <summary>
 	/// Methods to help with building proxies.
@@ -200,26 +192,19 @@ namespace EventSourceProxy
 			int i,
 			Type sourceType,
 			Type targetType,
-			LambdaExpression converter,
+			ParameterConverter converter,
 			TraceSerializationProvider serializationProvider,
 			FieldBuilder serializationProviderField)
 		{
 			ILGenerator mIL = methodBuilder.GetILGenerator();
 
-			// if the source is a parameter, then load the parameter onto the stack
+			// load the parameter onto the stack unless it's the context parameter
 			if (i >= 0)
 				mIL.Emit(OpCodes.Ldarg, i + 1);
 
 			// if a converter is passed in, then define a static method and use it to convert
 			if (converter != null)
-			{
-				MethodBuilder mb = typeBuilder.DefineMethod(Guid.NewGuid().ToString(), MethodAttributes.Static | MethodAttributes.Public, converter.ReturnType, converter.Parameters.Select(p => p.Type).ToArray());
-				converter.CompileToMethod(mb);
-				mIL.Emit(OpCodes.Call, mb);
-
-				// the object on the stack is now the return type. we may need to convert it further
-				sourceType = converter.ReturnType;
-			}
+				sourceType = converter.Emit(mIL);
 
 			// if the source type is a reference to the target type, we have to dereference it
 			if (sourceType.IsByRef && sourceType.GetElementType() == targetType)

@@ -27,7 +27,8 @@ namespace EventSourceProxy.Tests
 		{
 			public static void Test(T t)
 			{
-				using (var testLog = (EventSource)EventSourceImplementer.GetEventSourceAs<ITypeLog<T>>())
+				var testLog = (EventSource)EventSourceImplementer.GetEventSourceAs<ITypeLog<T>>();
+
 				using (var listener = new TestEventListener())
 				{
 					listener.EnableEvents(testLog, EventLevel.LogAlways);

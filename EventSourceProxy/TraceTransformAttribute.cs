@@ -6,11 +6,7 @@ using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
 
-#if NUGET
-namespace EventSourceProxy.NuGet
-#else
 namespace EventSourceProxy
-#endif
 {
 	/// <summary>
 	/// Provides a transformation method which will be used to modify the input value before tracing.

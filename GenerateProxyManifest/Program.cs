@@ -1,19 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
-#if NUGET
-using Microsoft.Diagnostics.Tracing;
-#else
 using System.Diagnostics.Tracing;
-#endif
 using System.Linq;
 using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
-#if NUGET
-using EventSourceProxy.NuGet;
-#else
 using EventSourceProxy;
-#endif
 
 namespace GenerateProxyManifest
 {

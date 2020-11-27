@@ -2,18 +2,10 @@
 
 using System.Collections.Concurrent;
 using System.Collections.Generic;
-#if NUGET
-using Microsoft.Diagnostics.Tracing;
-#else
 using System.Diagnostics.Tracing;
-#endif
 using System.Reflection;
 
-#if NUGET
-namespace EventSourceProxy.NuGet
-#else
 namespace EventSourceProxy
-#endif
 {
 	/// <summary>
 	/// Specifies the classes to use for the Keywords, Tasks, and Opcodes enumerations for an EventSource.

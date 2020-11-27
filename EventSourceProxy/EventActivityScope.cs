@@ -5,16 +5,12 @@ using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Linq;
 using System.Runtime.InteropServices;
-using System.Runtime.Remoting.Messaging;
 using System.Security;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 
-#if NUGET
-namespace EventSourceProxy.NuGet
-#else
 namespace EventSourceProxy
-#endif
 {
 	/// <summary>
 	/// Manages the lifetime of an ETW Activity ID.
@@ -25,7 +21,7 @@ namespace EventSourceProxy
 		/// <summary>
 		/// The name of the call context slot we use for the activity ID.
 		/// </summary>
-		private static string _slot = "EventSourceProxy.EventActivityScope";
+		private static AsyncLocal<Guid> _storage = new AsyncLocal<Guid>();
 
 		/// <summary>
 		/// The Activity ID outside of this scope. It is restored on the disposal of the scope.
@@ -114,25 +110,6 @@ namespace EventSourceProxy
 		#endregion
 
 		/// <summary>
-		/// Prepare for WriteEvent by setting the ETW activity ID.
-		/// </summary>
-		/// <remarks>
-		/// The built-in .NET EventSource WriteEvent method does not set the ETW activity ID.
-		/// This method allows EventSources to properly synchronize these values before logging.
-		/// </remarks>
-		[SuppressMessage("Microsoft.Security", "CA2122:DoNotIndirectlyExposeMethodsWithLinkDemands", Justification = "SecurityCritical Attribute has been applied")]
-		[SecurityCritical]
-		public static void PrepareForWriteEvent()
-		{
-			// use our activity ID if we have one, but if not, then use the system ID.
-			Guid guid = GetActivityId();
-			if (guid == Guid.Empty)
-				guid = Trace.CorrelationManager.ActivityId;
-
-			UnsafeNativeMethods.SetActivityId(guid);
-		}
-
-		/// <summary>
 		/// Perform an action within an activity scope.
 		/// This method ensures that an activity scope exists.
 		/// If an activity scope exists, it is reused.
@@ -190,37 +167,18 @@ namespace EventSourceProxy
 		/// Get the current Activity Id.
 		/// </summary>
 		/// <returns>The current activity Id.</returns>
-		[SuppressMessage("Microsoft.Security", "CA2122:DoNotIndirectlyExposeMethodsWithLinkDemands", Justification = "SecurityCritical Attribute has been applied")]
-		[SecurityCritical]
 		private static Guid GetActivityId()
 		{
-			// if we have stored a guid, then return that
-			var data = CallContext.LogicalGetData(_slot);
-			if (data != null)
-				return (Guid)data;
-
-			return Guid.Empty;
+			return Trace.CorrelationManager.ActivityId;
 		}
 
 		/// <summary>
 		/// Sets the current Activity Id.
 		/// </summary>
 		/// <param name="activityId">The activity Id to set.</param>
-		[SuppressMessage("Microsoft.Security", "CA2122:DoNotIndirectlyExposeMethodsWithLinkDemands", Justification = "SecurityCritical Attribute has been applied")]
-		[SecurityCritical]
 		private static void SetActivityId(Guid activityId)
 		{
-			// never store the empty guid, just convert it to null and revert to the system activity ID
-			if (activityId == Guid.Empty)
-			{
-				CallContext.LogicalSetData(_slot, null);
-				UnsafeNativeMethods.SetActivityId(Trace.CorrelationManager.ActivityId);
-			}
-			else
-			{
-				CallContext.LogicalSetData(_slot, activityId);
-				UnsafeNativeMethods.SetActivityId(activityId);
-			}
+			Trace.CorrelationManager.ActivityId = activityId;
 		}
 		#endregion
 	}

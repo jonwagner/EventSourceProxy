@@ -1,15 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Runtime.Remoting.Messaging;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 
-#if NUGET
-namespace EventSourceProxy.NuGet
-#else
 namespace EventSourceProxy
-#endif
 {
 	/// <summary>
 	/// A thread-static bag of data that can be dropped into any trace.
@@ -18,9 +14,9 @@ namespace EventSourceProxy
 	{
 		#region Properties
 		/// <summary>
-		/// The CallContext slot we use to store our data.
+		/// The slot we use to store our data.
 		/// </summary>
-		private static string _slot = "EventSourceProxy.TraceContext";
+		private static AsyncLocal<TraceContext> _storage = new AsyncLocal<TraceContext>();
 
 		/// <summary>
 		/// An outer context.
@@ -73,20 +69,7 @@ namespace EventSourceProxy
 		/// <returns>The new TraceContext that can be filled in.</returns>
 		public static TraceContext Begin()
 		{
-			var data = (TraceContext)CallContext.LogicalGetData(_slot);
-			TraceContext context = null;
-			try
-			{
-				context = new TraceContext(data);
-				CallContext.LogicalSetData(_slot, context);
-			}
-			catch
-			{
-				context.Dispose();
-				throw;
-			}
-
-			return context;
+			return _storage.Value = new TraceContext(_storage.Value);
 		}
 
 		/// <summary>
@@ -96,11 +79,7 @@ namespace EventSourceProxy
 		/// <returns>The value associated with the key, or null of the value was not set.</returns>
 		public static object GetValue(string key)
 		{
-			var data = (TraceContext)CallContext.LogicalGetData(_slot);
-			if (data == null)
-				return null;
-
-			return data[key];
+			return _storage.Value?[key];
 		}
 
 		/// <inheritdoc/>
@@ -115,7 +94,10 @@ namespace EventSourceProxy
 		/// </summary>
 		private void End()
 		{
-			CallContext.LogicalSetData(_slot, _baseContext);
+			if (_storage.Value != this)
+				throw new ApplicationException("TraceContext chain has been broken.");
+
+			_storage.Value = _baseContext;
 		}
 	}
 }

@@ -397,9 +397,9 @@ namespace EventSourceProxy.Tests
 		#region Exploding Parameters
 		public class EmailChange
 		{
-			public string From;
+			public string From { get; set; }
 			public string To;
-			public DateTime When;
+			public DateTime When { get; set; }
 
 			public string GetDomain() { return To; }
 		}
@@ -517,15 +517,19 @@ namespace EventSourceProxy.Tests
 			}
 		}
 
-		[Test, ExpectedException(typeof(ArgumentException))]
+		[Test]
 		public void BadExpressionGeneratesMeaningfulException()
 		{
-			EnableLogging<ILogEmailChangesWithBadExpressionTPP>();
+			Assert.Throws<ArgumentException>(() =>
+			{
+				EnableLogging<ILogEmailChangesWithBadExpressionTPP>();
 
-			// do some logging
-			var log = EventSourceImplementer.GetEventSourceAs<ILogEmailChangesWithBadExpressionTPP>();
-			var change = new EmailChange() { From = "me", To = "you", When = new DateTime(2010, 1, 1) };
-			log.LogChange(change);
+				// do some logging
+				var log = EventSourceImplementer.GetEventSourceAs<ILogEmailChangesWithBadExpressionTPP>();
+				var change = new EmailChange() { From = "me", To = "you", When = new DateTime(2010, 1, 1) };
+				log.LogChange(change);
+			});
+
 		}
 		#endregion
 

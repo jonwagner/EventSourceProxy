@@ -4,11 +4,7 @@ using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
 
-#if NUGET
-namespace EventSourceProxy.NuGet
-#else
 namespace EventSourceProxy
-#endif
 {
 	/// <summary>
 	/// Represents a value to be extracted from a parameter list.

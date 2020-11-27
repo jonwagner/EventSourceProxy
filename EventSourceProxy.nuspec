@@ -6,10 +6,10 @@
     <title>EventSourceProxy</title>
     <authors>Jon Wagner</authors>
     <description>
-	Automatically implements the tedious part of the .NET 4.5 EventSource class.
+	Automatically implements the tedious part of the .NET EventSource classes.
 	Also automatically converts any interface to an ETW trace point.
 	Wrap your interfaces and get free ETW tracing.
-	** Compatible with System.Diagnostics.Tracing (the one in the .NET Framework) **
+	** Now with .NET Standard 2.0 support! **
     </description>
     <language>en-US</language>
     <projectUrl>http://github.com/jonwagner/EventSourceProxy</projectUrl>
@@ -20,9 +20,9 @@
 	</dependencies>
   </metadata>
   <files>
-    <file src="EventSourceProxy\bin\Release\EventSourceProxy.dll" target="lib" />
-	<file src="EventSourceProxy\bin\Release\EventSourceProxy.xml" target="lib" />
-	<file src="EventSourceProxy\bin\Release\EventSourceProxy.dll" target="tools" />
-	<file src="GenerateProxyManifest\bin\Release\GenerateProxyManifest.exe" target="tools" />
+    <file src=".\EventSourceProxy\bin\Release\netstandard2.0\EventSourceProxy.dll" target="lib" />
+	<file src=".\EventSourceProxy\bin\Release\netstandard2.0\EventSourceProxy.xml" target="lib" />
+	<file src=".\EventSourceProxy\bin\Release\netstandard2.0\EventSourceProxy.dll" target="tools" />
+	<file src=".\GenerateProxyManifest\bin\Release\netstandard2.0\GenerateProxyManifest.exe" target="tools" />
   </files>
 </package>

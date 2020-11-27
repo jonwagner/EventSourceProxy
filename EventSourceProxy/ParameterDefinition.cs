@@ -6,11 +6,7 @@ using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
 
-#if NUGET
-namespace EventSourceProxy.NuGet
-#else
 namespace EventSourceProxy
-#endif
 {
 	/// <summary>
 	/// Represents the definition of a parameter.
@@ -40,7 +36,7 @@ namespace EventSourceProxy
 		/// <param name="alias">The name of the parameter.</param>
 		/// <param name="parameterInfo">The parameter to bind to.</param>
 		/// <param name="converter">An optional converter that converts the parameter to a desired result.</param>
-		public ParameterDefinition(string alias, ParameterInfo parameterInfo, LambdaExpression converter = null)
+		public ParameterDefinition(string alias, ParameterInfo parameterInfo, ParameterConverter converter = null)
 		{
 			if (alias == null) throw new ArgumentNullException("alias");
 
@@ -54,9 +50,7 @@ namespace EventSourceProxy
 
 				if (converter != null)
 				{
-					if (converter.Parameters.Count != 1)
-						throw new ArgumentException("The conversion expression must take one parameter.", "converter");
-					if (SourceType != converter.Parameters[0].Type && !SourceType.IsSubclassOf(converter.Parameters[0].Type))
+					if (SourceType != converter.InputType && !SourceType.IsSubclassOf(converter.InputType))
 						throw new ArgumentException("The conversion expression must match the type of the parameter.", "converter");
 				}
 			}
@@ -64,12 +58,11 @@ namespace EventSourceProxy
 			{
 				if (converter == null)
 					throw new ArgumentException("A conversion expression must be specified.", "converter");
+				if (converter.InputType != null)
+					throw new ArgumentException("The conversion expression must take no parameters.", "converter");
 
 				Position = -1;
 				SourceType = converter.ReturnType;
-
-				if (converter.Parameters.Count != 0)
-					throw new ArgumentException("The conversion expression must take no parameters.", "converter");
 			}
 		}
 
@@ -93,6 +86,6 @@ namespace EventSourceProxy
 		/// <summary>
 		/// Gets an expression that converts the parameter to the intended logged value.
 		/// </summary>
-		public LambdaExpression Converter { get; private set; }
+		public ParameterConverter Converter { get; private set; }
 	}
 }

@@ -194,7 +194,7 @@ namespace EventSourceProxy.Tests
 			var events = _listener.Events.ToArray();
 			Assert.AreEqual(1, events.Length);
 			Assert.AreEqual(1, events[0].EventId);
-			Assert.AreEqual(null, events[0].Payload[0]);
+			Assert.AreEqual(String.Empty, events[0].Payload[0]);
 		}
 		#endregion
 
@@ -208,17 +208,17 @@ namespace EventSourceProxy.Tests
 		{
 			public override string SerializeObject(object value, TraceSerializationContext context)
 			{
-				throw new NotImplementedException();
+				return "custom";
 			}
 
 			public override EventLevel? GetEventLevelForContext(TraceSerializationContext context)
 			{
-				return null;
+				return EventLevel.LogAlways;
 			}
 
 			public override bool ShouldSerialize(TraceSerializationContext context)
 			{
-				return false;
+				return true;
 			}
 		}
 
@@ -237,7 +237,7 @@ namespace EventSourceProxy.Tests
 			var events = _listener.Events.ToArray();
 			Assert.AreEqual(1, events.Length);
 			Assert.AreEqual(1, events[0].EventId);
-			Assert.AreEqual(null, events[0].Payload[0]);
+			Assert.AreEqual("custom", events[0].Payload[0]);
 		}
 		#endregion
 
@@ -290,7 +290,7 @@ namespace EventSourceProxy.Tests
 			var events = _listener.Events.ToArray();
 			Assert.AreEqual(1, events.Length);
 			Assert.AreEqual(1, events[0].EventId);
-			Assert.AreEqual(null, events[0].Payload[0]);
+			Assert.AreEqual(String.Empty, events[0].Payload[0]);
 
 			_listener.Reset();
 			_listener.EnableEvents((EventSource)logger, EventLevel.Verbose);
@@ -349,7 +349,7 @@ namespace EventSourceProxy.Tests
 			var events = _listener.Events.ToArray();
 			Assert.AreEqual(1, events.Length);
 			Assert.AreEqual(1, events[0].EventId);
-			Assert.IsNull(events[0].Payload[0]);
+			Assert.AreEqual(String.Empty, events[0].Payload[0]);
 
 			_listener.Reset();
 			_listener.EnableEvents((EventSource)logger, EventLevel.Verbose);

@@ -6,11 +6,7 @@ using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
 
-#if NUGET
-namespace EventSourceProxy.NuGet
-#else
 namespace EventSourceProxy
-#endif
 {
 	/// <summary>
 	/// Represents the mapping between the caller's parameters and the parameters for the underlying method.
@@ -104,7 +100,9 @@ namespace EventSourceProxy
 					alias = pi.Name;
 			}
 
-			_sources.Add(new ParameterDefinition(alias, pi, converter));
+			var pc = (converter != null) ? new ParameterConverter(converter) : null;
+
+			_sources.Add(new ParameterDefinition(alias, pi, pc));
 		}
 
 		/// <summary>
@@ -150,7 +148,7 @@ namespace EventSourceProxy
 			System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Design", "CA1011:ConsiderPassingBaseTypesAsParameters", Justification = "This lets the compiler know to generate expressions")]
 		public void AddContext<TOut>(string alias, Expression<Func<TOut>> contextExpression)
 		{
-			AddSource(new ParameterDefinition(alias, null, contextExpression));
+			AddSource(null, alias, (LambdaExpression)contextExpression);
 		}
 
 		/// <summary>
@@ -162,6 +160,25 @@ namespace EventSourceProxy
 			if (source == null) throw new ArgumentNullException("source");
 
 			_sources.Add(source);
+		}
+
+		/// <summary>
+		/// Adds a parameter source to this mapping.
+		/// </summary>
+		/// <param name="pi">The parameter to add.</param>
+		/// <param name="alias">The alias to use to log the parameter.</param>
+		/// <param name="converter">A converter that converts the parameter to a desired value.</param>
+		internal void AddSource(ParameterInfo pi, string alias, ParameterConverter converter)
+		{
+			if (alias == null)
+			{
+				if (pi == null)
+					throw new ArgumentNullException("pi");
+				else
+					alias = pi.Name;
+			}
+
+			_sources.Add(new ParameterDefinition(alias, pi, converter));
 		}
 	}
 }
