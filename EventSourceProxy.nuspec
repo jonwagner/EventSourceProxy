@@ -13,16 +13,18 @@
     </description>
     <language>en-US</language>
     <projectUrl>http://github.com/jonwagner/EventSourceProxy</projectUrl>
-    <licenseUrl>http://opensource.org/licenses/ms-pl.html</licenseUrl>
+    <license type="expression">MS-PL OR MIT</license>
     <tags>EventSource log semantic structured strongly-typed logging ETW tracing event listener block lab LOB slab</tags>
 	<dependencies>
-		<dependency id="Newtonsoft.Json"></dependency>
+    <group targetFramework=".netstandard2.0">
+  		<dependency id="Newtonsoft.Json" version="12.0.3"></dependency>
+    </group>
 	</dependencies>
   </metadata>
   <files>
-    <file src=".\EventSourceProxy\bin\Release\netstandard2.0\EventSourceProxy.dll" target="lib" />
-	<file src=".\EventSourceProxy\bin\Release\netstandard2.0\EventSourceProxy.xml" target="lib" />
-	<file src=".\EventSourceProxy\bin\Release\netstandard2.0\EventSourceProxy.dll" target="tools" />
-	<file src=".\GenerateProxyManifest\bin\Release\netstandard2.0\GenerateProxyManifest.exe" target="tools" />
+    <file src=".\EventSourceProxy\bin\Release\netstandard2.0\EventSourceProxy.dll" target="lib/netstandard20" />
+    <file src=".\EventSourceProxy\bin\Release\netstandard2.0\EventSourceProxy.xml" target="lib/netstandard20" />
+    <file src=".\EventSourceProxy\bin\Release\netstandard2.0\EventSourceProxy.dll" target="tools" />
+    <file src=".\GenerateProxyManifest\bin\Release\netcoreapp2.0\GenerateProxyManifest.dll" target="tools" />
   </files>
 </package>
