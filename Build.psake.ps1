@@ -7,82 +7,27 @@
 #########################################
 
 properties {
-    $baseDir = $psake.build_script_dir
-
     $version = git describe --abbrev=0 --tags
-    $changeset = (git log -1 $version --pretty=format:%H)
-	$assemblyversion = $version.Split('-', 2)[0]
-
-    $outputDir = "$baseDir\Build\Output"
-
-    $framework = "$env:systemroot\Microsoft.NET\Framework\v4.0.30319\"
-    $msbuild = $framework + "msbuild.exe"
-    $configuration = "Release"
-    $nuget = "nuget.exe"
-    $nunit = Get-ChildItem "$baseDir\packages" -Recurse -Include nunit-console.exe
 }
 
 Task default -depends Build
 
-function Replace-Version {
-    param (
-        [string] $Path
-    )
-
-    (Get-Content $Path) |
-		% { $_ -replace "\[assembly: AssemblyFileVersion\(`"(\d+\.?)*`"\)\]","[assembly: AssemblyFileVersion(`"$assemblyversion`")]" } |
-		Set-Content $Path
-}
-
-function ReplaceVersions {
-    Get-ChildItem $baseDir -Include AssemblyInfo.cs -Recurse |% { Replace-Version $_.FullName }
-}
-
-function RestoreVersions {
-    Get-ChildItem $baseDir -Include AssemblyInfo.cs -Recurse |% {
-        git checkout $_.FullName
-    }
-}
-
-function Wipe-Folder {
-    param (
-        [string] $Path
-    )
-
-    if (Test-Path $Path) { Remove-Item $Path -Recurse }
-    New-Item -Path $Path -ItemType Directory | Out-Null
-}
-
 Task Build {
-    ReplaceVersions
+    Write-Output "Building Version $version"
 
-    try {
-        # build the NET45 binaries
-        Exec {
-            Invoke-Expression "$msbuild $baseDir\EventSourceProxy.sln '/p:Configuration=$configuration' '/t:Clean;Build'"
-        }
-    }
-    finally {
-        RestoreVersions
+    Exec {
+        dotnet build --configuration Release /p:Version=$version
     }
 }
 
-Task Test -depends Build { 
-    Exec {
-        Invoke-Expression "$nunit $baseDir\EventSourceProxy.Tests\bin\$configuration\EventSourceProxy.Tests.dll"
-        Invoke-Expression "$nunit $baseDir\EventSourceProxy.Tests.NuGet\bin\$configuration\EventSourceProxy.Tests.NuGet.dll"
-    }
+Task Test { 
+    dotnet test --configuration Release
 }
 
 Task Package -depends Test {
-    Wipe-Folder $outputDir
- 
-    # package nuget
-    Exec {
-        Invoke-Expression "$nuget pack $baseDir\EventSourceProxy.nuspec -OutputDirectory $outputDir -Version $version -NoPackageAnalysis"
-    }
-    # package nuget
-    Exec {
-        Invoke-Expression "$nuget pack $baseDir\EventSourceProxy.NuGet.nuspec -OutputDirectory $outputDir -Version $version -NoPackageAnalysis"
-    }
+    nuget pack .\EventSourceProxy.nuspec -version $version
+}
+
+Task Push {
+    cmd /c "for %p in (*.nupkg) do nuget push %p -source https://www.nuget.org/api/v2/package"
 }
