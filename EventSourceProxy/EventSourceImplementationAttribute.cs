@@ -11,7 +11,7 @@ namespace EventSourceProxy
 	/// Specifies the classes to use for the Keywords, Tasks, and Opcodes enumerations for an EventSource.
 	/// </summary>
 	[AttributeUsage(AttributeTargets.Class | AttributeTargets.Interface)]
-	public sealed class EventSourceImplementationAttribute : Attribute
+	public class EventSourceImplementationAttribute : Attribute
 	{
 		#region Static Fields
 		/// <summary>
