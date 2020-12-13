@@ -13,10 +13,11 @@ namespace EventSourceProxy
 {
 	/// <summary>
 	/// Implements a given type as an EventSource.
+	/// This class is not intended for public consumption.
 	/// </summary>
 	[SuppressMessage("Microsoft.StyleCop.CSharp.OrderingRules", "SA1201:ElementsMustAppearInTheCorrectOrder", Justification = "Internal classes are at the end.")]
 	[SuppressMessage("Microsoft.StyleCop.CSharp.OrderingRules", "SA1204:StaticElementsMustAppearBeforeInstanceElements", Justification = "This ordering is most appropriate for the structure of the code.")]
-	class TypeImplementer
+	public class TypeImplementer
 	{
 		#region Private Fields
 		/// <summary>
