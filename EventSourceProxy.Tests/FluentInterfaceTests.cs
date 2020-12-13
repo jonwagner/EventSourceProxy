@@ -142,8 +142,7 @@ namespace EventSourceProxy.Tests
 				.Trace("email");
 
 			ParameterBuilder traceBuilder = (ParameterBuilder)traceDescription;
-
-			Assert.That(traceBuilder.Alias, Is.EqualTo("email"));
+			Assert.That(traceBuilder.Alias, Is.EqualTo(null));
 
 			var traceValues = traceBuilder.Values.ToArray();
 			Assert.That(traceValues.Length, Is.EqualTo(1));
@@ -175,8 +174,7 @@ namespace EventSourceProxy.Tests
 				.EndWith();
 
 			ParameterBuilder traceBuilder = (ParameterBuilder)traceDescription;
-
-			Assert.That(traceBuilder.Alias, Is.EqualTo("From"));
+			Assert.That(traceBuilder.Alias, Is.EqualTo(null));
 
 			var traceValues = traceBuilder.Values.ToArray();
 			Assert.That(traceValues.Length, Is.EqualTo(1));
@@ -302,8 +300,7 @@ namespace EventSourceProxy.Tests
 
 			var builders = tpp.Builders.ToArray();
 			Assert.That(builders.Length, Is.EqualTo(1));
-
-			Assert.That(builders[0].Alias, Is.EqualTo("From"));
+			Assert.That(builders[0].Alias, Is.EqualTo(null));
 
 			var values = builders[0].Values.ToArray();
 			ValidateValue(values[0], "From", null, true);
@@ -361,7 +358,7 @@ namespace EventSourceProxy.Tests
 
 			var builders = tpp.Builders.ToArray();
 			Assert.That(builders.Length, Is.EqualTo(1));
-			Assert.That(builders[0].Alias, Is.EqualTo("email"));
+			Assert.That(builders[0].Alias, Is.EqualTo(null));
 
 			var values = builders[0].Values.ToArray();
 			ValidateValue(values[0], "email", "email", false);
@@ -437,9 +434,9 @@ namespace EventSourceProxy.Tests
 			var builders = tpp.Builders.ToArray();
 			Assert.That(builders.Length, Is.EqualTo(2));
 
-			Assert.That(builders[0].Alias, Is.EqualTo("From"));
+			Assert.That(builders[0].Alias, Is.EqualTo(null));
 			ValidateValue(builders[0].Values.First(), "From", null, true);
-			Assert.That(builders[1].Alias, Is.EqualTo("To"));
+			Assert.That(builders[1].Alias, Is.EqualTo(null));
 			ValidateValue(builders[1].Values.First(), "To", null, true);
 		}
 
@@ -455,9 +452,9 @@ namespace EventSourceProxy.Tests
 			var builders = tpp.Builders.ToArray();
 			Assert.That(builders.Length, Is.EqualTo(2));
 
-			Assert.That(builders[0].Alias, Is.EqualTo("From"));
+			Assert.That(builders[0].Alias, Is.EqualTo(null));
 			ValidateValue(builders[0].Values.First(), "From", "email", true);
-			Assert.That(builders[1].Alias, Is.EqualTo("To"));
+			Assert.That(builders[1].Alias, Is.EqualTo(null));
 			ValidateValue(builders[1].Values.First(), "To", "email", true);
 		}
 
@@ -475,10 +472,10 @@ namespace EventSourceProxy.Tests
 			var builders = tpp.Builders.ToArray();
 			Assert.That(builders.Length, Is.EqualTo(3));
 
-			Assert.That(builders[0].Alias, Is.EqualTo("From"));
+			Assert.That(builders[0].Alias, Is.EqualTo(null));
 			ValidateValue(builders[0].Values.First(), "From", "email", true);
 			Assert.That(builders[0].Values.First().ParameterType, Is.EqualTo(typeof(IEmail)));
-			Assert.That(builders[1].Alias, Is.EqualTo("To"));
+			Assert.That(builders[1].Alias, Is.EqualTo(null));
 			Assert.That(builders[1].Values.First().ParameterType, Is.EqualTo(typeof(IEmail)));
 			ValidateValue(builders[1].Values.First(), "To", "email", true);
 			Assert.That(builders[2].Alias, Is.EqualTo("other"));

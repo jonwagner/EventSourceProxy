@@ -647,5 +647,21 @@ namespace EventSourceProxy.Tests
 			Assert.AreEqual("Up", events[0].Payload[1]);
 		}
 		#endregion
+
+		#region Issue 55 Tests
+		[EventSourceImplementation(Name = "Test", ImplementComplementMethods = false)]
+		public interface ITestEvents
+		{
+			[Event(100, Message = "Test {0}, {1}.", Level = EventLevel.Verbose)]
+			void MyLog(Type t, Type t2);
+		}
+
+		[Test]
+		public void TestIssue55()
+		{
+			TraceParameterProvider.Default.ForAnything().With<Type>().Trace(t => t.FullName);
+			EventSourceImplementer.GetEventSourceAs<ITestEvents>().MyLog(typeof(string), typeof(int));
+		}
+		#endregion
 	}
 }

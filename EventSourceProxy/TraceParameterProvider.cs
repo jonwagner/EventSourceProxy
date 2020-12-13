@@ -154,9 +154,16 @@ namespace EventSourceProxy
 							continue;
 
 						var converter = (value.Converter != null) ? new ParameterConverter(value.Converter) : null;
+						var alias = value.Alias ?? builder.Alias ?? "data";
+
+						AddMapping(mappings, parameter, builder.Alias ?? String.Format("{0}.{1}", parameter.Name, alias), alias, converter);
 
 						// add the parameter value
-						AddMapping(mappings, parameter, builder.Alias ?? "data", value.Alias ?? builder.Alias ?? "data", converter);
+						// var alias = value.Alias ?? builder.Alias ?? "data";
+						// if (parameter != null && parameter.Name != alias)
+						// 	alias = String.Format("{0}.{1}", parameter.Name, alias);
+						// AddMapping(mappings, parameter, alias, alias, converter);
+//						AddMapping(mappings, parameter, parameter?.Name ?? alias, alias, converter);
 					}
 				}
 

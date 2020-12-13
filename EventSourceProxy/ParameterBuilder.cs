@@ -549,8 +549,8 @@ namespace EventSourceProxy
 		/// <returns>A continuation of the configuration.</returns>
 		private ParameterBuilder AndImpl(string parameterName, string alias, LambdaExpression accessorExpression)
 		{
-			if (Alias == null)
-				Alias = alias;
+			// if (Alias == null)
+			// 	Alias = alias;
 
 			var value = new ParameterBuilderValue(parameterName, alias, null, accessorExpression);
 			_values.Add(value);
