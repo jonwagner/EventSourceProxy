@@ -114,8 +114,8 @@ namespace EventSourceProxy
 
 			// check for an attribute on the type
 			var implementationAttribute = context.MethodInfo.DeclaringType.GetCustomAttribute<EventSourceImplementationAttribute>();
-			if (implementationAttribute != null && implementationAttribute.Level.HasValue)
-				return implementationAttribute.Level.Value;
+			if (implementationAttribute != null && implementationAttribute.DefaultLevel.HasValue)
+				return implementationAttribute.DefaultLevel.Value;
 
 			if (baseAttribute != null)
 				return baseAttribute.Level;

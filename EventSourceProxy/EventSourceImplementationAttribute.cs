@@ -66,9 +66,10 @@ namespace EventSourceProxy
 		public Type OpCodes { get; set; }
 
 		/// <summary>
-		/// Gets or sets the default event level for the EventSource.
+		/// Gets or sets the default event level for the EventSource. Defaults to Verbose.
 		/// </summary>
-		public EventLevel? Level { get; set; }
+		public EventLevel Level { get; set; }
+		internal EventLevel? DefaultLevel { get; set; }
 
 		/// <summary>
 		/// Gets or sets a value indicating whether the _Completed and _Faulted methods should be implemented

@@ -159,6 +159,15 @@ namespace EventSourceProxy.Tests
 		}
 		#endregion
 
+		#region Level Test
+		[EventSourceImplementation(Level = EventLevel.LogAlways)]
+		public abstract class ChangesDefaultLevel : EventSource
+		{
+			[Event(1, Message = "Event: {0}", Level = EventLevel.Informational, Keywords = KeywordsFoo.Startup)]
+			public abstract void Event(string message);
+		}
+		#endregion
+
 		#region Abstract Class with External Enums
 		[EventSourceImplementation(Keywords = typeof(KeywordsFoo))]
 		public abstract class TestLogWithExternalEnums : EventSource
