@@ -11,9 +11,6 @@ There are now two versions of ESP:
 
 [Get EventSourceProxy (ESP) from NuGet](http://nuget.org/packages/EventSourceProxy)
 
-
-Follow [@jonwagnerdotcom](http://twitter.com/#!jonwagnerdotcom) for latest updates on this library or [code.jonwagner.com](http://code.jonwagner.com) for more detailed writeups.
-
 ## Why You Want This ##
 
 - You really should be logging more than you do now.
